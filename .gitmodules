@@ -1,0 +1,3 @@
+[submodule "jni/celt"]
+	path = jni/celt
+	url = git://git.xiph.org/celt.git/

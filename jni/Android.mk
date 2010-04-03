@@ -22,7 +22,7 @@ LOCAL_SRC_FILES		:= bands.c			celt.c				cwrs.c				dump_modes.c \
 					   kiss_fft.c		laplace.c			mdct.c				modes.c \
 					   pitch.c			quant_bands.c		rangedec.c			rangeenc.c \
 					   rate.c			testcelt.c			vq.c
-LOCAL_CFLAGS		:= -I$(LOCAL_PATH) -Drestrict='' -D__EMX__ -DFIXED_POINT -DHAVE_LRINTF -DHAVE_LRINT -DDOUBLE_PRECISION -O3
+LOCAL_CFLAGS		:= -I$(LOCAL_PATH) -Drestrict='' -D__EMX__ -DFIXED_POINT -DHAVE_LRINTF -DHAVE_LRINT -DDOUBLE_PRECISION -DNEW_PLC -O3
 include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
