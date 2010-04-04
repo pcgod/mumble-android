@@ -33,6 +33,22 @@ public class PacketDataStream {
 			overshoot++;
 		}
 	}
+	
+	public final void append(final short[] d) {
+		final int len = d.length;
+		if (left() >= len) {
+			for (int i = 0; i < len; ++i) {
+				data[offset + i] = (byte) d[i];
+			}
+			offset += len;
+		} else {
+			final int l = left();
+			System.arraycopy(null, 0, data, offset, l);
+			offset += l;
+			overshoot += len - l;
+			ok = false;
+		}
+	}
 
 	public final int capacity() {
 		return maxsize;

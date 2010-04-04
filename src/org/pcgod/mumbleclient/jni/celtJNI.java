@@ -32,13 +32,9 @@ class celtJNI {
   public final static native int celt_mode_info(long jarg1, int jarg2, int[] jarg3);
   public final static native long celt_encoder_create(long jarg1, int jarg2, int[] jarg3);
   public final static native void celt_encoder_destroy(long jarg1);
-  public final static native int celt_encode_float(long jarg1, float[] jarg2, float[] jarg3, String jarg4, int jarg5);
   public final static native int celt_encode(long jarg1, short[] jarg2, short[] jarg3, short[] jarg4, int jarg5);
-  public final static native int celt_encoder_ctl(long jarg1, int jarg2);
+  public final static native int celt_encoder_ctl(long jarg1, int jarg2, int jarg3);
   public final static native long celt_decoder_create(long jarg1, int jarg2, int[] jarg3);
   public final static native void celt_decoder_destroy(long jarg1);
-  public final static native int celt_decode_float(long jarg1, short[] jarg2, int jarg3, float[] jarg4);
   public final static native int celt_decode(long jarg1, short[] jarg2, int jarg3, short[] jarg4);
-  public final static native int celt_decoder_ctl(long jarg1, int jarg2);
-  public final static native String celt_strerror(int jarg1);
 }

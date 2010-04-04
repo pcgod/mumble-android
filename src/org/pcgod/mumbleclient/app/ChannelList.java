@@ -13,8 +13,8 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.View.OnClickListener;
 import android.widget.BaseAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 
 public class ChannelList extends ListActivity {
@@ -44,8 +44,13 @@ public class ChannelList extends ListActivity {
 
 		@Override
 		public View getView(int position, View v, ViewGroup parent) {
+			Channel c = al.get(position);
 			TextView tv = new TextView(ctx);
-			tv.setText(al.get(position).name);
+			if (c.id != ServerList.client.currentChannel) {
+				tv.setText(c.name);
+			} else {
+				tv.setText(c.name + " *");
+			}
 			return tv;
 		}
 	}
@@ -57,33 +62,29 @@ public class ChannelList extends ListActivity {
 		}
 	}
 
+	private static final int ACTIVITY_USER_LIST = 0;
+
 	private ChannelBroadcastReceiver bcReceiver;
 
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.channel_list);
 
-		findViewById(R.id.Button01).setOnClickListener(new OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				updateList();
-				ServerList.client.printChanneList();
-			}
-		});
-
-		findViewById(R.id.Button02).setOnClickListener(new OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				ServerList.client.printUserList();
-			}
-		});
-
+		// FIXME check ServerList.client
 		setListAdapter(new ChannelAdapter(this, ServerList.client.channelArray));
 		updateList();
 	}
 
 	private void updateList() {
 		((BaseAdapter) getListAdapter()).notifyDataSetChanged();
+	}
+
+	protected void onListItemClick(ListView l, View v, int position, long id) {
+		super.onListItemClick(l, v, position, id);
+
+		Intent i = new Intent(this, UserList.class);
+		i.putExtra("channelId", id);
+		startActivityForResult(i, ACTIVITY_USER_LIST);
 	}
 
 	@Override
@@ -97,6 +98,7 @@ public class ChannelList extends ListActivity {
 	protected void onResume() {
 		super.onResume();
 
+		updateList();
 		IntentFilter ifilter = new IntentFilter(
 				"mumbleclient.intent.CHANNEL_LIST_UPDATE");
 		bcReceiver = new ChannelBroadcastReceiver();

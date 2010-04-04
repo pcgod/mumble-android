@@ -29,7 +29,7 @@ extern int celt_encoder_ctl(CELTEncoder * st, int request, ...);
 extern CELTDecoder *celt_decoder_create(const CELTMode *mode, int channels, int *error);
 extern void celt_decoder_destroy(CELTDecoder *st);
 extern int celt_decode(CELTDecoder *st, const unsigned char *data, int len, short *pcm);
-extern int celt_decoder_ctl(CELTDecoder * st, int request, ...);
+//extern int celt_decoder_ctl(CELTDecoder * st, int request, ...);
 %}
 %include "typemaps.i"
 %include "arrays_java.i"
@@ -183,7 +183,7 @@ EXPORT void celt_encoder_destroy(CELTEncoder *st);
  *       the length returned be somehow transmitted to the decoder. Otherwise, no
  *       decoding is possible.
 */
-EXPORT int celt_encode_float(CELTEncoder *st, float *pcm, float *optional_synthesis, char *compressed, int nbCompressedBytes);
+//EXPORT int celt_encode_float(CELTEncoder *st, float *pcm, float *optional_synthesis, char *compressed, int nbCompressedBytes);
 
 /** Encodes a frame of audio.
  @param st Encoder state
@@ -211,7 +211,7 @@ EXPORT int celt_encode(CELTEncoder *st, celt_int16 *pcm, celt_int16 *optional_sy
  @param value Pointer to a 32-bit int value
  @return Error code
 */
-EXPORT int celt_encoder_ctl(CELTEncoder * st, int request, ...);
+EXPORT int celt_encoder_ctl(CELTEncoder * st, int request, int value);
 
 /* Decoder stuff */
 
@@ -240,7 +240,7 @@ EXPORT void celt_decoder_destroy(CELTDecoder *st);
             returned here in float format. 
  @return Error code.
    */
-EXPORT int celt_decode_float(CELTDecoder *st, unsigned char *data, int len, float *pcm);
+//EXPORT int celt_decode_float(CELTDecoder *st, unsigned char *data, int len, float *pcm);
 
 /** Decodes a frame of audio.
  @param st Decoder state
@@ -259,11 +259,11 @@ EXPORT int celt_decode(CELTDecoder *st, unsigned char *data, int len, celt_int16
    @param value Pointer to a 32-bit int value
    @return Error code
  */
-EXPORT int celt_decoder_ctl(CELTDecoder * st, int request, ...);
+//EXPORT int celt_decoder_ctl(CELTDecoder * st, int request, ...);
 
 
 /** Returns the English string that corresponds to an error code
  * @param error Error code (negative for an error, 0 for success
  * @return Constant string (must NOT be freed)
  */
-EXPORT const char *celt_strerror(int error);
+//EXPORT const char *celt_strerror(int error);

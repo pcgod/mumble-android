@@ -10,6 +10,7 @@
 		</activity>
 		<activity android:name=".app.ServerAdd"></activity>
 		<activity android:name=".app.ChannelList"></activity>
+		<activity android:name=".app.UserList"></activity>
 	</application>
 	<uses-sdk android:targetSdkVersion="4" android:minSdkVersion="3" />
 	<uses-permission android:name="android.permission.RECORD_AUDIO"></uses-permission>

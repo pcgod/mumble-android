@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="userJoin">Join channel</string>
+    <string name="noUsers">User list empty</string>
+    <string name="userSpeak">Speak</string>
     <string name="noChannels">No channels?</string>
     <string name="serverAdd">Add Server</string>
     <string name="serverPassword">Password:</string>

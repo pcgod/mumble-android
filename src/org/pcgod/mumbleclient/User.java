@@ -3,6 +3,7 @@ package org.pcgod.mumbleclient;
 public class User {
 	public int session;
 	public String name;
+	public int channel;
 
 	@Override
 	public int hashCode() {
@@ -18,6 +19,7 @@ public class User {
 
 	@Override
 	public String toString() {
-		return "User [name=" + name + ", session=" + session + "]";
+		return "User [session=" + session + ", name=" + name + ", channel="
+				+ channel + "]";
 	}
 }
