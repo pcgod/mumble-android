@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hello">Hello World, testa!</string>
+    <string name="serverAdd">Add Server</string>
+    <string name="serverPassword">Password:</string>
+    <string name="serverUsername">Username:</string>
+    <string name="serverPort">Port:</string>
+    <string name="serverHost">Host:</string>
     <string name="app_name">MumbleClient</string>
+	<string name="noServers">Server list empty</string>
 </resources>
