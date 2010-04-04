@@ -15,7 +15,10 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 
 import net.sf.mumble.MumbleProto.Authenticate;
+import net.sf.mumble.MumbleProto.ChannelRemove;
+import net.sf.mumble.MumbleProto.ChannelState;
 import net.sf.mumble.MumbleProto.ServerSync;
+import net.sf.mumble.MumbleProto.UserRemove;
 import net.sf.mumble.MumbleProto.UserState;
 import net.sf.mumble.MumbleProto.Version;
 
@@ -23,6 +26,8 @@ import org.pcgod.mumbleclient.jni.SWIGTYPE_p_CELTDecoder;
 import org.pcgod.mumbleclient.jni.SWIGTYPE_p_CELTMode;
 import org.pcgod.mumbleclient.jni.celt;
 
+import android.content.Context;
+import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -46,10 +51,14 @@ public class MumbleClient implements Runnable {
 	private static final int protocolVersion = (1 << 16) | (2 << 8)
 			| (3 & 0xFF);
 	private AudioTrack at;
+	private Context ctx;
 	private DataOutputStream out;
 	private DataInputStream in;
-	// private boolean authenticated = false;
+	private boolean authenticated;
 	private int session;
+	public ArrayList<Channel> channelArray = new ArrayList<Channel>();
+	private ArrayList<User> userArray = new ArrayList<User>();
+
 	private Thread pingThread;
 	private String host;
 	private int port;
@@ -59,12 +68,29 @@ public class MumbleClient implements Runnable {
 	private SWIGTYPE_p_CELTMode celtMode;
 	private SWIGTYPE_p_CELTDecoder celtDecoder;
 
-	public MumbleClient(final String host_, final int port_,
+	public MumbleClient(Context ctx_, final String host_, final int port_,
 			final String username_, final String password_) {
+		ctx = ctx_;
 		host = host_;
 		port = port_;
 		username = username_;
 		password = password_;
+	}
+
+	public void printChanneList() {
+		Log.i("mumbleclient", "--- begin channel list ---");
+		for (Channel c : channelArray) {
+			Log.i("mumbleclient", c.toString());
+		}
+		Log.i("mumbleclient", "--- end channel list ---");
+	}
+
+	public void printUserList() {
+		Log.i("mumbleclient", "--- begin user list ---");
+		for (User u : userArray) {
+			Log.i("mumbleclient", u.toString());
+		}
+		Log.i("mumbleclient", "--- end user list ---");
 	}
 
 	public final void run() {
@@ -110,6 +136,24 @@ public class MumbleClient implements Runnable {
 		}
 	}
 
+	private Channel findChannel(int id) {
+		for (Channel c : channelArray) {
+			if (c.id == id)
+				return c;
+		}
+
+		return null;
+	}
+
+	private User findUser(int session) {
+		for (User u : userArray) {
+			if (u.session == session)
+				return u;
+		}
+
+		return null;
+	}
+
 	private void handleProtocol(final Socket socket) throws IOException {
 		out = new DataOutputStream(socket.getOutputStream());
 		in = new DataInputStream(socket.getInputStream());
@@ -138,13 +182,16 @@ public class MumbleClient implements Runnable {
 	private void processMsg(final MessageType t, final byte[] buffer)
 			throws IOException {
 		switch (t) {
+		case UDPTunnel:
+			processVoicePacket(buffer);
+			break;
 		case Ping:
 			// ignore
 			break;
 		case ServerSync:
 			final ServerSync ss = ServerSync.parseFrom(buffer);
 			session = ss.getSession();
-			// authenticated = true;
+			authenticated = true;
 
 			pingThread = new Thread(new PingThread(this), "ping");
 			pingThread.start();
@@ -154,11 +201,11 @@ public class MumbleClient implements Runnable {
 				System.out.println(">>> " + t);
 			}
 
-			final UserState.Builder us = UserState.newBuilder();
-			us.setSession(session);
-			us.setPluginContext(ByteString
+			final UserState.Builder usb = UserState.newBuilder();
+			usb.setSession(session);
+			usb.setPluginContext(ByteString
 					.copyFromUtf8("Manual placement\000test"));
-			sendMessage(MessageType.UserState, us);
+			sendMessage(MessageType.UserState, usb);
 
 			if (ANDROID) {
 				at = new AudioTrack(
@@ -174,9 +221,50 @@ public class MumbleClient implements Runnable {
 			celtMode = celt.celt_mode_create(48000, 48000 / 100, error);
 			celtDecoder = celt.celt_decoder_create(celtMode, 1, error);
 
+			sendChannelUpdateBroadcast();
 			break;
-		case UDPTunnel:
-			processVoicePacket(buffer);
+		case ChannelState:
+			final ChannelState cs = ChannelState.parseFrom(buffer);
+			Channel c = findChannel(cs.getChannelId());
+			if (c != null) {
+				if (cs.hasName())
+					c.name = cs.getName();
+				sendChannelUpdateBroadcast();
+				break;
+			}
+			// New channel
+			c = new Channel();
+			c.id = cs.getChannelId();
+			c.name = cs.getName();
+			channelArray.add(c);
+			sendChannelUpdateBroadcast();
+			break;
+		case ChannelRemove:
+			final ChannelRemove cr = ChannelRemove.parseFrom(buffer);
+			channelArray.remove(findChannel(cr.getChannelId()));
+
+			sendChannelUpdateBroadcast();
+			break;
+		case UserState:
+			final UserState us = UserState.parseFrom(buffer);
+			User u = findUser(us.getSession());
+			if (u != null) {
+				sendChannelUpdateBroadcast();
+				break;
+			}
+			// New user
+			u = new User();
+			u.session = us.getSession();
+			u.name = us.getName();
+			userArray.add(u);
+
+			sendChannelUpdateBroadcast();
+			break;
+		case UserRemove:
+			final UserRemove ur = UserRemove.parseFrom(buffer);
+			userArray.remove(findUser(ur.getSession()));
+
+			sendChannelUpdateBroadcast();
 			break;
 		default:
 			if (ANDROID) {
@@ -242,6 +330,13 @@ public class MumbleClient implements Runnable {
 			if (ANDROID) {
 				at.write(audioOut, 0, frameSize);
 			}
+		}
+	}
+
+	private void sendChannelUpdateBroadcast() {
+		if (authenticated) {
+			Intent i = new Intent("mumbleclient.intent.CHANNEL_LIST_UPDATE");
+			ctx.sendBroadcast(i);
 		}
 	}
 

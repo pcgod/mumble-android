@@ -80,6 +80,7 @@ public class ServerList extends ListActivity {
 	private Thread clientThread;
 	private DbAdapter dbAdapter;
 	private long serverToDeleteId = -1;
+	public static MumbleClient client;
 
 	private static final int ACTIVITY_ADD_SERVER = 0;
 	private static final int ACTIVITY_CHANNEL_LIST = 1;
@@ -214,8 +215,8 @@ public class ServerList extends ListActivity {
 			clientThread.interrupt();
 		}
 
-		final MumbleClient mc = new MumbleClient(host, port, username, password);
-		clientThread = new Thread(mc, "net");
+		client = new MumbleClient(this, host, port, username, password);
+		clientThread = new Thread(client, "net");
 		clientThread.start();
 	}
 }

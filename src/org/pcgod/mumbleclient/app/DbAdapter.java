@@ -16,13 +16,13 @@ public class DbAdapter {
 
 		@Override
 		public void onCreate(SQLiteDatabase db) {
-			db.execSQL("create table server (" +
-					"server_id integer primary key autoincrement," +
-					"host text not null," +
-					"port integer," +
-					"username text," +
-					"password text" +
-					");");
+			db.execSQL("create table server ("
+					+ "_id integer primary key autoincrement,"
+					+ "host text not null,"
+					+ "port integer,"
+					+ "username text,"
+					+ "password text"
+					+ ");");
 		}
 
 		@Override
@@ -34,12 +34,12 @@ public class DbAdapter {
 
 	public static final String DATABASE_NAME = "mumble.db";
 	public static final String SERVER_TABLE = "server";
-	public static final String SERVER_COL_ID = "server_id";
+	public static final String SERVER_COL_ID = "_id";
 	public static final String SERVER_COL_HOST = "host";
 	public static final String SERVER_COL_PORT = "port";
 	public static final String SERVER_COL_USERNAME = "username";
 	public static final String SERVER_COL_PASSWORD = "password";
-	
+
 	private Context context;
 	private SQLiteDatabase db;
 	private DatabaseHelper dbHelper;
@@ -52,7 +52,8 @@ public class DbAdapter {
 		dbHelper.close();
 	}
 
-	public long createServer(String host, int port, String username, String password) {
+	public long createServer(String host, int port, String username,
+			String password) {
 		ContentValues values = new ContentValues();
 		values.put(SERVER_COL_HOST, host);
 		values.put(SERVER_COL_PORT, port);
@@ -83,7 +84,7 @@ public class DbAdapter {
 
 		return c;
 	}
-	
+
 	public DbAdapter open() {
 		dbHelper = new DatabaseHelper(context);
 		db = dbHelper.getWritableDatabase();
