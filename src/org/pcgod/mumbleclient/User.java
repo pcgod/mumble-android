@@ -6,19 +6,20 @@ public class User {
 	public int channel;
 
 	@Override
-	public int hashCode() {
+	public final int hashCode() {
 		return session;
 	}
 
 	@Override
-	public boolean equals(Object o) {
-		if (!(o instanceof User))
+	public final boolean equals(final Object o) {
+		if (!(o instanceof User)) {
 			return false;
+		}
 		return session == ((User) o).session;
 	}
 
 	@Override
-	public String toString() {
+	public final String toString() {
 		return "User [session=" + session + ", name=" + name + ", channel="
 				+ channel + "]";
 	}

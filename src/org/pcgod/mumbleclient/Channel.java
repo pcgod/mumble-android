@@ -6,19 +6,20 @@ public class Channel {
 	public int userCount;
 
 	@Override
-	public int hashCode() {
+	public final int hashCode() {
 		return id;
 	}
 
 	@Override
-	public boolean equals(Object o) {
-		if (!(o instanceof Channel))
+	public final boolean equals(final Object o) {
+		if (!(o instanceof Channel)) {
 			return false;
+		}
 		return id == ((Channel) o).id;
 	}
 
 	@Override
-	public String toString() {
+	public final String toString() {
 		return "Channel [id=" + id + ", name=" + name + ", userCount="
 				+ userCount + "]";
 	}

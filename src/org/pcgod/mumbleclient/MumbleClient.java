@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -38,44 +39,44 @@ import com.google.protobuf.MessageLite;
 
 public class MumbleClient implements Runnable {
 	public enum MessageType {
-		Version, UDPTunnel, Authenticate, Ping, Reject, ServerSync, ChannelRemove, ChannelState, UserRemove, UserState, BanList, TextMessage, PermissionDenied, ACL, QueryUsers, CryptSetup, ContextActionAdd, ContextAction, UserList, VoiceTarget, PermissionQuery, CodecVersion, UserStats, RequestBlob, ServerConfig
+		ACL, Authenticate, BanList, ChannelRemove, ChannelState, CodecVersion, ContextAction, ContextActionAdd, CryptSetup, PermissionDenied, PermissionQuery, Ping, QueryUsers, Reject, RequestBlob, ServerConfig, ServerSync, TextMessage, UDPTunnel, UserList, UserRemove, UserState, UserStats, Version, VoiceTarget
 	}
 
 	public enum UDPMessageType {
-		UDPVoiceCELTAlpha, UDPPing, UDPVoiceSpeex, UDPVoiceCELTBeta
+		UDPPing, UDPVoiceCELTAlpha, UDPVoiceCELTBeta, UDPVoiceSpeex
 	};
 
 	public static final boolean ANDROID = true;;
 
-	private static final String INTENT_CURRENT_CHANNEL_CHANGED = "mumbleclient.intent.CURRENT_CHANNEL_CHANGED";
-	private static final String INTENT_CHANNEL_LIST_UPDATE = "mumbleclient.intent.CHANNEL_LIST_UPDATE";
-	private static final String INTENT_USER_LIST_UPDATE = "mumbleclient.intent.USER_LIST_UPDATE";
 	public static final int SAMPLE_RATE = 48000;
 	public static final int FRAME_SIZE = SAMPLE_RATE / 100;
+	public static final String INTENT_CHANNEL_LIST_UPDATE = "mumbleclient.intent.CHANNEL_LIST_UPDATE";
+	public static final String INTENT_CURRENT_CHANNEL_CHANGED = "mumbleclient.intent.CURRENT_CHANNEL_CHANGED";
+	public static final String INTENT_USER_LIST_UPDATE = "mumbleclient.intent.USER_LIST_UPDATE";
+	public static final String LOG_TAG = "mumbleclient";
 	private static final int protocolVersion = (1 << 16) | (2 << 8)
 			| (3 & 0xFF);
-	private AudioTrack at;
-	private Context ctx;
-	private DataOutputStream out;
-	private DataInputStream in;
-	private Socket socket;
-	private boolean authenticated;
-	public int session;
 	public ArrayList<Channel> channelArray = new ArrayList<Channel>();
-	public ArrayList<User> userArray = new ArrayList<User>();
 	public int currentChannel = -1;
-
-	private Thread pingThread;
-	private String host;
-	private int port;
-	private String username;
-	private String password;
-
-	private SWIGTYPE_p_CELTMode celtMode;
+	public int session;
+	public ArrayList<User> userArray = new ArrayList<User>();
+	private AudioTrack at;
+	private boolean authenticated;
 	private SWIGTYPE_p_CELTDecoder celtDecoder;
+	private SWIGTYPE_p_CELTMode celtMode;
+	private Context ctx;
 
+	private DataInputStream in;
+	private DataOutputStream out;
+	private Thread pingThread;
+	private Socket socket;
 
-	public MumbleClient(Context ctx_, final String host_, final int port_,
+	private final String host;
+	private final int port;
+	private final String username;
+	private final String password;
+
+	public MumbleClient(final Context ctx_, final String host_, final int port_,
 			final String username_, final String password_) {
 		ctx = ctx_;
 		host = host_;
@@ -84,39 +85,39 @@ public class MumbleClient implements Runnable {
 		password = password_;
 	}
 
-	public boolean isConnected() {
-		return (socket != null && socket.isConnected());
+	public final boolean isConnected() {
+		return socket != null && socket.isConnected();
 	}
 
-	public boolean isSameServer(String host_, int port_, String username_,
-			String password_) {
-		return (host.equals(host_) && port == port_ && username.equals(username_) && password.equals(password_));
+	public final boolean isSameServer(final String host_, final int port_, final String username_,
+			final String password_) {
+		return host.equals(host_) && port == port_ && username.equals(username_) && password.equals(password_);
 	}
 
-	public void joinChannel(int channelId) {
-		UserState.Builder us = UserState.newBuilder();
+	public final void joinChannel(final int channelId) {
+		final UserState.Builder us = UserState.newBuilder();
 		us.setSession(session);
 		us.setChannelId(channelId);
 		try {
 			sendMessage(MessageType.UserState, us);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 	}
 
 	public final void run() {
 		try {
-			final SSLContext ctx = SSLContext.getInstance("TLS");
-			ctx.init(null, new TrustManager[] { new LocalSSLTrustManager() },
+			final SSLContext ctx_ = SSLContext.getInstance("TLS");
+			ctx_.init(null, new TrustManager[] { new LocalSSLTrustManager() },
 					null);
-			final SSLSocketFactory factory = ctx.getSocketFactory();
-			final SSLSocket socket = (SSLSocket) factory.createSocket(host,
+			final SSLSocketFactory factory = ctx_.getSocketFactory();
+			final SSLSocket socket_ = (SSLSocket) factory.createSocket(host,
 					port);
-			socket.setUseClientMode(true);
-			socket.setEnabledProtocols(new String[] { "TLSv1" });
-			socket.startHandshake();
+			socket_.setUseClientMode(true);
+			socket_.setEnabledProtocols(new String[] { "TLSv1" });
+			socket_.startHandshake();
 
-			handleProtocol(socket);
+			handleProtocol(socket_);
 		} catch (final NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		} catch (final KeyManagementException e) {
@@ -136,18 +137,18 @@ public class MumbleClient implements Runnable {
 
 		out.writeShort(type);
 		out.writeInt(length);
-		out.write(m.toByteArray());
+		m.writeTo(out);
 
 		if (t != MessageType.Ping) {
 			if (ANDROID) {
-				Log.i("mumbleclient", "<<< " + t);
+				Log.i(LOG_TAG, "<<< " + t);
 			} else {
 				System.out.println("<<< " + t);
 			}
 		}
 	}
 
-	public void sendUdpTunnelMessage(byte[] buffer) throws IOException {
+	public final void sendUdpTunnelMessage(final byte[] buffer) throws IOException {
 		final short type = (short) MessageType.UDPTunnel.ordinal();
 		final int length = buffer.length;
 
@@ -156,19 +157,21 @@ public class MumbleClient implements Runnable {
 		out.write(buffer);
 	}
 
-	private Channel findChannel(int id) {
-		for (Channel c : channelArray) {
-			if (c.id == id)
+	private Channel findChannel(final int id) {
+		for (final Channel c : channelArray) {
+			if (c.id == id) {
 				return c;
+			}
 		}
 
 		return null;
 	}
 
-	private User findUser(int session) {
-		for (User u : userArray) {
-			if (u.session == session)
+	private User findUser(final int session_) {
+		for (final User u : userArray) {
+			if (u.session == session_) {
 				return u;
+			}
 		}
 
 		return null;
@@ -202,20 +205,20 @@ public class MumbleClient implements Runnable {
 
 	@SuppressWarnings("unused")
 	private void printChanneList() {
-		Log.i("mumbleclient", "--- begin channel list ---");
+		Log.i(LOG_TAG, "--- begin channel list ---");
 		for (Channel c : channelArray) {
-			Log.i("mumbleclient", c.toString());
+			Log.i(LOG_TAG, c.toString());
 		}
-		Log.i("mumbleclient", "--- end channel list ---");
+		Log.i(LOG_TAG, "--- end channel list ---");
 	}
 
 	@SuppressWarnings("unused")
 	private void printUserList() {
-		Log.i("mumbleclient", "--- begin user list ---");
+		Log.i(LOG_TAG, "--- begin user list ---");
 		for (User u : userArray) {
-			Log.i("mumbleclient", u.toString());
+			Log.i(LOG_TAG, u.toString());
 		}
-		Log.i("mumbleclient", "--- end user list ---");
+		Log.i(LOG_TAG, "--- end user list ---");
 	}
 
 	private void processMsg(final MessageType t, final byte[] buffer)
@@ -232,13 +235,13 @@ public class MumbleClient implements Runnable {
 			session = ss.getSession();
 			authenticated = true;
 
-			User user = findUser(session);
+			final User user = findUser(session);
 			currentChannel = user.channel;
 			
 			pingThread = new Thread(new PingThread(this), "ping");
 			pingThread.start();
 			if (ANDROID) {
-				Log.i("mumbleclient", ">>> " + t);
+				Log.i(LOG_TAG, ">>> " + t);
 			} else {
 				System.out.println(">>> " + t);
 			}
@@ -266,8 +269,9 @@ public class MumbleClient implements Runnable {
 			final ChannelState cs = ChannelState.parseFrom(buffer);
 			Channel c = findChannel(cs.getChannelId());
 			if (c != null) {
-				if (cs.hasName())
+				if (cs.hasName()) {
 					c.name = cs.getName();
+				}
 				sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
 				break;
 			}
@@ -315,7 +319,7 @@ public class MumbleClient implements Runnable {
 			break;
 		default:
 			if (ANDROID) {
-				Log.i("mumbleclient", "unhandled message type " + t);
+				Log.i(LOG_TAG, "unhandled message type " + t);
 			} else {
 				System.out.println("unhandled message type " + t);
 			}
@@ -325,10 +329,10 @@ public class MumbleClient implements Runnable {
 	private void processVoicePacket(final byte[] buffer) {
 		final UDPMessageType type = UDPMessageType.values()[buffer[0] >> 5 & 0x7];
 		// int flags = buffer[0] & 0x1f;
-		final byte[] pdsBuffer = new byte[buffer.length - 1];
-		System.arraycopy(buffer, 1, pdsBuffer, 0, pdsBuffer.length);
 
-		final PacketDataStream pds = new PacketDataStream(pdsBuffer);
+		final ByteBuffer pdsBuffer = ByteBuffer.wrap(buffer);
+		pdsBuffer.position(1);
+		final PacketDataStream pds = new PacketDataStream(pdsBuffer.slice());
 		final long uiSession = pds.readLong();
 		final long iSeq = pds.readLong();
 
@@ -365,14 +369,14 @@ public class MumbleClient implements Runnable {
 			final float y = pds.readFloat();
 			final float z = pds.readFloat();
 			if (ANDROID) {
-				Log.i("mumbleclient", "x: " + x + " y: " + y + " z: " + z);
+				Log.i(LOG_TAG, "x: " + x + " y: " + y + " z: " + z);
 			} else {
 				System.out.println("x: " + x + " y: " + y + " z: " + z);
 			}
 		}
 
-		short[] audioOut = new short[FRAME_SIZE];
-		for (short[] frame : frameList) {
+		final short[] audioOut = new short[FRAME_SIZE];
+		for (final short[] frame : frameList) {
 			celt.celt_decode(celtDecoder, frame, frame.length, audioOut);
 			if (ANDROID) {
 				at.write(audioOut, 0, FRAME_SIZE);
@@ -381,20 +385,20 @@ public class MumbleClient implements Runnable {
 	}
 
 	private void recountChannelUsers() {
-		for (Channel c : channelArray) {
+		for (final Channel c : channelArray) {
 			c.userCount = 0;
 		}
 		
-		for (User u : userArray) {
-			Channel c = findChannel(u.channel);
+		for (final User u : userArray) {
+			final Channel c = findChannel(u.channel);
 			c.userCount++;
 		}
 	}
 
-	private void sendBroadcast(String action) {
+	private void sendBroadcast(final String action) {
 		if (authenticated) {
 			recountChannelUsers();
-			Intent i = new Intent(action);
+			final Intent i = new Intent(action);
 			ctx.sendBroadcast(i);
 		}
 	}

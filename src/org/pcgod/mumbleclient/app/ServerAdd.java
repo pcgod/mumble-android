@@ -12,27 +12,32 @@ import android.widget.EditText;
 public class ServerAdd extends Activity {
 	private OnClickListener addButtonListener = new OnClickListener() {
 		@Override
-		public void onClick(View v) {
-			String host = ((EditText)findViewById(R.id.serverHostEdit)).getText().toString();
-			int port = Integer.parseInt(((EditText)findViewById(R.id.serverPortEdit)).getText().toString());
-			String username = ((EditText)findViewById(R.id.serverUsernameEdit)).getText().toString();
-			String password = ((EditText)findViewById(R.id.serverPasswordEdit)).getText().toString();
+		public void onClick(final View v) {
+			final String host = ((EditText) findViewById(R.id.serverHostEdit))
+					.getText().toString();
+			final int port = Integer
+					.parseInt(((EditText) findViewById(R.id.serverPortEdit))
+							.getText().toString());
+			final String username = ((EditText) findViewById(R.id.serverUsernameEdit))
+					.getText().toString();
+			final String password = ((EditText) findViewById(R.id.serverPasswordEdit))
+					.getText().toString();
 
-			DbAdapter db = new DbAdapter(v.getContext());
+			final DbAdapter db = new DbAdapter(v.getContext());
 			db.open();
 			db.createServer(host, port, username, password);
 			db.close();
-			
+
 			finish();
 		}
 	};
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState) {
+	protected final void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.server_add);
 
-		Button addButton = (Button) findViewById(R.id.serverAdd);
+		final Button addButton = (Button) findViewById(R.id.serverAdd);
 		addButton.setOnClickListener(addButtonListener);
 	}
 }

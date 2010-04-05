@@ -10,12 +10,12 @@ import android.util.Log;
 public class DbAdapter {
 	private static class DatabaseHelper extends SQLiteOpenHelper {
 
-		public DatabaseHelper(Context context) {
+		public DatabaseHelper(final Context context) {
 			super(context, DATABASE_NAME, null, 1);
 		}
 
 		@Override
-		public void onCreate(SQLiteDatabase db) {
+		public void onCreate(final SQLiteDatabase db) {
 			db.execSQL("create table server ("
 					+ "_id integer primary key autoincrement,"
 					+ "host text not null,"
@@ -26,7 +26,8 @@ public class DbAdapter {
 		}
 
 		@Override
-		public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+		public void onUpgrade(final SQLiteDatabase db, final int oldVersion,
+				final int newVersion) {
 			Log.w("mumbleclient", "Database upgrade from " + oldVersion
 					+ " to " + newVersion);
 		}
@@ -44,17 +45,17 @@ public class DbAdapter {
 	private SQLiteDatabase db;
 	private DatabaseHelper dbHelper;
 
-	public DbAdapter(Context context_) {
+	public DbAdapter(final Context context_) {
 		context = context_;
 	}
 
-	public void close() {
+	public final void close() {
 		dbHelper.close();
 	}
 
-	public long createServer(String host, int port, String username,
-			String password) {
-		ContentValues values = new ContentValues();
+	public final long createServer(final String host, final int port,
+			final String username, final String password) {
+		final ContentValues values = new ContentValues();
 		values.put(SERVER_COL_HOST, host);
 		values.put(SERVER_COL_PORT, port);
 		values.put(SERVER_COL_USERNAME, username);
@@ -62,30 +63,31 @@ public class DbAdapter {
 		return db.insert(SERVER_TABLE, null, values);
 	}
 
-	public boolean deleteServer(long serverId) {
+	public final boolean deleteServer(final long serverId) {
 		return db.delete(SERVER_TABLE, SERVER_COL_ID + " = " + serverId, null) > 0;
 	}
 
-	public Cursor fetchAllServers() {
-		Cursor c = db.query(SERVER_TABLE, new String[] { SERVER_COL_ID,
+	public final Cursor fetchAllServers() {
+		final Cursor c = db.query(SERVER_TABLE, new String[] { SERVER_COL_ID,
 				SERVER_COL_HOST, SERVER_COL_PORT, SERVER_COL_USERNAME,
 				SERVER_COL_PASSWORD }, null, null, null, null, null);
 
 		return c;
 	}
 
-	public Cursor fetchServer(long serverId) {
-		Cursor c = db.query(SERVER_TABLE, new String[] { SERVER_COL_ID,
+	public final Cursor fetchServer(final long serverId) {
+		final Cursor c = db.query(SERVER_TABLE, new String[] { SERVER_COL_ID,
 				SERVER_COL_HOST, SERVER_COL_PORT, SERVER_COL_USERNAME,
 				SERVER_COL_PASSWORD }, SERVER_COL_ID + " = " + serverId, null,
 				null, null, null);
-		if (c != null)
+		if (c != null) {
 			c.moveToFirst();
+		}
 
 		return c;
 	}
 
-	public DbAdapter open() {
+	public final DbAdapter open() {
 		dbHelper = new DatabaseHelper(context);
 		db = dbHelper.getWritableDatabase();
 		return this;

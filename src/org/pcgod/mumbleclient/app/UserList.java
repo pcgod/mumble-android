@@ -2,6 +2,7 @@ package org.pcgod.mumbleclient.app;
 
 import java.util.ArrayList;
 
+import org.pcgod.mumbleclient.MumbleClient;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.User;
 
@@ -22,69 +23,71 @@ import android.widget.ToggleButton;
 
 public class UserList extends ListActivity {
 	public class UserAdapter extends BaseAdapter {
-		private Context ctx;
 		private ArrayList<User> al;
+		private Context ctx;
 
-		public UserAdapter(Context context, ArrayList<User> userArray) {
+		public UserAdapter(final Context context,
+				final ArrayList<User> userArray) {
 			ctx = context;
 			al = userArray;
 		}
 
 		@Override
-		public int getCount() {
+		public final int getCount() {
 			return al.size();
 		}
 
 		@Override
-		public Object getItem(int position) {
+		public final Object getItem(final int position) {
 			return getItemId(position);
 		}
 
 		@Override
-		public long getItemId(int position) {
+		public final long getItemId(final int position) {
 			return al.get(position).session;
 		}
 
 		@Override
-		public View getView(int position, View v, ViewGroup parent) {
-			User u = al.get(position);
-			TextView tv = new TextView(ctx);
+		public final View getView(final int position, final View v,
+				final ViewGroup parent) {
+			final User u = al.get(position);
+			final TextView tv = new TextView(ctx);
 			tv.setText(u.name);
-			if (u.session == ServerList.client.session)
+			if (u.session == ServerList.client.session) {
 				tv.setTypeface(Typeface.DEFAULT_BOLD);
+			}
 			return tv;
 		}
 	}
 
 	public class UserBroadcastReceiver extends BroadcastReceiver {
 		@Override
-		public void onReceive(Context ctx, Intent i) {
-			if (i.getAction().equals("mumbleclient.intent.USER_LIST_UPDATE")) {
+		public final void onReceive(final Context ctx, final Intent i) {
+			if (MumbleClient.INTENT_USER_LIST_UPDATE.equals(i.getAction())) {
 				updateList();
-			} else if (i.getAction().equals("mumbleclient.intent.CURRENT_CHANNEL_CHANGED")) {
+			} else if (MumbleClient.INTENT_CURRENT_CHANNEL_CHANGED.equals(i
+					.getAction())) {
 				channelId = ServerList.client.currentChannel;
 				updateButtonVisibility();
 			}
 		}
 	}
-	
-	private Button joinButton;
-	private ToggleButton speakButton;
+
 	private UserBroadcastReceiver bcReceiver;
 	private int channelId;
-	private Thread rt;
-	private ArrayList<User> userList = new ArrayList<User>();
-
+	private Button joinButton;
 	private OnClickListener joinButtonClickEvent = new OnClickListener() {
 		@Override
-		public void onClick(View v) {
+		public void onClick(final View v) {
 			ServerList.client.joinChannel(channelId);
 		}
 	};
-	
+	private Thread rt;
+	private ToggleButton speakButton;
+
 	private OnClickListener speakButtonClickEvent = new OnClickListener() {
 		@Override
-		public void onClick(View v) {
+		public void onClick(final View v) {
 			if (speakButton.isChecked()) {
 				// start record
 				rt = new Thread(new RecordThread(), "record");
@@ -95,27 +98,33 @@ public class UserList extends ListActivity {
 			}
 		}
 	};
-	
-	public void onCreate(Bundle savedInstanceState) {
+
+	private ArrayList<User> userList = new ArrayList<User>();
+
+	public final void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.user_list);
 
-		if (ServerList.client == null)
+		if (ServerList.client == null) {
 			finish();
+			return;
+		}
 
-		if (!ServerList.client.isConnected())
+		if (!ServerList.client.isConnected()) {
 			finish();
-		
+			return;
+		}
+
 		joinButton = (Button) findViewById(R.id.joinButton);
 		speakButton = (ToggleButton) findViewById(R.id.speakButton);
 
 		joinButton.setOnClickListener(joinButtonClickEvent);
 		speakButton.setOnClickListener(speakButtonClickEvent);
 
-		Intent i = getIntent();
+		final Intent i = getIntent();
 		channelId = (int) i.getLongExtra("channelId", -1);
 		updateButtonVisibility();
-		
+
 		setListAdapter(new UserAdapter(this, userList));
 		updateList();
 	}
@@ -132,27 +141,28 @@ public class UserList extends ListActivity {
 
 	private void updateList() {
 		userList.clear();
-		for (User u : ServerList.client.userArray) {
-			if (u.channel == channelId)
+		for (final User u : ServerList.client.userArray) {
+			if (u.channel == channelId) {
 				userList.add(u);
+			}
 		}
 		((BaseAdapter) getListAdapter()).notifyDataSetChanged();
 	}
 
 	@Override
-	protected void onPause() {
+	protected final void onPause() {
 		super.onPause();
 
 		unregisterReceiver(bcReceiver);
 	}
 
 	@Override
-	protected void onResume() {
+	protected final void onResume() {
 		super.onResume();
 
-		IntentFilter ifilter = new IntentFilter(
-				"mumbleclient.intent.USER_LIST_UPDATE");
-		ifilter.addAction("mumbleclient.intent.CURRENT_CHANNEL_CHANGED");
+		final IntentFilter ifilter = new IntentFilter(
+				MumbleClient.INTENT_USER_LIST_UPDATE);
+		ifilter.addAction(MumbleClient.INTENT_CURRENT_CHANNEL_CHANGED);
 		bcReceiver = new UserBroadcastReceiver();
 		registerReceiver(bcReceiver, ifilter);
 	}

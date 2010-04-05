@@ -29,51 +29,54 @@ public class ServerList extends ListActivity {
 		private Context context;
 		private Cursor cursor;
 
-		public ServerAdapter(Context context_, DbAdapter dbAdapter_) {
+		public ServerAdapter(final Context context_, final DbAdapter dbAdapter_) {
 			context = context_;
 			cursor = dbAdapter_.fetchAllServers();
 			startManagingCursor(cursor);
 		}
 
 		@Override
-		public int getCount() {
+		public final int getCount() {
 			return cursor.getCount();
 		}
 
 		@Override
-		public Object getItem(int position) {
+		public final Object getItem(final int position) {
 			return getItemId(position);
 		}
 
 		@Override
-		public long getItemId(int position) {
+		public final long getItemId(final int position) {
 			cursor.moveToPosition(position);
 			return cursor.getLong(cursor
 					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_ID));
 		}
 
 		@Override
-		public View getView(int position, View v, ViewGroup parent) {
-			LayoutInflater inflater = (LayoutInflater) context
+		public final View getView(final int position, final View v,
+				final ViewGroup parent) {
+			final LayoutInflater inflater = (LayoutInflater) context
 					.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			View row = inflater.inflate(R.layout.server_list_row, null);
+			final View row = inflater.inflate(R.layout.server_list_row, null);
 
-			TextView nameText = (TextView) row
+			final TextView nameText = (TextView) row
 					.findViewById(R.id.server_row_name);
-			TextView userText = (TextView) row
+			final TextView userText = (TextView) row
 					.findViewById(R.id.server_row_user);
 
 			cursor.moveToPosition(position);
-			String serverHost = cursor.getString(cursor
+			final String serverHost = cursor.getString(cursor
 					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_HOST));
-			int serverPort = cursor.getInt(cursor
+			final int serverPort = cursor.getInt(cursor
 					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT));
-			String serverUsername = cursor.getString(cursor
+			final String serverUsername = cursor.getString(cursor
 					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME));
-			String serverPassword = cursor.getString(cursor
+			final String serverPassword = cursor.getString(cursor
 					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD));
 
-			if (client != null && client.isSameServer(serverHost, serverPort, serverUsername, serverPassword)) {
+			if (client != null
+					&& client.isSameServer(serverHost, serverPort,
+							serverUsername, serverPassword)) {
 				nameText.setTypeface(Typeface.DEFAULT_BOLD);
 				userText.setTypeface(Typeface.DEFAULT_BOLD);
 			}
@@ -85,21 +88,21 @@ public class ServerList extends ListActivity {
 		}
 	}
 
-	private Thread clientThread;
-	private DbAdapter dbAdapter;
-	private long serverToDeleteId = -1;
 	public static MumbleClient client;
-
 	private static final int ACTIVITY_ADD_SERVER = 0;
 	private static final int ACTIVITY_CHANNEL_LIST = 1;
 	private static final int DIALOG_DELETE_SERVER = 0;
+
 	private static final int MENU_ADD_SERVER = Menu.FIRST;
-	private static final int MENU_EDIT_SERVER = Menu.FIRST + 1;
 	private static final int MENU_DELETE_SERVER = Menu.FIRST + 2;
+	private static final int MENU_EDIT_SERVER = Menu.FIRST + 1;
+	private Thread clientThread;
+	private DbAdapter dbAdapter;
+	private long serverToDeleteId = -1;
 
 	@Override
-	public boolean onContextItemSelected(MenuItem item) {
-		AdapterContextMenuInfo info = (AdapterContextMenuInfo) item
+	public final boolean onContextItemSelected(final MenuItem item) {
+		final AdapterContextMenuInfo info = (AdapterContextMenuInfo) item
 				.getMenuInfo();
 		switch (item.getItemId()) {
 		case MENU_EDIT_SERVER:
@@ -114,7 +117,7 @@ public class ServerList extends ListActivity {
 	}
 
 	@Override
-	public void onCreate(Bundle savedInstanceState) {
+	public final void onCreate(final Bundle savedInstanceState) {
 		System.loadLibrary("celt_interface");
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
@@ -127,8 +130,8 @@ public class ServerList extends ListActivity {
 	}
 
 	@Override
-	public void onCreateContextMenu(ContextMenu menu, View v,
-			ContextMenuInfo menuInfo) {
+	public final void onCreateContextMenu(final ContextMenu menu, final View v,
+			final ContextMenuInfo menuInfo) {
 		super.onCreateContextMenu(menu, v, menuInfo);
 		menu.add(0, MENU_EDIT_SERVER, 1, "Edit").setIcon(
 				android.R.drawable.ic_menu_edit);
@@ -137,7 +140,7 @@ public class ServerList extends ListActivity {
 	}
 
 	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
+	public final boolean onCreateOptionsMenu(final Menu menu) {
 		super.onCreateOptionsMenu(menu);
 		menu.add(0, MENU_ADD_SERVER, 0, "Add Server").setIcon(
 				android.R.drawable.ic_menu_add);
@@ -145,26 +148,29 @@ public class ServerList extends ListActivity {
 	}
 
 	@Override
-	public boolean onMenuItemSelected(int featureId, MenuItem item) {
+	public final boolean onMenuItemSelected(final int featureId,
+			final MenuItem item) {
 		switch (item.getItemId()) {
 		case MENU_ADD_SERVER:
 			addServer();
 			return true;
+		default:
+			return super.onMenuItemSelected(featureId, item);
 		}
-		return super.onMenuItemSelected(featureId, item);
 	}
 
 	private void addServer() {
-		Intent i = new Intent(this, ServerAdd.class);
+		final Intent i = new Intent(this, ServerAdd.class);
 		startActivityForResult(i, ACTIVITY_ADD_SERVER);
 	}
 
 	private Dialog createDeleteServerDialog() {
-		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		final AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setMessage("Are you sure you want to delete this server?")
 				.setCancelable(false).setPositiveButton("Yes",
 						new DialogInterface.OnClickListener() {
-							public void onClick(DialogInterface dialog, int id) {
+							public void onClick(final DialogInterface dialog,
+									final int id) {
 								if (serverToDeleteId > 0) {
 									dbAdapter.deleteServer(serverToDeleteId);
 									serverToDeleteId = -1;
@@ -173,7 +179,8 @@ public class ServerList extends ListActivity {
 							}
 						}).setNegativeButton("No",
 						new DialogInterface.OnClickListener() {
-							public void onClick(DialogInterface dialog, int id) {
+							public void onClick(final DialogInterface dialog,
+									final int id) {
 								dialog.cancel();
 							}
 						});
@@ -186,13 +193,14 @@ public class ServerList extends ListActivity {
 	}
 
 	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+	protected final void onActivityResult(final int requestCode,
+			final int resultCode, final Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
 		fillList();
 	}
 
 	@Override
-	protected Dialog onCreateDialog(int id) {
+	protected final Dialog onCreateDialog(final int id) {
 		Dialog d;
 		switch (id) {
 		case DIALOG_DELETE_SERVER:
@@ -205,28 +213,32 @@ public class ServerList extends ListActivity {
 	}
 
 	@Override
-	protected void onDestroy() {
+	protected final void onDestroy() {
 		super.onDestroy();
 
 		dbAdapter.close();
 	}
 
 	@Override
-	protected void onListItemClick(ListView l, View v, int position, long id) {
+	protected final void onListItemClick(final ListView l, final View v,
+			final int position, final long id) {
 		super.onListItemClick(l, v, position, id);
 
-		Cursor c = dbAdapter.fetchServer(id);
-		String host = c.getString(c
+		final Cursor c = dbAdapter.fetchServer(id);
+		final String host = c.getString(c
 				.getColumnIndexOrThrow(DbAdapter.SERVER_COL_HOST));
-		int port = c.getInt(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT));
-		String username = c.getString(c
+		final int port = c.getInt(c
+				.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT));
+		final String username = c.getString(c
 				.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME));
-		String password = c.getString(c
+		final String password = c.getString(c
 				.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD));
 		c.close();
 
-		if (client != null && client.isSameServer(host, port, username, password) && client.isConnected()) {
-			Intent i = new Intent(this, ChannelList.class);
+		if (client != null
+				&& client.isSameServer(host, port, username, password)
+				&& client.isConnected()) {
+			final Intent i = new Intent(this, ChannelList.class);
 			startActivityForResult(i, ACTIVITY_CHANNEL_LIST);
 			return;
 		}
@@ -239,10 +251,11 @@ public class ServerList extends ListActivity {
 		clientThread = new Thread(client, "net");
 		clientThread.start();
 
-		while (!client.isConnected())
+		while (!client.isConnected()) {
 			Thread.yield();
+		}
 
-		Intent i = new Intent(this, ChannelList.class);
+		final Intent i = new Intent(this, ChannelList.class);
 		startActivityForResult(i, ACTIVITY_CHANNEL_LIST);
 	}
 }
