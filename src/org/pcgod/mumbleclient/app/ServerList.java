@@ -197,6 +197,13 @@ public class ServerList extends ListActivity {
 	}
 
 	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+
+		dbAdapter.close();
+	}
+
+	@Override
 	protected void onListItemClick(ListView l, View v, int position, long id) {
 		super.onListItemClick(l, v, position, id);
 		Intent i = new Intent(this, ChannelList.class);
@@ -210,6 +217,7 @@ public class ServerList extends ListActivity {
 				.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME));
 		String password = c.getString(c
 				.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD));
+		c.close();
 
 		if (clientThread != null) {
 			clientThread.interrupt();
