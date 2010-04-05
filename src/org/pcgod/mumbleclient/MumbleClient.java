@@ -243,9 +243,8 @@ public class MumbleClient implements Runnable {
 				at.play();
 			}
 
-			int[] error = new int[1];
-			celtMode = celt.celt_mode_create(SAMPLE_RATE, FRAME_SIZE, error);
-			celtDecoder = celt.celt_decoder_create(celtMode, 1, error);
+			celtMode = celt.celt_mode_create(SAMPLE_RATE, FRAME_SIZE);
+			celtDecoder = celt.celt_decoder_create(celtMode, 1);
 
 			sendChannelUpdateBroadcast();
 			break;

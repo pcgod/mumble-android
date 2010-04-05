@@ -27,14 +27,17 @@ class celtJNI {
   public final static native int CELT_GET_LOOKAHEAD_get();
   public final static native int CELT_GET_SAMPLE_RATE_get();
   public final static native int CELT_GET_BITSTREAM_VERSION_get();
-  public final static native long celt_mode_create(int jarg1, int jarg2, int[] jarg3);
+  public final static native long celt_mode_create(int jarg1, int jarg2);
   public final static native void celt_mode_destroy(long jarg1);
   public final static native int celt_mode_info(long jarg1, int jarg2, int[] jarg3);
-  public final static native long celt_encoder_create(long jarg1, int jarg2, int[] jarg3);
+  public final static native long celt_encoder_create(long jarg1, int jarg2);
   public final static native void celt_encoder_destroy(long jarg1);
-  public final static native int celt_encode(long jarg1, short[] jarg2, short[] jarg3, short[] jarg4, int jarg5);
+  public final static native int celt_encode(long jarg1, short[] jarg2, short[] jarg3, int jarg4);
   public final static native int celt_encoder_ctl(long jarg1, int jarg2, int jarg3);
-  public final static native long celt_decoder_create(long jarg1, int jarg2, int[] jarg3);
+  public final static native long celt_decoder_create(long jarg1, int jarg2);
   public final static native void celt_decoder_destroy(long jarg1);
   public final static native int celt_decode(long jarg1, short[] jarg2, int jarg3, short[] jarg4);
+  public final static native long speex_resampler_init(long jarg1, long jarg2, long jarg3, int jarg4);
+  public final static native void speex_resampler_destroy(long jarg1);
+  public final static native int speex_resampler_process_int(long jarg1, int jarg2, short[] jarg3, int[] jarg4, short[] jarg5, int[] jarg6);
 }

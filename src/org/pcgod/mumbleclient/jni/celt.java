@@ -9,8 +9,8 @@
 package org.pcgod.mumbleclient.jni;
 
 public class celt implements celtConstants {
-  public static SWIGTYPE_p_CELTMode celt_mode_create(int Fs, int frame_size, int[] error) {
-    long cPtr = celtJNI.celt_mode_create(Fs, frame_size, error);
+  public static SWIGTYPE_p_CELTMode celt_mode_create(int Fs, int frame_size) {
+    long cPtr = celtJNI.celt_mode_create(Fs, frame_size);
     return (cPtr == 0) ? null : new SWIGTYPE_p_CELTMode(cPtr, false);
   }
 
@@ -22,8 +22,8 @@ public class celt implements celtConstants {
     return celtJNI.celt_mode_info(SWIGTYPE_p_CELTMode.getCPtr(mode), request, value);
   }
 
-  public static SWIGTYPE_p_CELTEncoder celt_encoder_create(SWIGTYPE_p_CELTMode mode, int channels, int[] error) {
-    long cPtr = celtJNI.celt_encoder_create(SWIGTYPE_p_CELTMode.getCPtr(mode), channels, error);
+  public static SWIGTYPE_p_CELTEncoder celt_encoder_create(SWIGTYPE_p_CELTMode mode, int channels) {
+    long cPtr = celtJNI.celt_encoder_create(SWIGTYPE_p_CELTMode.getCPtr(mode), channels);
     return (cPtr == 0) ? null : new SWIGTYPE_p_CELTEncoder(cPtr, false);
   }
 
@@ -31,16 +31,16 @@ public class celt implements celtConstants {
     celtJNI.celt_encoder_destroy(SWIGTYPE_p_CELTEncoder.getCPtr(st));
   }
 
-  public static int celt_encode(SWIGTYPE_p_CELTEncoder st, short[] pcm, short[] optional_synthesis, short[] compressed, int nbCompressedBytes) {
-    return celtJNI.celt_encode(SWIGTYPE_p_CELTEncoder.getCPtr(st), pcm, optional_synthesis, compressed, nbCompressedBytes);
+  public static int celt_encode(SWIGTYPE_p_CELTEncoder st, short[] pcm, short[] compressed, int nbCompressedBytes) {
+    return celtJNI.celt_encode(SWIGTYPE_p_CELTEncoder.getCPtr(st), pcm, compressed, nbCompressedBytes);
   }
 
   public static int celt_encoder_ctl(SWIGTYPE_p_CELTEncoder st, int request, int value) {
     return celtJNI.celt_encoder_ctl(SWIGTYPE_p_CELTEncoder.getCPtr(st), request, value);
   }
 
-  public static SWIGTYPE_p_CELTDecoder celt_decoder_create(SWIGTYPE_p_CELTMode mode, int channels, int[] error) {
-    long cPtr = celtJNI.celt_decoder_create(SWIGTYPE_p_CELTMode.getCPtr(mode), channels, error);
+  public static SWIGTYPE_p_CELTDecoder celt_decoder_create(SWIGTYPE_p_CELTMode mode, int channels) {
+    long cPtr = celtJNI.celt_decoder_create(SWIGTYPE_p_CELTMode.getCPtr(mode), channels);
     return (cPtr == 0) ? null : new SWIGTYPE_p_CELTDecoder(cPtr, false);
   }
 
@@ -50,6 +50,19 @@ public class celt implements celtConstants {
 
   public static int celt_decode(SWIGTYPE_p_CELTDecoder st, short[] data, int len, short[] pcm) {
     return celtJNI.celt_decode(SWIGTYPE_p_CELTDecoder.getCPtr(st), data, len, pcm);
+  }
+
+  public static SWIGTYPE_p_SpeexResamplerState speex_resampler_init(long nb_channels, long in_rate, long out_rate, int quality) {
+    long cPtr = celtJNI.speex_resampler_init(nb_channels, in_rate, out_rate, quality);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_SpeexResamplerState(cPtr, false);
+  }
+
+  public static void speex_resampler_destroy(SWIGTYPE_p_SpeexResamplerState st) {
+    celtJNI.speex_resampler_destroy(SWIGTYPE_p_SpeexResamplerState.getCPtr(st));
+  }
+
+  public static int speex_resampler_process_int(SWIGTYPE_p_SpeexResamplerState st, int channel_index, short[] in, int[] in_len, short[] out, int[] out_len) {
+    return celtJNI.speex_resampler_process_int(SWIGTYPE_p_SpeexResamplerState.getCPtr(st), channel_index, in, in_len, out, out_len);
   }
 
 }

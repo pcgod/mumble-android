@@ -22,14 +22,28 @@ LOCAL_SRC_FILES		:= bands.c			celt.c				cwrs.c				dump_modes.c \
 					   kiss_fft.c		laplace.c			mdct.c				modes.c \
 					   pitch.c			quant_bands.c		rangedec.c			rangeenc.c \
 					   rate.c			testcelt.c			vq.c
-LOCAL_CFLAGS		:= -I$(LOCAL_PATH) -Drestrict='' -D__EMX__ -DFIXED_POINT -DHAVE_LRINTF -DHAVE_LRINT -DDOUBLE_PRECISION -DNEW_PLC -O3
+LOCAL_CFLAGS		:= -I$(LOCAL_PATH) -Drestrict='' -D__EMX__ -DFIXED_POINT -DDOUBLE_PRECISION -DMIXED_PRECISION -DHAVE_LRINTF -DHAVE_LRINT -DNEW_PLC -Os
+include $(BUILD_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_PATH 			:= $(ROOT)/speex/libspeex
+LOCAL_MODULE		:= libspeex
+LOCAL_SRC_FILES		:= cb_search.c		exc_10_32_table.c 	exc_8_128_table.c 	filters.c \
+					   gain_table.c 	hexc_table.c 		high_lsp_tables.c 	lsp.c \
+					   ltp.c			speex.c 			stereo.c 			vbr.c \
+					   vq.c bits.c 		exc_10_16_table.c	exc_20_32_table.c 	exc_5_256_table.c \
+					   exc_5_64_table.c	gain_table_lbr.c 	hexc_10_32_table.c	lpc.c \
+					   lsp_tables_nb.c 	modes.c 			modes_wb.c 			nb_celp.c \
+					   quant_lsp.c		sb_celp.c			speex_callbacks.c 	speex_header.c \
+					   window.c			resample.c
+LOCAL_CFLAGS		:= -I$(LOCAL_PATH)/../include -D__EMX__ -DFIXED_POINT -DEXPORT='' -Os
 include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_PATH				:= $(ROOT)/celt_wrapper
 LOCAL_MODULE			:= libcelt_interface
 LOCAL_SRC_FILES 		:= celt_wrap.c
-LOCAL_CFLAGS			:= -I$(LIBPATH) -O3
-LOCAL_STATIC_LIBRARIES	:= libcelt
+LOCAL_CFLAGS			:= -I$(LIBPATH) -Os
+LOCAL_STATIC_LIBRARIES	:= libcelt libspeex
 
 include $(BUILD_SHARED_LIBRARY)

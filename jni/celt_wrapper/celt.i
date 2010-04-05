@@ -131,6 +131,13 @@ typedef struct CELTMode CELTMode;
  @param error Returned error code (if NULL, no error will be returned)
  @return A newly created mode
 */
+%rename(celt_mode_create) wrap_celt_mode_create;
+%inline %{
+CELTMode *wrap_celt_mode_create(int Fs, int frame_size) {
+	return celt_mode_create(Fs, frame_size, NULL);
+}
+%}
+%ignore celt_mode_create;
 EXPORT CELTMode *celt_mode_create(celt_int32 Fs, int frame_size, int *error);
 
 /** Destroys a mode struct. Only call this after all encoders and 
@@ -154,6 +161,13 @@ EXPORT int celt_mode_info(const CELTMode *mode, int request, celt_int32 *value);
  @param error Returns an error code
  @return Newly created encoder state.
 */
+%rename(celt_encoder_create) wrap_celt_encoder_create;
+%inline %{
+CELTEncoder *wrap_celt_encoder_create(const CELTMode *mode, int channels) {
+	return celt_encoder_create(mode, channels, NULL);
+}
+%}
+%ignore celt_encoder_create;
 EXPORT CELTEncoder *celt_encoder_create(const CELTMode *mode, int channels, int *error);
 
 /** Destroys a an encoder state.
@@ -183,7 +197,8 @@ EXPORT void celt_encoder_destroy(CELTEncoder *st);
  *       the length returned be somehow transmitted to the decoder. Otherwise, no
  *       decoding is possible.
 */
-//EXPORT int celt_encode_float(CELTEncoder *st, float *pcm, float *optional_synthesis, char *compressed, int nbCompressedBytes);
+%ignore celt_encode_float;
+EXPORT int celt_encode_float(CELTEncoder *st, float *pcm, float *optional_synthesis, char *compressed, int nbCompressedBytes);
 
 /** Encodes a frame of audio.
  @param st Encoder state
@@ -203,6 +218,13 @@ EXPORT void celt_encoder_destroy(CELTEncoder *st);
  *       the length returned be somehow transmitted to the decoder. Otherwise, no
  *       decoding is possible.
  */
+%rename(celt_encode) wrap_celt_encode;
+%inline %{
+int wrap_celt_encode(CELTEncoder *st, short *pcm, unsigned char *compressed, int nbCompressedBytes) {
+	return celt_encode(st, pcm, NULL, compressed, nbCompressedBytes);
+}
+%}
+%ignore celt_encode;
 EXPORT int celt_encode(CELTEncoder *st, celt_int16 *pcm, celt_int16 *optional_synthesis, unsigned char *compressed, int nbCompressedBytes);
 
 /** Query and set encoder parameters 
@@ -211,7 +233,8 @@ EXPORT int celt_encode(CELTEncoder *st, celt_int16 *pcm, celt_int16 *optional_sy
  @param value Pointer to a 32-bit int value
  @return Error code
 */
-EXPORT int celt_encoder_ctl(CELTEncoder * st, int request, int value);
+%varargs(int value = 0) celt_encoder_ctl;
+EXPORT int celt_encoder_ctl(CELTEncoder * st, int request, ...);
 
 /* Decoder stuff */
 
@@ -224,6 +247,13 @@ EXPORT int celt_encoder_ctl(CELTEncoder * st, int request, int value);
  @param error Returns an error code
  @return Newly created decoder state.
  */
+%rename(celt_decoder_create) wrap_celt_decoder_create;
+%inline %{
+CELTDecoder *wrap_celt_decoder_create(const CELTMode *mode, int channels) {
+	return celt_decoder_create(mode, channels, NULL);
+}
+%}
+%ignore celt_decoder_create;
 EXPORT CELTDecoder *celt_decoder_create(const CELTMode *mode, int channels, int *error);
 
 /** Destroys a a decoder state.
@@ -240,7 +270,8 @@ EXPORT void celt_decoder_destroy(CELTDecoder *st);
             returned here in float format. 
  @return Error code.
    */
-//EXPORT int celt_decode_float(CELTDecoder *st, unsigned char *data, int len, float *pcm);
+%ignore celt_decode_float;
+EXPORT int celt_decode_float(CELTDecoder *st, unsigned char *data, int len, float *pcm);
 
 /** Decodes a frame of audio.
  @param st Decoder state
@@ -259,11 +290,53 @@ EXPORT int celt_decode(CELTDecoder *st, unsigned char *data, int len, celt_int16
    @param value Pointer to a 32-bit int value
    @return Error code
  */
-//EXPORT int celt_decoder_ctl(CELTDecoder * st, int request, ...);
+%varargs(int value = 0) celt_decoder_ctl;
+%ignore celt_decoder_ctl;
+EXPORT int celt_decoder_ctl(CELTDecoder * st, int request, ...);
 
 
 /** Returns the English string that corresponds to an error code
  * @param error Error code (negative for an error, 0 for success
  * @return Constant string (must NOT be freed)
  */
-//EXPORT const char *celt_strerror(int error);
+%ignore celt_strerror;
+EXPORT const char *celt_strerror(int error);
+
+
+#define spx_uint32_t int
+#define spx_int16_t short
+
+%apply int *INOUT { int *in_len };
+%apply int *INOUT { int *out_len };
+
+%{
+typedef struct SpeexResamplerState SpeexResamplerState;
+extern SpeexResamplerState *speex_resampler_init(int nb_channels, 
+                                          int in_rate, 
+                                          int out_rate, 
+                                          int quality,
+                                          int *err);
+%}
+
+typedef struct SpeexResamplerState SpeexResamplerState;
+
+%rename(speex_resampler_init) wrap_speex_resampler_init;
+%inline %{
+SpeexResamplerState *wrap_speex_resampler_init(unsigned int nb_channels, unsigned int in_rate, unsigned int out_rate, int quality) {
+	return speex_resampler_init(nb_channels, in_rate, out_rate, quality, NULL);
+}
+%}
+%ignore speex_resampler_init;
+extern SpeexResamplerState *speex_resampler_init(spx_uint32_t nb_channels, 
+                                          spx_uint32_t in_rate, 
+                                          spx_uint32_t out_rate, 
+                                          int quality,
+                                          int *err);
+
+extern void speex_resampler_destroy(SpeexResamplerState *st);
+extern int speex_resampler_process_int(SpeexResamplerState *st, 
+                                 spx_uint32_t channel_index, 
+                                 const spx_int16_t *in, 
+                                 spx_uint32_t *in_len, 
+                                 spx_int16_t *out, 
+                                 spx_uint32_t *out_len);
