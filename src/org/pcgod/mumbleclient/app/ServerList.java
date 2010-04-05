@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
@@ -69,6 +70,13 @@ public class ServerList extends ListActivity {
 					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT));
 			String serverUsername = cursor.getString(cursor
 					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME));
+			String serverPassword = cursor.getString(cursor
+					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD));
+
+			if (client != null && client.isSameServer(serverHost, serverPort, serverUsername, serverPassword)) {
+				nameText.setTypeface(Typeface.DEFAULT_BOLD);
+				userText.setTypeface(Typeface.DEFAULT_BOLD);
+			}
 
 			nameText.setText(serverHost + ":" + serverPort);
 			userText.setText(serverUsername);
@@ -206,8 +214,6 @@ public class ServerList extends ListActivity {
 	@Override
 	protected void onListItemClick(ListView l, View v, int position, long id) {
 		super.onListItemClick(l, v, position, id);
-		Intent i = new Intent(this, ChannelList.class);
-		startActivityForResult(i, ACTIVITY_CHANNEL_LIST);
 
 		Cursor c = dbAdapter.fetchServer(id);
 		String host = c.getString(c
@@ -219,6 +225,12 @@ public class ServerList extends ListActivity {
 				.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD));
 		c.close();
 
+		if (client != null && client.isSameServer(host, port, username, password) && client.isConnected()) {
+			Intent i = new Intent(this, ChannelList.class);
+			startActivityForResult(i, ACTIVITY_CHANNEL_LIST);
+			return;
+		}
+
 		if (clientThread != null) {
 			clientThread.interrupt();
 		}
@@ -226,5 +238,11 @@ public class ServerList extends ListActivity {
 		client = new MumbleClient(this, host, port, username, password);
 		clientThread = new Thread(client, "net");
 		clientThread.start();
+
+		while (!client.isConnected())
+			Thread.yield();
+
+		Intent i = new Intent(this, ChannelList.class);
+		startActivityForResult(i, ACTIVITY_CHANNEL_LIST);
 	}
 }

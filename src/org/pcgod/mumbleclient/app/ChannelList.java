@@ -10,6 +10,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,10 +47,9 @@ public class ChannelList extends ListActivity {
 		public View getView(int position, View v, ViewGroup parent) {
 			Channel c = al.get(position);
 			TextView tv = new TextView(ctx);
-			if (c.id != ServerList.client.currentChannel) {
-				tv.setText(c.name);
-			} else {
-				tv.setText(c.name + " *");
+			tv.setText(c.name + " (" + c.userCount + ")");
+			if (c.id == ServerList.client.currentChannel) {
+				tv.setTypeface(Typeface.DEFAULT_BOLD);
 			}
 			return tv;
 		}
@@ -70,7 +70,12 @@ public class ChannelList extends ListActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.channel_list);
 
-		// FIXME check ServerList.client
+		if (ServerList.client == null)
+			finish();
+
+		if (!ServerList.client.isConnected())
+			finish();
+		
 		setListAdapter(new ChannelAdapter(this, ServerList.client.channelArray));
 		updateList();
 	}
@@ -101,6 +106,7 @@ public class ChannelList extends ListActivity {
 		updateList();
 		IntentFilter ifilter = new IntentFilter(
 				"mumbleclient.intent.CHANNEL_LIST_UPDATE");
+		ifilter.addAction("mumbleclient.intent.USER_LIST_UPDATE");
 		bcReceiver = new ChannelBroadcastReceiver();
 		registerReceiver(bcReceiver, ifilter);
 	}

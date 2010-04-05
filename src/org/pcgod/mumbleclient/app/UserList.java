@@ -10,6 +10,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,8 +47,11 @@ public class UserList extends ListActivity {
 
 		@Override
 		public View getView(int position, View v, ViewGroup parent) {
+			User u = al.get(position);
 			TextView tv = new TextView(ctx);
-			tv.setText(al.get(position).name);
+			tv.setText(u.name);
+			if (u.session == ServerList.client.session)
+				tv.setTypeface(Typeface.DEFAULT_BOLD);
 			return tv;
 		}
 	}
@@ -69,6 +73,7 @@ public class UserList extends ListActivity {
 	private UserBroadcastReceiver bcReceiver;
 	private int channelId;
 	private Thread rt;
+	private ArrayList<User> userList = new ArrayList<User>();
 
 	private OnClickListener joinButtonClickEvent = new OnClickListener() {
 		@Override
@@ -95,6 +100,12 @@ public class UserList extends ListActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.user_list);
 
+		if (ServerList.client == null)
+			finish();
+
+		if (!ServerList.client.isConnected())
+			finish();
+		
 		joinButton = (Button) findViewById(R.id.joinButton);
 		speakButton = (ToggleButton) findViewById(R.id.speakButton);
 
@@ -105,7 +116,7 @@ public class UserList extends ListActivity {
 		channelId = (int) i.getLongExtra("channelId", -1);
 		updateButtonVisibility();
 		
-		setListAdapter(new UserAdapter(this, ServerList.client.userArray));
+		setListAdapter(new UserAdapter(this, userList));
 		updateList();
 	}
 
@@ -120,6 +131,11 @@ public class UserList extends ListActivity {
 	}
 
 	private void updateList() {
+		userList.clear();
+		for (User u : ServerList.client.userArray) {
+			if (u.channel == channelId)
+				userList.add(u);
+		}
 		((BaseAdapter) getListAdapter()).notifyDataSetChanged();
 	}
 

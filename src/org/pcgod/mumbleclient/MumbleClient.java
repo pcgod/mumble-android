@@ -47,6 +47,9 @@ public class MumbleClient implements Runnable {
 
 	public static final boolean ANDROID = true;;
 
+	private static final String INTENT_CURRENT_CHANNEL_CHANGED = "mumbleclient.intent.CURRENT_CHANNEL_CHANGED";
+	private static final String INTENT_CHANNEL_LIST_UPDATE = "mumbleclient.intent.CHANNEL_LIST_UPDATE";
+	private static final String INTENT_USER_LIST_UPDATE = "mumbleclient.intent.USER_LIST_UPDATE";
 	public static final int SAMPLE_RATE = 48000;
 	public static final int FRAME_SIZE = SAMPLE_RATE / 100;
 	private static final int protocolVersion = (1 << 16) | (2 << 8)
@@ -55,8 +58,9 @@ public class MumbleClient implements Runnable {
 	private Context ctx;
 	private DataOutputStream out;
 	private DataInputStream in;
+	private Socket socket;
 	private boolean authenticated;
-	private int session;
+	public int session;
 	public ArrayList<Channel> channelArray = new ArrayList<Channel>();
 	public ArrayList<User> userArray = new ArrayList<User>();
 	public int currentChannel = -1;
@@ -78,6 +82,15 @@ public class MumbleClient implements Runnable {
 		port = port_;
 		username = username_;
 		password = password_;
+	}
+
+	public boolean isConnected() {
+		return (socket != null && socket.isConnected());
+	}
+
+	public boolean isSameServer(String host_, int port_, String username_,
+			String password_) {
+		return (host.equals(host_) && port == port_ && username.equals(username_) && password.equals(password_));
 	}
 
 	public void joinChannel(int channelId) {
@@ -161,9 +174,10 @@ public class MumbleClient implements Runnable {
 		return null;
 	}
 
-	private void handleProtocol(final Socket socket) throws IOException {
-		out = new DataOutputStream(socket.getOutputStream());
-		in = new DataInputStream(socket.getInputStream());
+	private void handleProtocol(final Socket socket_) throws IOException {
+		socket = socket_;
+		out = new DataOutputStream(socket_.getOutputStream());
+		in = new DataInputStream(socket_.getInputStream());
 
 		final Version.Builder v = Version.newBuilder();
 		v.setVersion(protocolVersion);
@@ -177,7 +191,7 @@ public class MumbleClient implements Runnable {
 		sendMessage(MessageType.Version, v);
 		sendMessage(MessageType.Authenticate, a);
 
-		while (socket.isConnected()) {
+		while (socket_.isConnected()) {
 			final short type = in.readShort();
 			final int length = in.readInt();
 			final byte[] msg = new byte[length];
@@ -246,7 +260,7 @@ public class MumbleClient implements Runnable {
 			celtMode = celt.celt_mode_create(SAMPLE_RATE, FRAME_SIZE);
 			celtDecoder = celt.celt_decoder_create(celtMode, 1);
 
-			sendChannelUpdateBroadcast();
+			sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
 			break;
 		case ChannelState:
 			final ChannelState cs = ChannelState.parseFrom(buffer);
@@ -254,7 +268,7 @@ public class MumbleClient implements Runnable {
 			if (c != null) {
 				if (cs.hasName())
 					c.name = cs.getName();
-				sendChannelUpdateBroadcast();
+				sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
 				break;
 			}
 			// New channel
@@ -262,13 +276,13 @@ public class MumbleClient implements Runnable {
 			c.id = cs.getChannelId();
 			c.name = cs.getName();
 			channelArray.add(c);
-			sendChannelUpdateBroadcast();
+			sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
 			break;
 		case ChannelRemove:
 			final ChannelRemove cr = ChannelRemove.parseFrom(buffer);
 			channelArray.remove(findChannel(cr.getChannelId()));
 
-			sendChannelUpdateBroadcast();
+			sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
 			break;
 		case UserState:
 			final UserState us = UserState.parseFrom(buffer);
@@ -278,10 +292,10 @@ public class MumbleClient implements Runnable {
 					u.channel = us.getChannelId();
 					if (us.getSession() == session) {
 						currentChannel = u.channel;
-						sendCurrentChannelChangedBroadcast();
+						sendBroadcast(INTENT_CURRENT_CHANNEL_CHANGED);
 					}
+					sendBroadcast(INTENT_USER_LIST_UPDATE);
 				}
-				sendChannelUpdateBroadcast();
 				break;
 			}
 			// New user
@@ -291,13 +305,13 @@ public class MumbleClient implements Runnable {
 			u.channel = us.getChannelId();
 			userArray.add(u);
 
-			sendChannelUpdateBroadcast();
+			sendBroadcast(INTENT_USER_LIST_UPDATE);
 			break;
 		case UserRemove:
 			final UserRemove ur = UserRemove.parseFrom(buffer);
 			userArray.remove(findUser(ur.getSession()));
 
-			sendChannelUpdateBroadcast();
+			sendBroadcast(INTENT_USER_LIST_UPDATE);
 			break;
 		default:
 			if (ANDROID) {
@@ -366,16 +380,21 @@ public class MumbleClient implements Runnable {
 		}
 	}
 
-	private void sendChannelUpdateBroadcast() {
-		if (authenticated) {
-			Intent i = new Intent("mumbleclient.intent.CHANNEL_LIST_UPDATE");
-			ctx.sendBroadcast(i);
+	private void recountChannelUsers() {
+		for (Channel c : channelArray) {
+			c.userCount = 0;
+		}
+		
+		for (User u : userArray) {
+			Channel c = findChannel(u.channel);
+			c.userCount++;
 		}
 	}
 
-	private void sendCurrentChannelChangedBroadcast() {
+	private void sendBroadcast(String action) {
 		if (authenticated) {
-			Intent i = new Intent("mumbleclient.intent.CURRENT_CHANNEL_CHANGED");
+			recountChannelUsers();
+			Intent i = new Intent(action);
 			ctx.sendBroadcast(i);
 		}
 	}

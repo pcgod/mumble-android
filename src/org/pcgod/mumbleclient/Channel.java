@@ -3,6 +3,7 @@ package org.pcgod.mumbleclient;
 public class Channel {
 	public int id;
 	public String name;
+	public int userCount;
 
 	@Override
 	public int hashCode() {
@@ -18,6 +19,7 @@ public class Channel {
 
 	@Override
 	public String toString() {
-		return "Channel [id=" + id + ", name=" + name + "]";
+		return "Channel [id=" + id + ", name=" + name + ", userCount="
+				+ userCount + "]";
 	}
 }
