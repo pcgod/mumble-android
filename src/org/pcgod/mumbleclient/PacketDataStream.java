@@ -1,57 +1,59 @@
 package org.pcgod.mumbleclient;
 
+import java.nio.ByteBuffer;
+
 public class PacketDataStream {
-	private byte[] data;
-	private int maxsize;
-	private int offset;
+	private ByteBuffer data;
 	private int overshoot;
 	private boolean ok;
 
 	public PacketDataStream(final byte[] d) {
-		setup(d);
+		data = ByteBuffer.wrap(d);
+		ok = true;
+	}
+
+	public PacketDataStream(final ByteBuffer d) {
+		data = d;
+		ok = true;
 	}
 
 	public final void append(final byte[] d) {
 		final int len = d.length;
 		if (left() >= len) {
-			System.arraycopy(d, 0, data, offset, len);
-			offset += len;
+			data.put(d);
 		} else {
 			final int l = left();
-			System.arraycopy(null, 0, data, offset, l);
-			offset += l;
+			data.put(null, 0, l);
 			overshoot += len - l;
 			ok = false;
 		}
 	}
 
 	public final void append(final long v) {
-		if (offset < maxsize) {
-			data[offset++] = (byte) v;
+		if (data.position() < data.capacity()) {
+			data.put((byte) v);
 		} else {
 			ok = false;
 			overshoot++;
 		}
 	}
-	
+
 	public final void append(final short[] d) {
 		final int len = d.length;
 		if (left() >= len) {
 			for (int i = 0; i < len; ++i) {
-				data[offset + i] = (byte) d[i];
+				data.put((byte) d[i]);
 			}
-			offset += len;
 		} else {
 			final int l = left();
-			System.arraycopy(null, 0, data, offset, l);
-			offset += l;
+			data.put(null, 0, l);
 			overshoot += len - l;
 			ok = false;
 		}
 	}
 
 	public final int capacity() {
-		return maxsize;
+		return data.capacity();
 	}
 
 	public final short[] dataBlock(final int len) {
@@ -72,13 +74,13 @@ public class PacketDataStream {
 	}
 
 	public final int left() {
-		return maxsize - offset;
+		return data.remaining();
 	}
 
 	public final int next() {
-		if (offset < maxsize) {
+		if (data.position() < data.capacity()) {
 			// convert to unsigned...
-			return data[offset++] & 0xFF;
+			return data.get() & 0xFF;
 		} else {
 			ok = false;
 			return 0;
@@ -151,27 +153,19 @@ public class PacketDataStream {
 	}
 
 	public final void rewind() {
-		offset = 0;
+		data.rewind();
 	}
 
 	public final int size() {
-		return offset;
+		return data.position();
 	}
 
 	public final void skip(final int len) {
 		if (left() >= len) {
-			offset += len;
+			data.position(data.position() + len);
 		} else {
 			ok = false;
 		}
-	}
-
-	public final void truncate() {
-		maxsize = offset;
-	}
-
-	public final int undersize() {
-		return overshoot;
 	}
 
 	public final void writeBool(final boolean b) {
@@ -252,13 +246,5 @@ public class PacketDataStream {
 			append((i >> 8) & 0xFF);
 			append(i & 0xFF);
 		}
-	}
-
-	protected final void setup(final byte[] d) {
-		data = d;
-		offset = 0;
-		overshoot = 0;
-		maxsize = d.length;
-		ok = true;
 	}
 }
