@@ -39,11 +39,11 @@ import com.google.protobuf.MessageLite;
 
 public class MumbleClient implements Runnable {
 	public enum MessageType {
-		ACL, Authenticate, BanList, ChannelRemove, ChannelState, CodecVersion, ContextAction, ContextActionAdd, CryptSetup, PermissionDenied, PermissionQuery, Ping, QueryUsers, Reject, RequestBlob, ServerConfig, ServerSync, TextMessage, UDPTunnel, UserList, UserRemove, UserState, UserStats, Version, VoiceTarget
+		Version, UDPTunnel, Authenticate, Ping, Reject, ServerSync, ChannelRemove, ChannelState, UserRemove, UserState, BanList, TextMessage, PermissionDenied, ACL, QueryUsers, CryptSetup, ContextActionAdd, ContextAction, UserList, VoiceTarget, PermissionQuery, CodecVersion, UserStats, RequestBlob, ServerConfig
 	}
 
 	public enum UDPMessageType {
-		UDPPing, UDPVoiceCELTAlpha, UDPVoiceCELTBeta, UDPVoiceSpeex
+		UDPVoiceCELTAlpha, UDPPing, UDPVoiceSpeex, UDPVoiceCELTBeta
 	};
 
 	public static final boolean ANDROID = true;;

@@ -49,6 +49,7 @@ public class ChannelList extends ListActivity {
 			final Channel c = al.get(position);
 			final TextView tv = new TextView(ctx);
 			tv.setText(c.name + " (" + c.userCount + ")");
+			tv.setTextSize(20);
 			if (c.id == ServerList.client.currentChannel) {
 				tv.setTypeface(Typeface.DEFAULT_BOLD);
 			}
