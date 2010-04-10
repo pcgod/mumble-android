@@ -2,6 +2,7 @@ package org.pcgod.mumbleclient.app;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ShortBuffer;
 import java.util.LinkedList;
 
 import org.pcgod.mumbleclient.MumbleClient;
@@ -10,6 +11,7 @@ import org.pcgod.mumbleclient.jni.SWIGTYPE_p_CELTEncoder;
 import org.pcgod.mumbleclient.jni.SWIGTYPE_p_CELTMode;
 import org.pcgod.mumbleclient.jni.SWIGTYPE_p_SpeexResamplerState;
 import org.pcgod.mumbleclient.jni.celt;
+import org.pcgod.mumbleclient.jni.celtConstants;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
@@ -21,14 +23,14 @@ public class RecordThread implements Runnable {
 	private static int frameSize;
 	private static int recordingSampleRate;
 	private static final int TARGET_SAMPLE_RATE = MumbleClient.SAMPLE_RATE;
-	private AudioRecord ar;
+	private final AudioRecord ar;
 	private final short[] buffer;
 	private int bufferSize;
 	private final SWIGTYPE_p_CELTEncoder ce;
 	private final SWIGTYPE_p_CELTMode cm;
 	private final int framesPerPacket = 6;
-	private final LinkedList<short[]> outputQueue = new LinkedList<short[]>();
-	private final short[] resampleBuffer;
+	private final LinkedList<ShortBuffer> outputQueue = new LinkedList<ShortBuffer>();
+	private final short[] resampleBuffer = new short[MumbleClient.FRAME_SIZE];
 	private int seq;
 	private final SWIGTYPE_p_SpeexResamplerState srs;
 
@@ -57,14 +59,12 @@ public class RecordThread implements Runnable {
 				AudioFormat.ENCODING_PCM_16BIT, 64 * 1024);
 
 		buffer = new short[frameSize];
-		resampleBuffer = new short[(int) ((frameSize / (float) recordingSampleRate) * TARGET_SAMPLE_RATE)];
 		cm = celt.celt_mode_create(MumbleClient.SAMPLE_RATE,
 				MumbleClient.FRAME_SIZE);
 		ce = celt.celt_encoder_create(cm, 1);
-		celt.celt_encoder_ctl(ce, celt.CELT_SET_PREDICTION_REQUEST, 0);
-		celt
-				.celt_encoder_ctl(ce, celt.CELT_SET_VBR_RATE_REQUEST,
-						AUDIO_QUALITY);
+		celt.celt_encoder_ctl(ce, celtConstants.CELT_SET_PREDICTION_REQUEST, 0);
+		celt.celt_encoder_ctl(ce, celtConstants.CELT_SET_VBR_RATE_REQUEST,
+				AUDIO_QUALITY);
 
 		if (recordingSampleRate != TARGET_SAMPLE_RATE) {
 			srs = celt.speex_resampler_init(1, recordingSampleRate,
@@ -74,8 +74,16 @@ public class RecordThread implements Runnable {
 		}
 	}
 
+	public final boolean initialized() {
+		return ar.getState() == AudioRecord.STATE_INITIALIZED;
+	}
+
 	@Override
 	public final void run() {
+		if (!initialized()) {
+			return;
+		}
+
 		boolean running = true;
 		android.os.Process
 				.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
@@ -101,8 +109,14 @@ public class RecordThread implements Runnable {
 			}
 
 			final int compressedSize = Math.min(AUDIO_QUALITY / (100 * 8), 127);
-			final short[] compressed = new short[compressedSize];
-			celt.celt_encode(ce, out, compressed, compressedSize);
+			final ShortBuffer compressed = ShortBuffer
+					.allocate(compressedSize * 2);
+			final short[] comp = compressed.array();
+			int len;
+			synchronized (celt.class) {
+				len = celt.celt_encode(ce, out, comp, compressedSize);
+			}
+			compressed.limit(len);
 			outputQueue.add(compressed);
 
 			if (outputQueue.size() < framesPerPacket) {
@@ -113,8 +127,7 @@ public class RecordThread implements Runnable {
 				final ByteBuffer tmpBuf = ByteBuffer.allocateDirect(1024);
 
 				int flags = 0;
-				flags |= MumbleClient.UDPMessageType.UDPVoiceCELTAlpha
-						.ordinal() << 5;
+				flags |= MumbleClient.UDPMESSAGETYPE_UDPVOICECELTALPHA << 5;
 				tmpBuf.put((byte) flags);
 
 				final PacketDataStream pds = new PacketDataStream(tmpBuf
@@ -122,11 +135,11 @@ public class RecordThread implements Runnable {
 				seq += framesPerPacket;
 				pds.writeLong(seq);
 				for (int i = 0; i < framesPerPacket; ++i) {
-					final short[] tmp = outputQueue.poll();
+					final ShortBuffer tmp = outputQueue.poll();
 					if (tmp == null) {
 						break;
 					}
-					int head = (short) tmp.length;
+					int head = (short) tmp.limit();
 					if (i < framesPerPacket - 1) {
 						head |= 0x80;
 					}
@@ -152,7 +165,9 @@ public class RecordThread implements Runnable {
 
 	@Override
 	protected final void finalize() {
-		celt.speex_resampler_destroy(srs);
+		if (srs != null) {
+			celt.speex_resampler_destroy(srs);
+		}
 		celt.celt_encoder_destroy(ce);
 		celt.celt_mode_destroy(cm);
 	}

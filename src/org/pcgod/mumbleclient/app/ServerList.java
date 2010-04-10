@@ -25,9 +25,9 @@ import android.widget.TextView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 
 public class ServerList extends ListActivity {
-	public class ServerAdapter extends BaseAdapter {
-		private Context context;
-		private Cursor cursor;
+	private class ServerAdapter extends BaseAdapter {
+		private final Context context;
+		private final Cursor cursor;
 
 		public ServerAdapter(final Context context_, final DbAdapter dbAdapter_) {
 			context = context_;
@@ -57,12 +57,13 @@ public class ServerList extends ListActivity {
 				final ViewGroup parent) {
 			final LayoutInflater inflater = (LayoutInflater) context
 					.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			final View row = inflater.inflate(R.layout.server_list_row, null);
+			final View row = inflater.inflate(
+					android.R.layout.simple_list_item_2, null);
 
 			final TextView nameText = (TextView) row
-					.findViewById(R.id.server_row_name);
+					.findViewById(android.R.id.text1);
 			final TextView userText = (TextView) row
-					.findViewById(R.id.server_row_user);
+					.findViewById(android.R.id.text2);
 
 			cursor.moveToPosition(position);
 			final String serverHost = cursor.getString(cursor
@@ -88,7 +89,10 @@ public class ServerList extends ListActivity {
 		}
 	}
 
-	public static MumbleClient client;
+	static MumbleClient client;
+	long serverToDeleteId = -1;
+	DbAdapter dbAdapter;
+
 	private static final int ACTIVITY_ADD_SERVER = 0;
 	private static final int ACTIVITY_CHANNEL_LIST = 1;
 	private static final int DIALOG_DELETE_SERVER = 0;
@@ -96,9 +100,8 @@ public class ServerList extends ListActivity {
 	private static final int MENU_ADD_SERVER = Menu.FIRST;
 	private static final int MENU_DELETE_SERVER = Menu.FIRST + 2;
 	private static final int MENU_EDIT_SERVER = Menu.FIRST + 1;
+
 	private Thread clientThread;
-	private DbAdapter dbAdapter;
-	private long serverToDeleteId = -1;
 
 	@Override
 	public final boolean onContextItemSelected(final MenuItem item) {
@@ -117,24 +120,11 @@ public class ServerList extends ListActivity {
 	}
 
 	@Override
-	public final void onCreate(final Bundle savedInstanceState) {
-		System.loadLibrary("celt_interface");
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.main);
-		registerForContextMenu(getListView());
-
-		dbAdapter = new DbAdapter(this);
-		dbAdapter.open();
-
-		fillList();
-	}
-
-	@Override
 	public final void onCreateContextMenu(final ContextMenu menu, final View v,
 			final ContextMenuInfo menuInfo) {
 		super.onCreateContextMenu(menu, v, menuInfo);
-		menu.add(0, MENU_EDIT_SERVER, 1, "Edit").setIcon(
-				android.R.drawable.ic_menu_edit);
+		// menu.add(0, MENU_EDIT_SERVER, 1, "Edit").setIcon(
+		// android.R.drawable.ic_menu_edit);
 		menu.add(0, MENU_DELETE_SERVER, 1, "Delete").setIcon(
 				android.R.drawable.ic_menu_delete);
 	}
@@ -188,14 +178,24 @@ public class ServerList extends ListActivity {
 		return builder.create();
 	}
 
-	private void fillList() {
-		setListAdapter(new ServerAdapter(this, dbAdapter));
-	}
-
 	@Override
 	protected final void onActivityResult(final int requestCode,
 			final int resultCode, final Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
+		fillList();
+	}
+
+	@Override
+	protected final void onCreate(final Bundle savedInstanceState) {
+		System.loadLibrary("celt_interface");
+
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		registerForContextMenu(getListView());
+
+		dbAdapter = new DbAdapter(this);
+		dbAdapter.open();
+
 		fillList();
 	}
 
@@ -257,5 +257,9 @@ public class ServerList extends ListActivity {
 
 		final Intent i = new Intent(this, ChannelList.class);
 		startActivityForResult(i, ACTIVITY_CHANNEL_LIST);
+	}
+
+	void fillList() {
+		setListAdapter(new ServerAdapter(this, dbAdapter));
 	}
 }

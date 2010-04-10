@@ -6,16 +6,16 @@ public class User {
 	public int channel;
 
 	@Override
-	public final int hashCode() {
-		return session;
-	}
-
-	@Override
 	public final boolean equals(final Object o) {
 		if (!(o instanceof User)) {
 			return false;
 		}
 		return session == ((User) o).session;
+	}
+
+	@Override
+	public final int hashCode() {
+		return session;
 	}
 
 	@Override

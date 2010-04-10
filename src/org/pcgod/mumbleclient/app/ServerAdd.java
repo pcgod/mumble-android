@@ -10,7 +10,7 @@ import android.widget.Button;
 import android.widget.EditText;
 
 public class ServerAdd extends Activity {
-	private OnClickListener addButtonListener = new OnClickListener() {
+	private final OnClickListener addButtonListener = new OnClickListener() {
 		@Override
 		public void onClick(final View v) {
 			final String host = ((EditText) findViewById(R.id.serverHostEdit))

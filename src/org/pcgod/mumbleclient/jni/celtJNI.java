@@ -9,24 +9,6 @@
 package org.pcgod.mumbleclient.jni;
 
 class celtJNI {
-  public final static native int CELT_OK_get();
-  public final static native int CELT_BAD_ARG_get();
-  public final static native int CELT_INVALID_MODE_get();
-  public final static native int CELT_INTERNAL_ERROR_get();
-  public final static native int CELT_CORRUPTED_DATA_get();
-  public final static native int CELT_UNIMPLEMENTED_get();
-  public final static native int CELT_INVALID_STATE_get();
-  public final static native int CELT_ALLOC_FAIL_get();
-  public final static native int CELT_GET_MODE_REQUEST_get();
-  public final static native int CELT_SET_COMPLEXITY_REQUEST_get();
-  public final static native int CELT_SET_PREDICTION_REQUEST_get();
-  public final static native int CELT_SET_VBR_RATE_REQUEST_get();
-  public final static native int CELT_RESET_STATE_REQUEST_get();
-  public final static native int CELT_RESET_STATE_get();
-  public final static native int CELT_GET_FRAME_SIZE_get();
-  public final static native int CELT_GET_LOOKAHEAD_get();
-  public final static native int CELT_GET_SAMPLE_RATE_get();
-  public final static native int CELT_GET_BITSTREAM_VERSION_get();
   public final static native long celt_mode_create(int jarg1, int jarg2);
   public final static native void celt_mode_destroy(long jarg1);
   public final static native int celt_mode_info(long jarg1, int jarg2, int[] jarg3);

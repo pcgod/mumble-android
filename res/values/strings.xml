@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="userJoin">Join channel</string>
-    <string name="noUsers">User list empty</string>
     <string name="userSpeak">Speak</string>
-    <string name="noChannels">No channels?</string>
-    <string name="serverAdd">Add Server</string>
-    <string name="serverPassword">Password:</string>
-    <string name="serverUsername">Username:</string>
-    <string name="serverPort">Port:</string>
-    <string name="serverHost">Host:</string>
-    <string name="app_name">MumbleClient</string>
 	<string name="noServers">Server list empty</string>
+    <string name="noChannels">Channel list empty</string>
+    <string name="noUsers">User list empty</string>
+    <string name="serverAdd">Add Server</string>
+    <string name="serverPassword">Password</string>
+    <string name="serverUsername">Username</string>
+    <string name="serverPort">Port</string>
+    <string name="serverHost">Host</string>
+    <string name="app_name">Mumble</string>
 </resources>

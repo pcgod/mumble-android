@@ -22,7 +22,7 @@ LOCAL_SRC_FILES		:= bands.c			celt.c				cwrs.c				dump_modes.c \
 					   kiss_fft.c		laplace.c			mdct.c				modes.c \
 					   pitch.c			quant_bands.c		rangedec.c			rangeenc.c \
 					   rate.c			testcelt.c			vq.c
-LOCAL_CFLAGS		:= -I$(LOCAL_PATH) -Drestrict='' -D__EMX__ -DFIXED_POINT -DDOUBLE_PRECISION -DMIXED_PRECISION -DHAVE_LRINTF -DHAVE_LRINT -DNEW_PLC -Os
+LOCAL_CFLAGS		:= -I$(LOCAL_PATH) -I$(ROOT)/celt_wrapper -DHAVE_CONFIG_H -fvisibility=hidden
 include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
@@ -36,14 +36,14 @@ LOCAL_SRC_FILES		:= cb_search.c		exc_10_32_table.c 	exc_8_128_table.c 	filters.c
 					   lsp_tables_nb.c 	modes.c 			modes_wb.c 			nb_celp.c \
 					   quant_lsp.c		sb_celp.c			speex_callbacks.c 	speex_header.c \
 					   window.c			resample.c
-LOCAL_CFLAGS		:= -I$(LOCAL_PATH)/../include -D__EMX__ -DFIXED_POINT -DEXPORT='' -Os
+LOCAL_CFLAGS		:= -I$(LOCAL_PATH)/../include -D__EMX__ -DFIXED_POINT -DEXPORT=''
 include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_PATH				:= $(ROOT)/celt_wrapper
 LOCAL_MODULE			:= libcelt_interface
 LOCAL_SRC_FILES 		:= celt_wrap.c
-LOCAL_CFLAGS			:= -I$(LIBPATH) -Os
+LOCAL_CFLAGS			:= -I$(LIBPATH)
 LOCAL_STATIC_LIBRARIES	:= libcelt libspeex
 
 include $(BUILD_SHARED_LIBRARY)

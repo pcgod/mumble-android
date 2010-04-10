@@ -10,6 +10,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
+import javax.crypto.Cipher;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -42,20 +43,48 @@ public class MumbleClient implements Runnable {
 		Version, UDPTunnel, Authenticate, Ping, Reject, ServerSync, ChannelRemove, ChannelState, UserRemove, UserState, BanList, TextMessage, PermissionDenied, ACL, QueryUsers, CryptSetup, ContextActionAdd, ContextAction, UserList, VoiceTarget, PermissionQuery, CodecVersion, UserStats, RequestBlob, ServerConfig
 	}
 
-	public enum UDPMessageType {
-		UDPVoiceCELTAlpha, UDPPing, UDPVoiceSpeex, UDPVoiceCELTBeta
-	};
+//	public static final int MESSAGETYPE_VERSION = 0;
+//	public static final int MESSAGETYPE_UDPTUNNEL = 1;
+//	public static final int MESSAGETYPE_AUTHENTICATE = 2;
+//	public static final int MESSAGETYPE_PING = 3;
+//	public static final int MESSAGETYPE_REJECT = 4;
+//	public static final int MESSAGETYPE_SERVERSYNC = 5;
+//	public static final int MESSAGETYPE_CHANNELREMOVE = 6;
+//	public static final int MESSAGETYPE_CHANNELSTATE = 7;
+//	public static final int MESSAGETYPE_USERREMOVE = 8;
+//	public static final int MESSAGETYPE_USERSTATE = 9;
+//	public static final int MESSAGETYPE_BANLIST = 10;
+//	public static final int MESSAGETYPE_TEXTMESSAGE = 11;
+//	public static final int MESSAGETYPE_PERMISSIONDENIED = 12;
+//	public static final int MESSAGETYPE_ACL = 13;
+//	public static final int MESSAGETYPE_QUERYUSERS = 14;
+//	public static final int MESSAGETYPE_CRYPTSETUP = 15;
+//	public static final int MESSAGETYPE_CONTEXTACTIONADD = 16;
+//	public static final int MESSAGETYPE_CONTEXTACTION = 17;
+//	public static final int MESSAGETYPE_USERLIST = 18;
+//	public static final int MESSAGETYPE_VOICETARGET = 19;
+//	public static final int MESSAGETYPE_PERMISSIONQUERY = 20;
+//	public static final int MESSAGETYPE_CODECVERSION = 21;
+//	public static final int MESSAGETYPE_USERSTATS = 22;
+//	public static final int MESSAGETYPE_REQUESTBLOB = 23;
+//	public static final int MESSAGETYPE_SERVERCONFIG = 24;
 
-	public static final boolean ANDROID = true;;
+	public static final int UDPMESSAGETYPE_UDPVOICECELTALPHA = 0;
+	public static final int UDPMESSAGETYPE_UDPPING = 1;
+	public static final int UDPMESSAGETYPE_UDPVOICESPEEX = 2;
+	public static final int UDPMESSAGETYPE_UDPVOICECELTBETA = 3;
 
 	public static final int SAMPLE_RATE = 48000;
 	public static final int FRAME_SIZE = SAMPLE_RATE / 100;
 	public static final String INTENT_CHANNEL_LIST_UPDATE = "mumbleclient.intent.CHANNEL_LIST_UPDATE";
 	public static final String INTENT_CURRENT_CHANNEL_CHANGED = "mumbleclient.intent.CURRENT_CHANNEL_CHANGED";
 	public static final String INTENT_USER_LIST_UPDATE = "mumbleclient.intent.USER_LIST_UPDATE";
-	public static final String LOG_TAG = "mumbleclient";
+	private static final String LOG_TAG = "mumbleclient";
+
+	private static final boolean ANDROID = true;
 	private static final int protocolVersion = (1 << 16) | (2 << 8)
 			| (3 & 0xFF);
+
 	public ArrayList<Channel> channelArray = new ArrayList<Channel>();
 	public int currentChannel = -1;
 	public int session;
@@ -64,7 +93,7 @@ public class MumbleClient implements Runnable {
 	private boolean authenticated;
 	private SWIGTYPE_p_CELTDecoder celtDecoder;
 	private SWIGTYPE_p_CELTMode celtMode;
-	private Context ctx;
+	private final Context ctx;
 
 	private DataInputStream in;
 	private DataOutputStream out;
@@ -75,10 +104,13 @@ public class MumbleClient implements Runnable {
 	private final int port;
 	private final String username;
 	private final String password;
+	
+	private Cipher encryptCipher;
+	private Cipher decryptCipher;
 
 	public MumbleClient(final Context ctx_, final String host_, final int port_,
 			final String username_, final String password_) {
-		ctx = ctx_;
+		ctx = ctx_.getApplicationContext();
 		host = host_;
 		port = port_;
 		username = username_;
@@ -105,6 +137,7 @@ public class MumbleClient implements Runnable {
 		}
 	}
 
+	@Override
 	public final void run() {
 		try {
 			final SSLContext ctx_ = SSLContext.getInstance("TLS");
@@ -135,9 +168,11 @@ public class MumbleClient implements Runnable {
 		final short type = (short) t.ordinal();
 		final int length = m.getSerializedSize();
 
-		out.writeShort(type);
-		out.writeInt(length);
-		m.writeTo(out);
+		synchronized (out) {
+			out.writeShort(type);
+			out.writeInt(length);
+			m.writeTo(out);
+		}
 
 		if (t != MessageType.Ping) {
 			if (ANDROID) {
@@ -152,9 +187,11 @@ public class MumbleClient implements Runnable {
 		final short type = (short) MessageType.UDPTunnel.ordinal();
 		final int length = buffer.length;
 
-		out.writeShort(type);
-		out.writeInt(length);
-		out.write(buffer);
+		synchronized (out) {
+			out.writeShort(type);
+			out.writeInt(length);
+			out.write(buffer);
+		}
 	}
 
 	private Channel findChannel(final int id) {
@@ -206,7 +243,7 @@ public class MumbleClient implements Runnable {
 	@SuppressWarnings("unused")
 	private void printChanneList() {
 		Log.i(LOG_TAG, "--- begin channel list ---");
-		for (Channel c : channelArray) {
+		for (final Channel c : channelArray) {
 			Log.i(LOG_TAG, c.toString());
 		}
 		Log.i(LOG_TAG, "--- end channel list ---");
@@ -215,7 +252,7 @@ public class MumbleClient implements Runnable {
 	@SuppressWarnings("unused")
 	private void printUserList() {
 		Log.i(LOG_TAG, "--- begin user list ---");
-		for (User u : userArray) {
+		for (final User u : userArray) {
 			Log.i(LOG_TAG, u.toString());
 		}
 		Log.i(LOG_TAG, "--- end user list ---");
@@ -237,7 +274,7 @@ public class MumbleClient implements Runnable {
 
 			final User user = findUser(session);
 			currentChannel = user.channel;
-			
+
 			pingThread = new Thread(new PingThread(this), "ping");
 			pingThread.start();
 			if (ANDROID) {
@@ -317,6 +354,30 @@ public class MumbleClient implements Runnable {
 
 			sendBroadcast(INTENT_USER_LIST_UPDATE);
 			break;
+		case CryptSetup:
+//			try {
+//				final CryptSetup cryptSetup = CryptSetup.parseFrom(buffer);
+//				encryptCipher = Cipher.getInstance("AES/OCB/NoPadding");
+//				decryptCipher = Cipher.getInstance("AES/OCB/NoPadding");
+//				SecretKeySpec cryptKey = new SecretKeySpec(cryptSetup.getKey().toByteArray(), "AES");
+//				IvParameterSpec encryptIv = new IvParameterSpec(cryptSetup.getServerNonce().toByteArray());
+//				IvParameterSpec decryptIv = new IvParameterSpec(cryptSetup.getClientNonce().toByteArray());
+//				encryptCipher.init(Cipher.ENCRYPT_MODE, cryptKey, encryptIv);
+//				decryptCipher.init(Cipher.DECRYPT_MODE, cryptKey, decryptIv);
+//			} catch (NoSuchAlgorithmException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			} catch (NoSuchPaddingException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			} catch (InvalidKeyException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			} catch (InvalidAlgorithmParameterException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+			break;
 		default:
 			if (ANDROID) {
 				Log.i(LOG_TAG, "unhandled message type " + t);
@@ -327,9 +388,14 @@ public class MumbleClient implements Runnable {
 	}
 
 	private void processVoicePacket(final byte[] buffer) {
-		final UDPMessageType type = UDPMessageType.values()[buffer[0] >> 5 & 0x7];
+		final int type = (buffer[0] >> 5 & 0x7);
 		// int flags = buffer[0] & 0x1f;
 
+		// There is no speex support...
+		if (type != UDPMESSAGETYPE_UDPVOICECELTALPHA) {
+			return;
+		}
+		
 		final ByteBuffer pdsBuffer = ByteBuffer.wrap(buffer);
 		pdsBuffer.position(1);
 		final PacketDataStream pds = new PacketDataStream(pdsBuffer.slice());
@@ -377,7 +443,9 @@ public class MumbleClient implements Runnable {
 
 		final short[] audioOut = new short[FRAME_SIZE];
 		for (final short[] frame : frameList) {
-			celt.celt_decode(celtDecoder, frame, frame.length, audioOut);
+			synchronized (celt.class) {
+				celt.celt_decode(celtDecoder, frame, frame.length, audioOut);
+			}
 			if (ANDROID) {
 				at.write(audioOut, 0, FRAME_SIZE);
 			}

@@ -9,22 +9,22 @@
 package org.pcgod.mumbleclient.jni;
 
 public interface celtConstants {
-  public final static int CELT_OK = celtJNI.CELT_OK_get();
-  public final static int CELT_BAD_ARG = celtJNI.CELT_BAD_ARG_get();
-  public final static int CELT_INVALID_MODE = celtJNI.CELT_INVALID_MODE_get();
-  public final static int CELT_INTERNAL_ERROR = celtJNI.CELT_INTERNAL_ERROR_get();
-  public final static int CELT_CORRUPTED_DATA = celtJNI.CELT_CORRUPTED_DATA_get();
-  public final static int CELT_UNIMPLEMENTED = celtJNI.CELT_UNIMPLEMENTED_get();
-  public final static int CELT_INVALID_STATE = celtJNI.CELT_INVALID_STATE_get();
-  public final static int CELT_ALLOC_FAIL = celtJNI.CELT_ALLOC_FAIL_get();
-  public final static int CELT_GET_MODE_REQUEST = celtJNI.CELT_GET_MODE_REQUEST_get();
-  public final static int CELT_SET_COMPLEXITY_REQUEST = celtJNI.CELT_SET_COMPLEXITY_REQUEST_get();
-  public final static int CELT_SET_PREDICTION_REQUEST = celtJNI.CELT_SET_PREDICTION_REQUEST_get();
-  public final static int CELT_SET_VBR_RATE_REQUEST = celtJNI.CELT_SET_VBR_RATE_REQUEST_get();
-  public final static int CELT_RESET_STATE_REQUEST = celtJNI.CELT_RESET_STATE_REQUEST_get();
-  public final static int CELT_RESET_STATE = celtJNI.CELT_RESET_STATE_get();
-  public final static int CELT_GET_FRAME_SIZE = celtJNI.CELT_GET_FRAME_SIZE_get();
-  public final static int CELT_GET_LOOKAHEAD = celtJNI.CELT_GET_LOOKAHEAD_get();
-  public final static int CELT_GET_SAMPLE_RATE = celtJNI.CELT_GET_SAMPLE_RATE_get();
-  public final static int CELT_GET_BITSTREAM_VERSION = celtJNI.CELT_GET_BITSTREAM_VERSION_get();
+  public final static int CELT_OK = 0;
+  public final static int CELT_BAD_ARG = -1;
+  public final static int CELT_INVALID_MODE = -2;
+  public final static int CELT_INTERNAL_ERROR = -3;
+  public final static int CELT_CORRUPTED_DATA = -4;
+  public final static int CELT_UNIMPLEMENTED = -5;
+  public final static int CELT_INVALID_STATE = -6;
+  public final static int CELT_ALLOC_FAIL = -7;
+  public final static int CELT_GET_MODE_REQUEST = 1;
+  public final static int CELT_SET_COMPLEXITY_REQUEST = 2;
+  public final static int CELT_SET_PREDICTION_REQUEST = 4;
+  public final static int CELT_SET_VBR_RATE_REQUEST = 6;
+  public final static int CELT_RESET_STATE_REQUEST = 8;
+  public final static int CELT_RESET_STATE = 8;
+  public final static int CELT_GET_FRAME_SIZE = 1000;
+  public final static int CELT_GET_LOOKAHEAD = 1001;
+  public final static int CELT_GET_SAMPLE_RATE = 1003;
+  public final static int CELT_GET_BITSTREAM_VERSION = 2000;
 }

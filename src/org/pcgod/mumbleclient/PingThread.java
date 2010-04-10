@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import net.sf.mumble.MumbleProto.Ping;
 
-public class PingThread implements Runnable {
+class PingThread implements Runnable {
 	private boolean running = true;
 	private final MumbleClient mc;
 

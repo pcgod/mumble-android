@@ -1,9 +1,10 @@
 package org.pcgod.mumbleclient;
 
 import java.nio.ByteBuffer;
+import java.nio.ShortBuffer;
 
 public class PacketDataStream {
-	private ByteBuffer data;
+	private final ByteBuffer data;
 	private int overshoot;
 	private boolean ok;
 
@@ -43,6 +44,20 @@ public class PacketDataStream {
 		if (left() >= len) {
 			for (int i = 0; i < len; ++i) {
 				data.put((byte) d[i]);
+			}
+		} else {
+			final int l = left();
+			data.put(null, 0, l);
+			overshoot += len - l;
+			ok = false;
+		}
+	}
+
+	public void append(final ShortBuffer tmp) {
+		final int len = tmp.limit();
+		if (left() >= len) {
+			for (int i = 0; i < len; ++i) {
+				data.put((byte) tmp.get(i));
 			}
 		} else {
 			final int l = left();

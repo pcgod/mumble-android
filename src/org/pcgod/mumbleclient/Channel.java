@@ -6,16 +6,16 @@ public class Channel {
 	public int userCount;
 
 	@Override
-	public final int hashCode() {
-		return id;
-	}
-
-	@Override
 	public final boolean equals(final Object o) {
 		if (!(o instanceof Channel)) {
 			return false;
 		}
 		return id == ((Channel) o).id;
+	}
+
+	@Override
+	public final int hashCode() {
+		return id;
 	}
 
 	@Override

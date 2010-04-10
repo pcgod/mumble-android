@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
-public class DbAdapter {
+class DbAdapter {
 	private static class DatabaseHelper extends SQLiteOpenHelper {
 
 		public DatabaseHelper(final Context context) {
@@ -41,7 +41,7 @@ public class DbAdapter {
 	public static final String SERVER_COL_USERNAME = "username";
 	public static final String SERVER_COL_PASSWORD = "password";
 
-	private Context context;
+	private final Context context;
 	private SQLiteDatabase db;
 	private DatabaseHelper dbHelper;
 
