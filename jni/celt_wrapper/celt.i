@@ -34,6 +34,8 @@ extern int celt_decode(CELTDecoder *st, const unsigned char *data, int len, shor
 %include "typemaps.i"
 %include "arrays_java.i"
 
+%javaconst(1);
+
 %apply unsigned char[] { unsigned char * };
 %apply float[] { float * };
 %apply short[] { short * };
