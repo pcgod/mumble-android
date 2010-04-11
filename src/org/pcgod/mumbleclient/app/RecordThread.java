@@ -124,7 +124,7 @@ public class RecordThread implements Runnable {
 			}
 
 			while (!outputQueue.isEmpty()) {
-				final ByteBuffer tmpBuf = ByteBuffer.allocateDirect(1024);
+				final ByteBuffer tmpBuf = ByteBuffer.allocate(1024);
 
 				int flags = 0;
 				flags |= MumbleClient.UDPMESSAGETYPE_UDPVOICECELTALPHA << 5;

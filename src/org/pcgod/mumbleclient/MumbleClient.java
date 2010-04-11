@@ -23,16 +23,8 @@ import net.sf.mumble.MumbleProto.ServerSync;
 import net.sf.mumble.MumbleProto.UserRemove;
 import net.sf.mumble.MumbleProto.UserState;
 import net.sf.mumble.MumbleProto.Version;
-
-import org.pcgod.mumbleclient.jni.SWIGTYPE_p_CELTDecoder;
-import org.pcgod.mumbleclient.jni.SWIGTYPE_p_CELTMode;
-import org.pcgod.mumbleclient.jni.celt;
-
 import android.content.Context;
 import android.content.Intent;
-import android.media.AudioFormat;
-import android.media.AudioManager;
-import android.media.AudioTrack;
 import android.util.Log;
 
 import com.google.protobuf.ByteString;
@@ -89,10 +81,7 @@ public class MumbleClient implements Runnable {
 	public int currentChannel = -1;
 	public int session;
 	public ArrayList<User> userArray = new ArrayList<User>();
-	private AudioTrack at;
 	private boolean authenticated;
-	private SWIGTYPE_p_CELTDecoder celtDecoder;
-	private SWIGTYPE_p_CELTMode celtMode;
 	private final Context ctx;
 
 	private DataInputStream in;
@@ -107,6 +96,8 @@ public class MumbleClient implements Runnable {
 	
 	private Cipher encryptCipher;
 	private Cipher decryptCipher;
+	private AudioOutput ao;
+	private Thread audioOutputThread;
 
 	public MumbleClient(final Context ctx_, final String host_, final int port_,
 			final String username_, final String password_) {
@@ -283,22 +274,15 @@ public class MumbleClient implements Runnable {
 				System.out.println(">>> " + t);
 			}
 
+			ao = new AudioOutput();
+			audioOutputThread = new Thread(ao, "audio output");
+			audioOutputThread.start();
+			
 			final UserState.Builder usb = UserState.newBuilder();
 			usb.setSession(session);
 			usb.setPluginContext(ByteString
 					.copyFromUtf8("Manual placement\000test"));
 			sendMessage(MessageType.UserState, usb);
-
-			if (ANDROID) {
-				at = new AudioTrack(AudioManager.STREAM_VOICE_CALL,
-						SAMPLE_RATE, AudioFormat.CHANNEL_CONFIGURATION_MONO,
-						AudioFormat.ENCODING_PCM_16BIT, 32768,
-						AudioTrack.MODE_STREAM);
-				at.play();
-			}
-
-			celtMode = celt.celt_mode_create(SAMPLE_RATE, FRAME_SIZE);
-			celtDecoder = celt.celt_decoder_create(celtMode, 1);
 
 			sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
 			break;
@@ -388,68 +372,32 @@ public class MumbleClient implements Runnable {
 	}
 
 	private void processVoicePacket(final byte[] buffer) {
-		final int type = (buffer[0] >> 5 & 0x7);
-		// int flags = buffer[0] & 0x1f;
+		final int type = buffer[0] >> 5 & 0x7;
+		final int flags = buffer[0] & 0x1f;
 
 		// There is no speex support...
 		if (type != UDPMESSAGETYPE_UDPVOICECELTALPHA) {
 			return;
 		}
-		
+
 		final ByteBuffer pdsBuffer = ByteBuffer.wrap(buffer);
 		pdsBuffer.position(1);
-		final PacketDataStream pds = new PacketDataStream(pdsBuffer.slice());
+		final PacketDataStream pds = new PacketDataStream(pdsBuffer);
 		final long uiSession = pds.readLong();
 		final long iSeq = pds.readLong();
 
-//		if (ANDROID)
-//			Log.i("mumbleclient", "Type: " + type + " uiSession: " + uiSession
-//					+ " iSeq: " + iSeq);
-//		else
-//			System.out.println("Type: " + type + " uiSession: " + uiSession
-//					+ " iSeq: " + iSeq);
+		final ByteBuffer tmpBuffer = ByteBuffer
+				.allocate(pdsBuffer.remaining() + 1);
+		tmpBuffer.put((byte) flags);
+		tmpBuffer.put(pdsBuffer);
+		tmpBuffer.rewind();
 
-		int header = 0;
-		int frames = 0;
-		final ArrayList<short[]> frameList = new ArrayList<short[]>();
-		do {
-			header = pds.next();
-			if (header > 0) {
-				frameList.add(pds.dataBlock(header & 0x7f));
-			} else {
-				pds.skip(header & 0x7f);
-			}
-
-			++frames;
-		} while (((header & 0x80) > 0) && pds.isValid());
-
-//		if (ANDROID)
-//			Log.i("mumbleclient", "frames: " + frames + " valid: "
-//					+ pds.isValid());
-//		else
-//			System.out
-//					.println("frames: " + frames + " valid: " + pds.isValid());
-
-		if (pds.left() > 0) {
-			final float x = pds.readFloat();
-			final float y = pds.readFloat();
-			final float z = pds.readFloat();
-			if (ANDROID) {
-				Log.i(LOG_TAG, "x: " + x + " y: " + y + " z: " + z);
-			} else {
-				System.out.println("x: " + x + " y: " + y + " z: " + z);
-			}
+		final User u = findUser((int) uiSession);
+		if (u == null) {
+			Log.e(LOG_TAG, "User session " + uiSession + "not found!");
 		}
 
-		final short[] audioOut = new short[FRAME_SIZE];
-		for (final short[] frame : frameList) {
-			synchronized (celt.class) {
-				celt.celt_decode(celtDecoder, frame, frame.length, audioOut);
-			}
-			if (ANDROID) {
-				at.write(audioOut, 0, FRAME_SIZE);
-			}
-		}
+		ao.addFrameToBuffer(u, tmpBuffer, (int) iSeq);
 	}
 
 	private void recountChannelUsers() {
@@ -469,11 +417,5 @@ public class MumbleClient implements Runnable {
 			final Intent i = new Intent(action);
 			ctx.sendBroadcast(i);
 		}
-	}
-
-	@Override
-	protected final void finalize() {
-		celt.celt_decoder_destroy(celtDecoder);
-		celt.celt_mode_destroy(celtMode);
 	}
 }

@@ -98,8 +98,9 @@ public class ServerList extends ListActivity {
 	private static final int DIALOG_DELETE_SERVER = 0;
 
 	private static final int MENU_ADD_SERVER = Menu.FIRST;
-	private static final int MENU_DELETE_SERVER = Menu.FIRST + 2;
 	private static final int MENU_EDIT_SERVER = Menu.FIRST + 1;
+	private static final int MENU_DELETE_SERVER = Menu.FIRST + 2;
+	private static final int MENU_EXIT = Menu.FIRST + 3;
 
 	private Thread clientThread;
 
@@ -134,6 +135,8 @@ public class ServerList extends ListActivity {
 		super.onCreateOptionsMenu(menu);
 		menu.add(0, MENU_ADD_SERVER, 0, "Add Server").setIcon(
 				android.R.drawable.ic_menu_add);
+		menu.add(0, MENU_EXIT, 0, "Exit").setIcon(
+				android.R.drawable.ic_menu_close_clear_cancel);
 		return true;
 	}
 
@@ -143,6 +146,12 @@ public class ServerList extends ListActivity {
 		switch (item.getItemId()) {
 		case MENU_ADD_SERVER:
 			addServer();
+			return true;
+		case MENU_EXIT:
+			if (clientThread != null)
+				clientThread.interrupt();
+			finish();
+			System.exit(0);
 			return true;
 		default:
 			return super.onMenuItemSelected(featureId, item);
