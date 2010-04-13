@@ -80,6 +80,7 @@ public class MumbleClient implements Runnable {
 	public ArrayList<Channel> channelArray = new ArrayList<Channel>();
 	public int currentChannel = -1;
 	public int session;
+	public boolean canSpeak = true;
 	public ArrayList<User> userArray = new ArrayList<User>();
 	private boolean authenticated;
 	private final Context ctx;
@@ -320,6 +321,17 @@ public class MumbleClient implements Runnable {
 						sendBroadcast(INTENT_CURRENT_CHANNEL_CHANGED);
 					}
 					sendBroadcast(INTENT_USER_LIST_UPDATE);
+				}
+				if (us.getSession() == session) {
+					if (us.hasMute() || us.hasSuppress()) {
+						if (us.hasMute()) {
+							canSpeak = !us.getMute();
+						}
+						if (us.hasSuppress()) {
+							canSpeak = !us.getSuppress();
+						}
+						sendBroadcast(INTENT_USER_LIST_UPDATE);
+					}
 				}
 				break;
 			}

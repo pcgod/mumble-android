@@ -68,8 +68,8 @@ public class UserList extends ListActivity {
 			} else if (MumbleClient.INTENT_CURRENT_CHANNEL_CHANGED.equals(i
 					.getAction())) {
 				channelId = ServerList.client.currentChannel;
-				updateButtonVisibility();
 			}
+			updateButtonVisibility();
 		}
 	}
 
@@ -110,6 +110,7 @@ public class UserList extends ListActivity {
 			joinButton.setVisibility(View.VISIBLE);
 			speakButton.setVisibility(View.GONE);
 		}
+		speakButton.setEnabled(ServerList.client.canSpeak);
 	}
 
 	@Override
