@@ -9,19 +9,19 @@ import android.util.Log;
 
 class DbAdapter {
 	private static class DatabaseHelper extends SQLiteOpenHelper {
-
 		public DatabaseHelper(final Context context) {
-			super(context, DATABASE_NAME, null, 1);
+			super(context, DATABASE_NAME, null, 2);
 		}
 
 		@Override
 		public void onCreate(final SQLiteDatabase db) {
-			db.execSQL("create table server ("
-					+ "_id integer primary key autoincrement,"
-					+ "host text not null,"
-					+ "port integer,"
-					+ "username text,"
-					+ "password text"
+			db.execSQL("CREATE TABLE `server` ("
+					+ "`_id` INTEGER PRIMARY KEY AUTOINCREMENT,"
+					+ "`name` TEXT NOT NULL,"
+					+ "`host` TEXT NOT NULL,"
+					+ "`port` INTEGER,"
+					+ "`username` TEXT NOT NULL,"
+					+ "`password` TEXT"
 					+ ");");
 		}
 
@@ -30,12 +30,21 @@ class DbAdapter {
 				final int newVersion) {
 			Log.w("mumbleclient", "Database upgrade from " + oldVersion
 					+ " to " + newVersion);
+			if (oldVersion == 1) {
+				db.execSQL("ALTER TABLE `server` RENAME TO `server_old`");
+				onCreate(db);
+				db.execSQL("INSERT INTO `server` SELECT "
+						+ "`_id`, '', `host`, `port`, `username`, `password` "
+						+ "FROM `server_old`");
+				db.execSQL("DROP TABLE `server_old`");
+			}
 		}
 	}
 
 	public static final String DATABASE_NAME = "mumble.db";
 	public static final String SERVER_TABLE = "server";
 	public static final String SERVER_COL_ID = "_id";
+	public static final String SERVER_COL_NAME = "name";
 	public static final String SERVER_COL_HOST = "host";
 	public static final String SERVER_COL_PORT = "port";
 	public static final String SERVER_COL_USERNAME = "username";
@@ -53,9 +62,10 @@ class DbAdapter {
 		dbHelper.close();
 	}
 
-	public final long createServer(final String host, final int port,
-			final String username, final String password) {
+	public final long createServer(final String name, final String host,
+			final int port, final String username, final String password) {
 		final ContentValues values = new ContentValues();
+		values.put(SERVER_COL_NAME, name);
 		values.put(SERVER_COL_HOST, host);
 		values.put(SERVER_COL_PORT, port);
 		values.put(SERVER_COL_USERNAME, username);
@@ -69,17 +79,18 @@ class DbAdapter {
 
 	public final Cursor fetchAllServers() {
 		final Cursor c = db.query(SERVER_TABLE, new String[] { SERVER_COL_ID,
-				SERVER_COL_HOST, SERVER_COL_PORT, SERVER_COL_USERNAME,
-				SERVER_COL_PASSWORD }, null, null, null, null, null);
+				SERVER_COL_NAME, SERVER_COL_HOST, SERVER_COL_PORT,
+				SERVER_COL_USERNAME, SERVER_COL_PASSWORD }, null, null, null,
+				null, null);
 
 		return c;
 	}
 
 	public final Cursor fetchServer(final long serverId) {
 		final Cursor c = db.query(SERVER_TABLE, new String[] { SERVER_COL_ID,
-				SERVER_COL_HOST, SERVER_COL_PORT, SERVER_COL_USERNAME,
-				SERVER_COL_PASSWORD }, SERVER_COL_ID + " = " + serverId, null,
-				null, null, null);
+				SERVER_COL_NAME, SERVER_COL_HOST, SERVER_COL_PORT,
+				SERVER_COL_USERNAME, SERVER_COL_PASSWORD }, SERVER_COL_ID
+				+ " = " + serverId, null, null, null, null);
 		if (c != null) {
 			c.moveToFirst();
 		}

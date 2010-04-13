@@ -13,6 +13,8 @@ public class ServerAdd extends Activity {
 	private final OnClickListener addButtonListener = new OnClickListener() {
 		@Override
 		public void onClick(final View v) {
+			final String name = ((EditText) findViewById(R.id.serverNameEdit))
+					.getText().toString();
 			final String host = ((EditText) findViewById(R.id.serverHostEdit))
 					.getText().toString();
 			final int port = Integer
@@ -25,7 +27,7 @@ public class ServerAdd extends Activity {
 
 			final DbAdapter db = new DbAdapter(v.getContext());
 			db.open();
-			db.createServer(host, port, username, password);
+			db.createServer(name, host, port, username, password);
 			db.close();
 
 			finish();

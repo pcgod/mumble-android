@@ -3,10 +3,17 @@
 	android:layout_width="fill_parent" android:layout_height="fill_parent">
 	<LinearLayout android:layout_height="wrap_content"
 		android:layout_width="fill_parent" android:orientation="vertical">
+		<TextView android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:id="@+id/serverName"
+			android:text="@string/serverName"></TextView>
+		<EditText android:layout_height="wrap_content"
+			android:layout_width="fill_parent" android:id="@+id/serverNameEdit"
+			android:inputType="text"></EditText>
 		<TextView android:id="@+id/serverHost" android:layout_width="wrap_content"
 			android:layout_height="wrap_content" android:text="@string/serverHost"></TextView>
 		<EditText android:layout_height="wrap_content"
-			android:layout_width="fill_parent" android:id="@+id/serverHostEdit" android:inputType="text"></EditText>
+			android:layout_width="fill_parent" android:id="@+id/serverHostEdit"
+			android:inputType="text"></EditText>
 		<TextView android:layout_width="wrap_content"
 			android:layout_height="wrap_content" android:text="@string/serverPort"
 			android:id="@+id/serverPort"></TextView>
@@ -17,7 +24,8 @@
 			android:layout_height="wrap_content" android:text="@string/serverUsername"
 			android:id="@+id/serverUsername"></TextView>
 		<EditText android:layout_height="wrap_content"
-			android:layout_width="fill_parent" android:id="@+id/serverUsernameEdit" android:inputType="text"></EditText>
+			android:layout_width="fill_parent" android:id="@+id/serverUsernameEdit"
+			android:inputType="text"></EditText>
 		<TextView android:layout_width="wrap_content"
 			android:layout_height="wrap_content" android:id="@+id/serverPassword"
 			android:text="@string/serverPassword"></TextView>

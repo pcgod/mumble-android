@@ -19,6 +19,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -66,6 +67,9 @@ public class ServerList extends ListActivity {
 					.findViewById(android.R.id.text2);
 
 			cursor.moveToPosition(position);
+
+			final String serverName = cursor.getString(cursor
+					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_NAME));
 			final String serverHost = cursor.getString(cursor
 					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_HOST));
 			final int serverPort = cursor.getInt(cursor
@@ -82,8 +86,14 @@ public class ServerList extends ListActivity {
 				userText.setTypeface(Typeface.DEFAULT_BOLD);
 			}
 
-			nameText.setText(serverHost + ":" + serverPort);
-			userText.setText(serverUsername);
+			if ("".equals(serverName)) {
+				nameText.setText(serverHost + ":" + serverPort);
+				userText.setText(serverUsername);
+			} else {
+				nameText.setText(serverName);
+				userText.setText(serverUsername + "@" + serverHost + ":"
+						+ serverPort);
+			}
 
 			return row;
 		}
@@ -124,6 +134,14 @@ public class ServerList extends ListActivity {
 	public final void onCreateContextMenu(final ContextMenu menu, final View v,
 			final ContextMenuInfo menuInfo) {
 		super.onCreateContextMenu(menu, v, menuInfo);
+
+		final int menuPosition = ((AdapterView.AdapterContextMenuInfo) menuInfo).position;
+		final int serverId = (int) getListAdapter().getItemId(menuPosition);
+		final Cursor c = dbAdapter.fetchServer(serverId);
+		final String name = getServerName(c);
+		c.close();
+		menu.setHeaderTitle(name);
+
 		// menu.add(0, MENU_EDIT_SERVER, 1, "Edit").setIcon(
 		// android.R.drawable.ic_menu_edit);
 		menu.add(0, MENU_DELETE_SERVER, 1, "Delete").setIcon(
@@ -148,8 +166,9 @@ public class ServerList extends ListActivity {
 			addServer();
 			return true;
 		case MENU_EXIT:
-			if (clientThread != null)
+			if (clientThread != null) {
 				clientThread.interrupt();
+			}
 			finish();
 			System.exit(0);
 			return true;
@@ -185,6 +204,19 @@ public class ServerList extends ListActivity {
 						});
 
 		return builder.create();
+	}
+
+	private String getServerName(final Cursor c) {
+		String name = c.getString(c
+				.getColumnIndexOrThrow(DbAdapter.SERVER_COL_NAME));
+		if ("".equals(name)) {
+			final String host = c.getString(c
+					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_HOST));
+			final int port = c.getInt(c
+					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT));
+			name = host + ":" + port;
+		}
+		return name;
 	}
 
 	@Override
