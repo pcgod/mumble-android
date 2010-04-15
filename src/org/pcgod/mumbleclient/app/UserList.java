@@ -1,6 +1,7 @@
 package org.pcgod.mumbleclient.app;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.pcgod.mumbleclient.MumbleClient;
 import org.pcgod.mumbleclient.R;
@@ -12,46 +13,36 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Typeface;
+import android.media.AudioManager;
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.View.OnClickListener;
+import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
 public class UserList extends ListActivity {
-	private class UserAdapter extends BaseAdapter {
-		private final ArrayList<User> al;
-		private final Context ctx;
-
-		public UserAdapter(final Context context,
-				final ArrayList<User> userArray) {
-			ctx = context;
-			al = userArray;
+	private class UserAdapter extends ArrayAdapter<User> {
+		public UserAdapter(final Context context, final List<User> users) {
+			super(context, android.R.layout.simple_list_item_1, users);
 		}
 
 		@Override
-		public final int getCount() {
-			return al.size();
-		}
-
-		@Override
-		public final Object getItem(final int position) {
-			return getItemId(position);
-		}
-
-		@Override
-		public final long getItemId(final int position) {
-			return al.get(position).session;
-		}
-
-		@Override
-		public final View getView(final int position, final View v,
+		public final View getView(final int position, View v,
 				final ViewGroup parent) {
-			final User u = al.get(position);
-			final TextView tv = new TextView(ctx.getApplicationContext());
+			if (v == null) {
+				final LayoutInflater inflater = (LayoutInflater) UserList.this
+						.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+				v = inflater.inflate(android.R.layout.simple_list_item_1, null);
+			}
+			final User u = getItem(position);
+			final TextView tv = (TextView) v.findViewById(android.R.id.text1);
 			tv.setText(u.name);
 			if (u.session == ServerList.client.session) {
 				tv.setTypeface(Typeface.DEFAULT_BOLD);
@@ -78,6 +69,9 @@ public class UserList extends ListActivity {
 	private UserBroadcastReceiver bcReceiver;
 	private ToggleButton speakButton;
 	private Button joinButton;
+
+	private static final int MENU_CHAT = Menu.FIRST;
+
 	private final ArrayList<User> userList = new ArrayList<User>();
 	private final OnClickListener joinButtonClickEvent = new OnClickListener() {
 		@Override
@@ -102,6 +96,26 @@ public class UserList extends ListActivity {
 		}
 	};
 
+	@Override
+	public final boolean onCreateOptionsMenu(final Menu menu) {
+		menu.add(0, MENU_CHAT, 0, "Chat").setIcon(
+				android.R.drawable.ic_btn_speak_now);
+		return true;
+	}
+
+	@Override
+	public final boolean onMenuItemSelected(final int featureId,
+			final MenuItem item) {
+		switch (item.getItemId()) {
+		case MENU_CHAT:
+			final Intent i = new Intent(this, ChatActivity.class);
+			startActivity(i);
+			return true;
+		default:
+			return super.onMenuItemSelected(featureId, item);
+		}
+	}
+
 	private void updateButtonVisibility() {
 		if (channelId == ServerList.client.currentChannel) {
 			joinButton.setVisibility(View.GONE);
@@ -117,6 +131,7 @@ public class UserList extends ListActivity {
 	protected final void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.user_list);
+		setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
 
 		if (ServerList.client == null) {
 			finish();

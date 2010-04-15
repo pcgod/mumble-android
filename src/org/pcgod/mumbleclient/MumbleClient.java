@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 import javax.crypto.Cipher;
 import javax.net.ssl.SSLContext;
@@ -20,11 +21,13 @@ import net.sf.mumble.MumbleProto.Authenticate;
 import net.sf.mumble.MumbleProto.ChannelRemove;
 import net.sf.mumble.MumbleProto.ChannelState;
 import net.sf.mumble.MumbleProto.ServerSync;
+import net.sf.mumble.MumbleProto.TextMessage;
 import net.sf.mumble.MumbleProto.UserRemove;
 import net.sf.mumble.MumbleProto.UserState;
 import net.sf.mumble.MumbleProto.Version;
 import android.content.Context;
 import android.content.Intent;
+import android.text.format.DateUtils;
 import android.util.Log;
 
 import com.google.protobuf.ByteString;
@@ -71,6 +74,7 @@ public class MumbleClient implements Runnable {
 	public static final String INTENT_CHANNEL_LIST_UPDATE = "mumbleclient.intent.CHANNEL_LIST_UPDATE";
 	public static final String INTENT_CURRENT_CHANNEL_CHANGED = "mumbleclient.intent.CURRENT_CHANNEL_CHANGED";
 	public static final String INTENT_USER_LIST_UPDATE = "mumbleclient.intent.USER_LIST_UPDATE";
+	public static final String INTENT_CHAT_TEXT_UPDATE = "mumbleclient.intent.CHAT_TEXT_UPDATE";
 	private static final String LOG_TAG = "mumbleclient";
 
 	private static final boolean ANDROID = true;
@@ -84,6 +88,7 @@ public class MumbleClient implements Runnable {
 	public ArrayList<User> userArray = new ArrayList<User>();
 	private boolean authenticated;
 	private final Context ctx;
+	public LinkedList<String> chatList = new LinkedList<String>();
 
 	private DataInputStream in;
 	private DataOutputStream out;
@@ -94,14 +99,14 @@ public class MumbleClient implements Runnable {
 	private final int port;
 	private final String username;
 	private final String password;
-	
+
 	private Cipher encryptCipher;
 	private Cipher decryptCipher;
 	private AudioOutput ao;
 	private Thread audioOutputThread;
 
-	public MumbleClient(final Context ctx_, final String host_, final int port_,
-			final String username_, final String password_) {
+	public MumbleClient(final Context ctx_, final String host_,
+			final int port_, final String username_, final String password_) {
 		ctx = ctx_.getApplicationContext();
 		host = host_;
 		port = port_;
@@ -113,9 +118,10 @@ public class MumbleClient implements Runnable {
 		return socket != null && socket.isConnected();
 	}
 
-	public final boolean isSameServer(final String host_, final int port_, final String username_,
-			final String password_) {
-		return host.equals(host_) && port == port_ && username.equals(username_) && password.equals(password_);
+	public final boolean isSameServer(final String host_, final int port_,
+			final String username_, final String password_) {
+		return host.equals(host_) && port == port_
+				&& username.equals(username_) && password.equals(password_);
 	}
 
 	public final void joinChannel(final int channelId) {
@@ -154,6 +160,29 @@ public class MumbleClient implements Runnable {
 		}
 	}
 
+	public final void sendChannelTextMessage(final String message) {
+		final TextMessage.Builder tmb = TextMessage.newBuilder();
+		tmb.addChannelId(currentChannel);
+		tmb.setMessage(message);
+		try {
+			sendMessage(MessageType.TextMessage, tmb);
+		} catch (final IOException e) {
+			e.printStackTrace();
+		}
+		final StringBuffer mb = new StringBuffer();
+		mb.append("[");
+		mb.append(DateUtils.formatDateTime(ctx, System.currentTimeMillis(),
+				DateUtils.FORMAT_SHOW_TIME));
+		mb.append("] To ");
+		final Channel c = findChannel(currentChannel);
+		mb.append(c.name);
+		mb.append(": ");
+		mb.append(message);
+		mb.append("\n");
+		chatList.add(mb.toString());
+		sendBroadcast(INTENT_CHAT_TEXT_UPDATE);
+	}
+
 	public final void sendMessage(final MessageType t,
 			final MessageLite.Builder b) throws IOException {
 		final MessageLite m = b.build();
@@ -175,7 +204,8 @@ public class MumbleClient implements Runnable {
 		}
 	}
 
-	public final void sendUdpTunnelMessage(final byte[] buffer) throws IOException {
+	public final void sendUdpTunnelMessage(final byte[] buffer)
+			throws IOException {
 		final short type = (short) MessageType.UDPTunnel.ordinal();
 		final int length = buffer.length;
 
@@ -232,6 +262,34 @@ public class MumbleClient implements Runnable {
 		}
 	}
 
+	private void handleTextMessage(final TextMessage ts) {
+		User u = null;
+		if (ts.hasActor()) {
+			u = findUser(ts.getActor());
+		}
+		final StringBuffer message = new StringBuffer();
+		message.append("[");
+		message.append(DateUtils.formatDateTime(ctx,
+				System.currentTimeMillis(), DateUtils.FORMAT_SHOW_TIME));
+		message.append("] ");
+		if (ts.getChannelIdCount() > 0) {
+			message.append("(C) ");
+		}
+		if (ts.getTreeIdCount() > 0) {
+			message.append("(T) ");
+		}
+		if (u != null) {
+			message.append(u.name);
+		} else {
+			message.append("Server");
+		}
+		message.append(": ");
+		message.append(ts.getMessage());
+		message.append("\n");
+		chatList.add(message.toString());
+		sendBroadcast(INTENT_CHAT_TEXT_UPDATE);
+	}
+
 	@SuppressWarnings("unused")
 	private void printChanneList() {
 		Log.i(LOG_TAG, "--- begin channel list ---");
@@ -278,7 +336,7 @@ public class MumbleClient implements Runnable {
 			ao = new AudioOutput();
 			audioOutputThread = new Thread(ao, "audio output");
 			audioOutputThread.start();
-			
+
 			final UserState.Builder usb = UserState.newBuilder();
 			usb.setSession(session);
 			usb.setPluginContext(ByteString
@@ -350,6 +408,9 @@ public class MumbleClient implements Runnable {
 
 			sendBroadcast(INTENT_USER_LIST_UPDATE);
 			break;
+		case TextMessage:
+			handleTextMessage(TextMessage.parseFrom(buffer));
+			break;
 		case CryptSetup:
 //			try {
 //				final CryptSetup cryptSetup = CryptSetup.parseFrom(buffer);
@@ -416,7 +477,7 @@ public class MumbleClient implements Runnable {
 		for (final Channel c : channelArray) {
 			c.userCount = 0;
 		}
-		
+
 		for (final User u : userArray) {
 			final Channel c = findChannel(u.channel);
 			c.userCount++;

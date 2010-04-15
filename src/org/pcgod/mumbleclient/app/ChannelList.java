@@ -1,6 +1,6 @@
 package org.pcgod.mumbleclient.app;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import org.pcgod.mumbleclient.Channel;
 import org.pcgod.mumbleclient.MumbleClient;
@@ -12,49 +12,35 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Typeface;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
 public class ChannelList extends ListActivity {
-	private class ChannelAdapter extends BaseAdapter {
-		private final Context ctx;
-		private final ArrayList<Channel> al;
-
+	private class ChannelAdapter extends ArrayAdapter<Channel> {
 		public ChannelAdapter(final Context context,
-				final ArrayList<Channel> channelArray) {
-			ctx = context;
-			al = channelArray;
+				final List<Channel> channels) {
+			super(context, android.R.layout.simple_list_item_1, channels);
 		}
 
 		@Override
-		public final int getCount() {
-			return al.size();
-		}
-
-		@Override
-		public final Object getItem(final int position) {
-			return getItemId(position);
-		}
-
-		@Override
-		public final long getItemId(final int position) {
-			return al.get(position).id;
-		}
-
-		@Override
-		public final View getView(final int position, final View v,
+		public final View getView(final int position, View v,
 				final ViewGroup parent) {
-			final Channel c = al.get(position);
-			final LayoutInflater inflater = (LayoutInflater) ctx
-					.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			final View row = inflater.inflate(
-					android.R.layout.simple_list_item_1, null);
-			final TextView tv = (TextView) row.findViewById(android.R.id.text1);
+			if (v == null) {
+				final LayoutInflater inflater = (LayoutInflater) ChannelList.this
+						.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+				v = inflater.inflate(android.R.layout.simple_list_item_1, null);
+			}
+			final Channel c = getItem(position);
+			final TextView tv = (TextView) v.findViewById(android.R.id.text1);
 			tv.setText(c.name + " (" + c.userCount + ")");
 			if (c.id == ServerList.client.currentChannel) {
 				tv.setTypeface(Typeface.DEFAULT_BOLD);
@@ -71,13 +57,35 @@ public class ChannelList extends ListActivity {
 	}
 
 	private static final int ACTIVITY_USER_LIST = 0;
+	private static final int MENU_CHAT = Menu.FIRST;
 
 	private ChannelBroadcastReceiver bcReceiver;
+
+	@Override
+	public final boolean onCreateOptionsMenu(final Menu menu) {
+		menu.add(0, MENU_CHAT, 0, "Chat").setIcon(
+				android.R.drawable.ic_btn_speak_now);
+		return true;
+	}
+
+	@Override
+	public final boolean onMenuItemSelected(final int featureId,
+			final MenuItem item) {
+		switch (item.getItemId()) {
+		case MENU_CHAT:
+			final Intent i = new Intent(this, ChatActivity.class);
+			startActivity(i);
+			return true;
+		default:
+			return super.onMenuItemSelected(featureId, item);
+		}
+	}
 
 	@Override
 	protected final void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.channel_list);
+		setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
 
 		if (ServerList.client == null) {
 			finish();

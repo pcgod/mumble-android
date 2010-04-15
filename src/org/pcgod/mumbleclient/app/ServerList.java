@@ -11,6 +11,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Typeface;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
@@ -23,6 +24,7 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 
 public class ServerList extends ListActivity {
@@ -111,6 +113,7 @@ public class ServerList extends ListActivity {
 	private static final int MENU_EDIT_SERVER = Menu.FIRST + 1;
 	private static final int MENU_DELETE_SERVER = Menu.FIRST + 2;
 	private static final int MENU_EXIT = Menu.FIRST + 3;
+	private static final int MENU_CONNECT_SERVER = Menu.FIRST + 4;
 
 	private Thread clientThread;
 
@@ -119,6 +122,9 @@ public class ServerList extends ListActivity {
 		final AdapterContextMenuInfo info = (AdapterContextMenuInfo) item
 				.getMenuInfo();
 		switch (item.getItemId()) {
+		case MENU_CONNECT_SERVER:
+			onListItemClick(getListView(), getCurrentFocus(), info.position, getListAdapter().getItemId(info.position));
+			return true;
 		case MENU_EDIT_SERVER:
 			return true;
 		case MENU_DELETE_SERVER:
@@ -136,14 +142,16 @@ public class ServerList extends ListActivity {
 		super.onCreateContextMenu(menu, v, menuInfo);
 
 		final int menuPosition = ((AdapterView.AdapterContextMenuInfo) menuInfo).position;
-		final int serverId = (int) getListAdapter().getItemId(menuPosition);
+		final int serverId = (int) getListView().getItemIdAtPosition(menuPosition);
 		final Cursor c = dbAdapter.fetchServer(serverId);
 		final String name = getServerName(c);
 		c.close();
 		menu.setHeaderTitle(name);
 
-		// menu.add(0, MENU_EDIT_SERVER, 1, "Edit").setIcon(
-		// android.R.drawable.ic_menu_edit);
+		menu.add(0, MENU_CONNECT_SERVER, 1, "Connect").setIcon(
+				android.R.drawable.ic_menu_view);
+//		menu.add(0, MENU_EDIT_SERVER, 1, "Edit").setIcon(
+//				android.R.drawable.ic_menu_edit);
 		menu.add(0, MENU_DELETE_SERVER, 1, "Delete").setIcon(
 				android.R.drawable.ic_menu_delete);
 	}
@@ -193,6 +201,7 @@ public class ServerList extends ListActivity {
 									dbAdapter.deleteServer(serverToDeleteId);
 									serverToDeleteId = -1;
 									fillList();
+									Toast.makeText(ServerList.this, R.string.server_deleted, Toast.LENGTH_SHORT).show();
 								}
 							}
 						}).setNegativeButton("No",
@@ -233,6 +242,7 @@ public class ServerList extends ListActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		registerForContextMenu(getListView());
+		setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
 
 		dbAdapter = new DbAdapter(this);
 		dbAdapter.open();
