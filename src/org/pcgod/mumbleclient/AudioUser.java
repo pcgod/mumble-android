@@ -1,6 +1,7 @@
 package org.pcgod.mumbleclient;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.LinkedList;
 
 import org.pcgod.mumbleclient.jni.celt;
@@ -8,7 +9,7 @@ import org.pcgod.mumbleclient.jni.celt;
 class AudioUser {
 	JitterBuffer jb;
 	User u;
-	short[] pfBuffer = new short[MumbleClient.FRAME_SIZE];
+	short[] pfBuffer;
 	private int lastConsume;
 	private int bufferFilled;
 	private boolean lastAlive = true;
@@ -61,6 +62,9 @@ class AudioUser {
 	}
 
 	boolean needSamples(final int snum) {
+		if (pfBuffer == null) {
+			pfBuffer = new short[snum];
+		}
 //		for (int i = lastConsume; i < bufferFilled; ++i) {
 //			pfBuffer[i - lastConsume] = pfBuffer[i];
 //		}
@@ -72,13 +76,11 @@ class AudioUser {
 			return lastAlive;
 		}
 
-		short[] pOut;
 		boolean nextAlive = lastAlive;
 
 		while (bufferFilled < snum) {
-			pOut = pfBuffer;
 			if (!lastAlive) {
-				pOut = pfBuffer = new short[MumbleClient.FRAME_SIZE];
+				Arrays.fill(pfBuffer, bufferFilled, bufferFilled + MumbleClient.FRAME_SIZE, (short) 0);
 			} else {
 				final int available;
 				final int timestamp;
@@ -92,7 +94,7 @@ class AudioUser {
 					if (available < want) {
 						++missCount;
 						if (missCount < 20) {
-							pOut = pfBuffer = new short[MumbleClient.FRAME_SIZE];
+							Arrays.fill(pfBuffer, bufferFilled, bufferFilled + MumbleClient.FRAME_SIZE, (short) 0);
 							bufferFilled += MumbleClient.FRAME_SIZE;
 							continue;
 						}
@@ -159,11 +161,13 @@ class AudioUser {
 				if (!frameList.isEmpty()) {
 					final short[] frame = frameList.poll();
 
+					short[] pOut = new short[MumbleClient.FRAME_SIZE];
 					synchronized (celt.class) {
 						celt.celt_decode(AudioOutput.celtDecoder, frame,
 								frame.length, pOut);
 					}
 
+					System.arraycopy(pOut, 0, pfBuffer, bufferFilled, MumbleClient.FRAME_SIZE);
 					final boolean update = true;
 //	                if (p) {
 //	                    float &fPowerMax = p->fPowerMax;

@@ -44,6 +44,8 @@ public class ChannelList extends ListActivity {
 			tv.setText(c.name + " (" + c.userCount + ")");
 			if (c.id == ServerList.client.currentChannel) {
 				tv.setTypeface(Typeface.DEFAULT_BOLD);
+			} else {
+				tv.setTypeface(Typeface.DEFAULT);
 			}
 			return tv;
 		}
@@ -106,8 +108,9 @@ public class ChannelList extends ListActivity {
 			final int position, final long id) {
 		super.onListItemClick(l, v, position, id);
 
+		final Channel c = (Channel) getListView().getItemAtPosition(position);
 		final Intent i = new Intent(this, UserList.class);
-		i.putExtra("channelId", id);
+		i.putExtra("channelId", (long) c.id);
 		startActivityForResult(i, ACTIVITY_USER_LIST);
 	}
 

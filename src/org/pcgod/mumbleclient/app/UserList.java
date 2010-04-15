@@ -46,6 +46,8 @@ public class UserList extends ListActivity {
 			tv.setText(u.name);
 			if (u.session == ServerList.client.session) {
 				tv.setTypeface(Typeface.DEFAULT_BOLD);
+			} else {
+				tv.setTypeface(Typeface.DEFAULT);
 			}
 			return tv;
 		}

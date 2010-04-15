@@ -24,6 +24,7 @@ class AudioOutput implements Runnable {
 	private final SWIGTYPE_p_CELTMode celtMode;
 	private final ReentrantLock lock = new ReentrantLock();
 	private final Condition notEmpty = lock.newCondition();
+	private final static int bufferSize = MumbleClient.FRAME_SIZE * 4;
 
 	AudioOutput() {
 		at = new AudioTrack(AudioManager.STREAM_VOICE_CALL,
@@ -53,18 +54,19 @@ class AudioOutput implements Runnable {
 
 	@Override
 	public void run() {
+		android.os.Process
+				.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
+
 		running = true;
 		while (running) {
-			final boolean mixed = mix(MumbleClient.FRAME_SIZE);
+			final boolean mixed = mix(bufferSize);
 			if (mixed) {
-				at.write(out, 0, MumbleClient.FRAME_SIZE);
+				at.write(out, 0, bufferSize);
 			} else {
 				try {
 					lock.lock();
 					if (outputMap.isEmpty()) {
 						notEmpty.await();
-					} else {
-						Thread.sleep(20);
 					}
 				} catch (final InterruptedException e) {
 					e.printStackTrace();
@@ -91,12 +93,18 @@ class AudioOutput implements Runnable {
 		}
 
 		if (!mix.isEmpty()) {
-			out = new short[MumbleClient.FRAME_SIZE];
+			out = new short[bufferSize];
 			for (final AudioUser au : mix) {
 				final short[] pfBuffer = au.pfBuffer;
 
 				for (int i = 0; i < nsamp; ++i) {
-					out[i] += pfBuffer[i];
+					int x = out[i] + pfBuffer[i];
+					if (x > Short.MAX_VALUE)
+						x = Short.MAX_VALUE;
+					else if (x < Short.MIN_VALUE)
+						x = Short.MIN_VALUE;
+					out[i] = (short) x;
+//					out[i] += pfBuffer[i];
 				}
 			}
 		}
