@@ -1,4 +1,2 @@
 bin/*
 libs/*
-jni/celt_wrapper/*.java
-jni/celt_wrapper/*.c

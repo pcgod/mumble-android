@@ -43,7 +43,7 @@ include $(CLEAR_VARS)
 LOCAL_PATH				:= $(ROOT)/celt_wrapper
 LOCAL_MODULE			:= libcelt_interface
 LOCAL_SRC_FILES 		:= celt_wrap.c
-LOCAL_CFLAGS			:= -I$(LIBPATH)
+LOCAL_CFLAGS			:= -I$(LIBPATH) -fvisibility=hidden
 LOCAL_STATIC_LIBRARIES	:= libcelt libspeex
 
 include $(BUILD_SHARED_LIBRARY)
