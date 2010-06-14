@@ -1,3 +1,6 @@
 [submodule "jni/celt"]
 	path = jni/celt
 	url = git://git.xiph.org/celt.git/
+[submodule "jni/speex"]
+	path = jni/speex
+	url = git://git.xiph.org/speex.git/
