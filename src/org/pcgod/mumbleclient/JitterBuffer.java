@@ -1,13 +1,38 @@
 package org.pcgod.mumbleclient;
 
-import android.util.Log;
-
 class JitterBuffer {
 	private class TimingBuffer {
 		int filled;
 		int curr_count;
 		int[] timing = new int[MAX_TIMINGS];
 		short[] counts = new short[MAX_TIMINGS];
+		
+		public void add(final short timing_) {
+			if (filled >= MAX_TIMINGS && timing_ >= timing[filled - 1]) {
+				curr_count++;
+				return;
+			}
+
+			int pos = 0;
+			while (pos < filled && timing_ >= timing[pos]) {
+				++pos;
+			}
+			if (pos < filled) {
+				int move_size = filled - pos;
+				if (filled == MAX_TIMINGS) {
+					move_size -= 1;
+				}
+
+				System.arraycopy(timing, pos, timing, pos + 1, move_size);
+				System.arraycopy(counts, pos, counts, pos + 1, move_size);
+			}
+			timing[pos] = timing_;
+			counts[pos] = (short) curr_count;
+			++curr_count;
+			if (filled < MAX_TIMINGS) {
+				++filled;
+			}
+		}
 	}
 
 	private static final int MAX_TIMINGS = 40;
@@ -271,6 +296,10 @@ class JitterBuffer {
 			timeBuffers[i] = new TimingBuffer();
 		}
 	}
+	
+	public void setMargin(int margin) {
+		buffer_margin = margin;
+	}
 
 	public void setMaxLateRate(final int max_late_rate) {
 		window_size = 100 * TOP_DELAY / max_late_rate;
@@ -391,33 +420,6 @@ class JitterBuffer {
 		}
 	}
 
-	private void timingbufferAdd(final TimingBuffer tb, final short timing) {
-		if (tb.filled >= MAX_TIMINGS && timing >= tb.timing[tb.filled - 1]) {
-			tb.curr_count++;
-			return;
-		}
-
-		int pos = 0;
-		while (pos < tb.filled && timing >= tb.timing[pos]) {
-			++pos;
-		}
-		if (pos < tb.filled) {
-			int move_size = tb.filled - pos;
-			if (tb.filled == MAX_TIMINGS) {
-				move_size -= 1;
-			}
-
-			System.arraycopy(tb.timing, pos, tb.timing, pos + 1, move_size);
-			System.arraycopy(tb.counts, pos, tb.counts, pos + 1, move_size);
-		}
-		tb.timing[pos] = timing;
-		tb.counts[pos] = (short) tb.curr_count;
-		++tb.curr_count;
-		if (tb.filled < MAX_TIMINGS) {
-			++tb.filled;
-		}
-	}
-
 	private void updateTimings(final short timing) {
 		if (timeBuffers[0].curr_count >= subwindow_size) {
 			final TimingBuffer tmp = timeBuffers[MAX_BUFFERS - 1];
@@ -428,6 +430,6 @@ class JitterBuffer {
 			timeBuffers[0].curr_count = 0;
 			timeBuffers[0].filled = 0;
 		}
-		timingbufferAdd(timeBuffers[0], timing);
+		timeBuffers[0].add(timing);
 	}
 }

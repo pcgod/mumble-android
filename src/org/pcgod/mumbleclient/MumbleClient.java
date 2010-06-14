@@ -76,6 +76,7 @@ public class MumbleClient implements Runnable {
 	public static final String INTENT_USER_LIST_UPDATE = "mumbleclient.intent.USER_LIST_UPDATE";
 	public static final String INTENT_CHAT_TEXT_UPDATE = "mumbleclient.intent.CHAT_TEXT_UPDATE";
 	private static final String LOG_TAG = "mumbleclient";
+	private static final MessageType[] MT_CONSTANTS = MessageType.class.getEnumConstants();
 
 	private static final boolean ANDROID = true;
 	private static final int protocolVersion = (1 << 16) | (2 << 8)
@@ -253,12 +254,15 @@ public class MumbleClient implements Runnable {
 		sendMessage(MessageType.Version, v);
 		sendMessage(MessageType.Authenticate, a);
 
+		byte[] msg = null;
 		while (socket_.isConnected()) {
 			final short type = in.readShort();
 			final int length = in.readInt();
-			final byte[] msg = new byte[length];
+			if (msg == null || msg.length != length) {
+				msg = new byte[length];
+			}
 			in.readFully(msg);
-			processMsg(MessageType.class.getEnumConstants()[type], msg);
+			processMsg(MT_CONSTANTS[type], msg);
 		}
 	}
 
@@ -459,18 +463,12 @@ public class MumbleClient implements Runnable {
 		final long uiSession = pds.readLong();
 		final long iSeq = pds.readLong();
 
-		final ByteBuffer tmpBuffer = ByteBuffer
-				.allocate(pdsBuffer.remaining() + 1);
-		tmpBuffer.put((byte) flags);
-		tmpBuffer.put(pdsBuffer);
-		tmpBuffer.rewind();
-
 		final User u = findUser((int) uiSession);
 		if (u == null) {
 			Log.e(LOG_TAG, "User session " + uiSession + "not found!");
 		}
 
-		ao.addFrameToBuffer(u, tmpBuffer, (int) iSeq);
+		ao.addFrameToBuffer(u, pdsBuffer.slice(), (int) iSeq, flags);
 	}
 
 	private void recountChannelUsers() {

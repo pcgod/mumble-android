@@ -10,13 +10,13 @@ class AudioUser {
 	JitterBuffer jb;
 	User u;
 	short[] pfBuffer;
-	private int lastConsume;
 	private int bufferFilled;
 	private boolean lastAlive = true;
 	private final LinkedList<short[]> frameList = new LinkedList<short[]>();
 	private int missCount;
 	private int ucFlags = 0xFF;
 	private boolean hasTerminator;
+	private short[] pOut = new short[MumbleClient.FRAME_SIZE];
 	private static double[] fadeIn;
 	private static double[] fadeOut;
 
@@ -33,12 +33,11 @@ class AudioUser {
 	AudioUser(final User u_) {
 		u = u_;
 		jb = new JitterBuffer(MumbleClient.FRAME_SIZE);
+//		jb.setMargin(50 * MumbleClient.FRAME_SIZE);
 	}
 
-	void addFrameToBuffer(final ByteBuffer packet, final int iSeq) {
+	void addFrameToBuffer(final ByteBuffer packet, final int iSeq, int flags) {
 		final PacketDataStream pds = new PacketDataStream(packet);
-
-		pds.next();
 
 		int frames = 0;
 		int header = 0;
@@ -51,6 +50,7 @@ class AudioUser {
 		if (pds.isValid()) {
 			packet.rewind();
 			final JitterBufferPacket jbp = new JitterBufferPacket();
+			jbp.flags = flags;
 			jbp.data = packet;
 			jbp.span = MumbleClient.FRAME_SIZE * frames;
 			jbp.timestamp = MumbleClient.FRAME_SIZE * iSeq;
@@ -65,17 +65,8 @@ class AudioUser {
 		if (pfBuffer == null) {
 			pfBuffer = new short[snum];
 		}
-//		for (int i = lastConsume; i < bufferFilled; ++i) {
-//			pfBuffer[i - lastConsume] = pfBuffer[i];
-//		}
-		bufferFilled -= lastConsume;
 
-		lastConsume = snum;
-
-		if (bufferFilled >= snum) {
-			return lastAlive;
-		}
-
+		bufferFilled = 0;
 		boolean nextAlive = lastAlive;
 
 		while (bufferFilled < snum) {
@@ -111,7 +102,7 @@ class AudioUser {
 								jbp.data);
 
 						missCount = 0;
-						ucFlags = pds.next();
+						ucFlags = jbp.flags;
 						hasTerminator = false;
 
 						int header = 0;
@@ -161,7 +152,6 @@ class AudioUser {
 				if (!frameList.isEmpty()) {
 					final short[] frame = frameList.poll();
 
-					short[] pOut = new short[MumbleClient.FRAME_SIZE];
 					synchronized (celt.class) {
 						celt.celt_decode(AudioOutput.celtDecoder, frame,
 								frame.length, pOut);
