@@ -7,10 +7,7 @@ import java.util.LinkedList;
 
 import org.pcgod.mumbleclient.MumbleClient;
 import org.pcgod.mumbleclient.PacketDataStream;
-import org.pcgod.mumbleclient.jni.SWIGTYPE_p_CELTEncoder;
-import org.pcgod.mumbleclient.jni.SWIGTYPE_p_CELTMode;
-import org.pcgod.mumbleclient.jni.SWIGTYPE_p_SpeexResamplerState;
-import org.pcgod.mumbleclient.jni.celt;
+import org.pcgod.mumbleclient.jni.Native;
 import org.pcgod.mumbleclient.jni.celtConstants;
 
 import android.media.AudioFormat;
@@ -26,13 +23,13 @@ public class RecordThread implements Runnable {
 	private final AudioRecord ar;
 	private final short[] buffer;
 	private int bufferSize;
-	private final SWIGTYPE_p_CELTEncoder ce;
-	private final SWIGTYPE_p_CELTMode cm;
+	private final long celtEncoder;
+	private final long celtMode;
 	private final int framesPerPacket = 6;
-	private final LinkedList<ShortBuffer> outputQueue = new LinkedList<ShortBuffer>();
+	private final LinkedList<ByteBuffer> outputQueue = new LinkedList<ByteBuffer>();
 	private final short[] resampleBuffer = new short[MumbleClient.FRAME_SIZE];
 	private int seq;
-	private final SWIGTYPE_p_SpeexResamplerState srs;
+	private final long speexResamplerState;
 
 	public RecordThread() {
 		for (final int s : new int[] { 48000, 44100, 22050, 11025, 8000 }) {
@@ -59,18 +56,17 @@ public class RecordThread implements Runnable {
 				AudioFormat.ENCODING_PCM_16BIT, 64 * 1024);
 
 		buffer = new short[frameSize];
-		cm = celt.celt_mode_create(MumbleClient.SAMPLE_RATE,
+		celtMode = Native.celt_mode_create(MumbleClient.SAMPLE_RATE,
 				MumbleClient.FRAME_SIZE);
-		ce = celt.celt_encoder_create(cm, 1);
-		celt.celt_encoder_ctl(ce, celtConstants.CELT_SET_PREDICTION_REQUEST, 0);
-		celt.celt_encoder_ctl(ce, celtConstants.CELT_SET_VBR_RATE_REQUEST,
-				AUDIO_QUALITY);
+		celtEncoder = Native.celt_encoder_create(celtMode, 1);
+		Native.celt_encoder_ctl(celtEncoder, celtConstants.CELT_SET_PREDICTION_REQUEST, 0);
+		Native.celt_encoder_ctl(celtEncoder, celtConstants.CELT_SET_VBR_RATE_REQUEST, AUDIO_QUALITY);
 
 		if (recordingSampleRate != TARGET_SAMPLE_RATE) {
-			srs = celt.speex_resampler_init(1, recordingSampleRate,
+			speexResamplerState = Native.speex_resampler_init(1, recordingSampleRate,
 					TARGET_SAMPLE_RATE, 3);
 		} else {
-			srs = null;
+			speexResamplerState = 0;
 		}
 	}
 
@@ -98,23 +94,23 @@ public class RecordThread implements Runnable {
 			}
 
 			short[] out;
-			if (srs != null) {
+			if (speexResamplerState != 0) {
 				out = resampleBuffer;
 				final int[] in_len = new int[] { buffer.length };
 				final int[] out_len = new int[] { out.length };
-				celt.speex_resampler_process_int(srs, 0, buffer, in_len, out,
+				Native.speex_resampler_process_int(speexResamplerState, 0, buffer, in_len, out,
 						out_len);
 			} else {
 				out = buffer;
 			}
 
 			final int compressedSize = Math.min(AUDIO_QUALITY / (100 * 8), 127);
-			final ShortBuffer compressed = ShortBuffer
+			final ByteBuffer compressed = ByteBuffer
 					.allocate(compressedSize * 2);
-			final short[] comp = compressed.array();
+			final byte[] comp = compressed.array();
 			int len;
-			synchronized (celt.class) {
-				len = celt.celt_encode(ce, out, comp, compressedSize);
+			synchronized (Native.class) {
+				len = Native.celt_encode(celtEncoder, out, comp, compressedSize);
 			}
 			compressed.limit(len);
 			outputQueue.add(compressed);
@@ -135,7 +131,7 @@ public class RecordThread implements Runnable {
 				seq += framesPerPacket;
 				pds.writeLong(seq);
 				for (int i = 0; i < framesPerPacket; ++i) {
-					final ShortBuffer tmp = outputQueue.poll();
+					final ByteBuffer tmp = outputQueue.poll();
 					if (tmp == null) {
 						break;
 					}
@@ -165,10 +161,10 @@ public class RecordThread implements Runnable {
 
 	@Override
 	protected final void finalize() {
-		if (srs != null) {
-			celt.speex_resampler_destroy(srs);
+		if (speexResamplerState != 0) {
+			Native.speex_resampler_destroy(speexResamplerState);
 		}
-		celt.celt_encoder_destroy(ce);
-		celt.celt_mode_destroy(cm);
+		Native.celt_encoder_destroy(celtEncoder);
+		Native.celt_mode_destroy(celtMode);
 	}
 }

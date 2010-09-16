@@ -237,8 +237,6 @@ public class ServerList extends ListActivity {
 
 	@Override
 	protected final void onCreate(final Bundle savedInstanceState) {
-		System.loadLibrary("celt_interface");
-
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		registerForContextMenu(getListView());

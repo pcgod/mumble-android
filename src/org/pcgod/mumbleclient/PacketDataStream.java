@@ -67,23 +67,34 @@ public class PacketDataStream {
 		}
 	}
 
+	public void append(final ByteBuffer tmp) {
+		final int len = tmp.limit();
+		if (left() >= len) {
+			for (int i = 0; i < len; ++i) {
+				data.put(tmp.get(i));
+			}
+		} else {
+			final int l = left();
+			data.put(null, 0, l);
+			overshoot += len - l;
+			ok = false;
+		}
+	}
+
 	public final int capacity() {
 		return data.capacity();
 	}
 
-	public final short[] dataBlock(final int len) {
+	public final boolean dataBlock(final byte[] buffer, final int len) {
 		if (len <= left()) {
-			final short[] tmp = new short[len];
-			for (int i = 0; i < len; ++i) {
-				tmp[i] = (short) next();
-			}
-			return tmp;
+			data.get(buffer, 0, len);
+			return true;
 		} else {
 			ok = false;
-			return new short[0];
+			return false;
 		}
 	}
-
+	
 	public final boolean isValid() {
 		return ok;
 	}

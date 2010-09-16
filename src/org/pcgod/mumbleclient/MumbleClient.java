@@ -78,7 +78,6 @@ public class MumbleClient implements Runnable {
 	private static final String LOG_TAG = "mumbleclient";
 	private static final MessageType[] MT_CONSTANTS = MessageType.class.getEnumConstants();
 
-	private static final boolean ANDROID = true;
 	private static final int protocolVersion = (1 << 16) | (2 << 8)
 			| (3 & 0xFF);
 
@@ -197,11 +196,7 @@ public class MumbleClient implements Runnable {
 		}
 
 		if (t != MessageType.Ping) {
-			if (ANDROID) {
-				Log.i(LOG_TAG, "<<< " + t);
-			} else {
-				System.out.println("<<< " + t);
-			}
+			Log.i(LOG_TAG, "<<< " + t);
 		}
 	}
 
@@ -331,11 +326,7 @@ public class MumbleClient implements Runnable {
 
 			pingThread = new Thread(new PingThread(this), "ping");
 			pingThread.start();
-			if (ANDROID) {
-				Log.i(LOG_TAG, ">>> " + t);
-			} else {
-				System.out.println(">>> " + t);
-			}
+			Log.i(LOG_TAG, ">>> " + t);
 
 			ao = new AudioOutput();
 			audioOutputThread = new Thread(ao, "audio output");
@@ -343,8 +334,8 @@ public class MumbleClient implements Runnable {
 
 			final UserState.Builder usb = UserState.newBuilder();
 			usb.setSession(session);
-			usb.setPluginContext(ByteString
-					.copyFromUtf8("Manual placement\000test"));
+//			usb.setPluginContext(ByteString
+//					.copyFromUtf8("Manual placement\000test"));
 			sendMessage(MessageType.UserState, usb);
 
 			sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
@@ -440,11 +431,7 @@ public class MumbleClient implements Runnable {
 //			}
 			break;
 		default:
-			if (ANDROID) {
-				Log.i(LOG_TAG, "unhandled message type " + t);
-			} else {
-				System.out.println("unhandled message type " + t);
-			}
+			Log.i(LOG_TAG, "unhandled message type " + t);
 		}
 	}
 
@@ -453,22 +440,21 @@ public class MumbleClient implements Runnable {
 		final int flags = buffer[0] & 0x1f;
 
 		// There is no speex support...
-		if (type != UDPMESSAGETYPE_UDPVOICECELTALPHA) {
+		if (type != UDPMESSAGETYPE_UDPVOICECELTALPHA && type != UDPMESSAGETYPE_UDPVOICECELTBETA) {
 			return;
 		}
 
-		final ByteBuffer pdsBuffer = ByteBuffer.wrap(buffer);
-		pdsBuffer.position(1);
-		final PacketDataStream pds = new PacketDataStream(pdsBuffer);
+		final PacketDataStream pds = new PacketDataStream(buffer);
+		// skip type / flags
+		pds.skip(1);
 		final long uiSession = pds.readLong();
-		final long iSeq = pds.readLong();
 
 		final User u = findUser((int) uiSession);
 		if (u == null) {
 			Log.e(LOG_TAG, "User session " + uiSession + "not found!");
 		}
 
-		ao.addFrameToBuffer(u, pdsBuffer.slice(), (int) iSeq, flags);
+		ao.addFrameToBuffer(u, pds, flags);
 	}
 
 	private void recountChannelUsers() {
@@ -483,10 +469,11 @@ public class MumbleClient implements Runnable {
 	}
 
 	private void sendBroadcast(final String action) {
-		if (authenticated) {
-			recountChannelUsers();
-			final Intent i = new Intent(action);
-			ctx.sendBroadcast(i);
+		if (!authenticated) {
+			return;
 		}
+		recountChannelUsers();
+		final Intent i = new Intent(action);
+		ctx.sendBroadcast(i);
 	}
 }

@@ -8,69 +8,83 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.pcgod.mumbleclient.jni.SWIGTYPE_p_CELTDecoder;
-import org.pcgod.mumbleclient.jni.SWIGTYPE_p_CELTMode;
-import org.pcgod.mumbleclient.jni.celt;
+import org.pcgod.mumbleclient.jni.Native;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.util.Log;
 
 class AudioOutput implements Runnable {
-	static SWIGTYPE_p_CELTDecoder celtDecoder;
+	static long celtDecoder;
 	private final ConcurrentHashMap<User, AudioUser> outputMap = new ConcurrentHashMap<User, AudioUser>();
-	private short[] out = new short[bufferSize];
+	private short[] out;
+	private short[] tmpOut;
 	private boolean running;
-	private final AudioTrack at;
-	private final SWIGTYPE_p_CELTMode celtMode;
+	//private final AudioTrack at;
+	private final long celtMode;
 	private final ReentrantLock lock = new ReentrantLock();
 	private final Condition notEmpty = lock.newCondition();
 	private final ArrayList<AudioUser> mix = new ArrayList<AudioUser>();
 	private final ArrayList<User> del = new ArrayList<User>();
-	private final static int bufferSize = MumbleClient.FRAME_SIZE * 4;
+	private static int bufferSize = MumbleClient.FRAME_SIZE;
 
 	AudioOutput() {
-		at = new AudioTrack(AudioManager.STREAM_VOICE_CALL,
+/*		double minbuffer = Math.max(AudioTrack
+				.getMinBufferSize(MumbleClient.SAMPLE_RATE,
+						AudioFormat.CHANNEL_CONFIGURATION_MONO,
+						AudioFormat.ENCODING_PCM_16BIT), bufferSize);
+		Log.i("mumbleclient", "buffer size: " + minbuffer);
+		bufferSize = (int) (Math.ceil(minbuffer / MumbleClient.FRAME_SIZE) * MumbleClient.FRAME_SIZE);
+		Log.i("mumbleclient", "new buffer size: " + bufferSize);
+*/
+/*
+		at = new AudioTrack(AudioManager.STREAM_MUSIC,
 				MumbleClient.SAMPLE_RATE,
 				AudioFormat.CHANNEL_CONFIGURATION_MONO,
-				AudioFormat.ENCODING_PCM_16BIT, 32768, AudioTrack.MODE_STREAM);
-
-		celtMode = celt.celt_mode_create(MumbleClient.SAMPLE_RATE,
+				AudioFormat.ENCODING_PCM_16BIT, bufferSize * 20,
+				AudioTrack.MODE_STREAM);
+*/
+		out = new short[bufferSize];
+		tmpOut = new short[bufferSize];
+		celtMode = Native.celt_mode_create(MumbleClient.SAMPLE_RATE,
 				MumbleClient.FRAME_SIZE);
-		celtDecoder = celt.celt_decoder_create(celtMode, 1);
+		celtDecoder = Native.celt_decoder_create(celtMode, 1);
 	}
 
-	public void addFrameToBuffer(final User u, final ByteBuffer packet,
-			final int iSeq, int flags) {
+	public void addFrameToBuffer(final User u, final PacketDataStream pds,
+			int flags) {
 		AudioUser au = outputMap.get(u);
 		if (au == null) {
 			au = new AudioUser(u);
 			outputMap.put(u, au);
 		}
 
-		au.addFrameToBuffer(packet, iSeq, flags);
+		au.addFrameToBuffer(pds, flags);
+/*
 		lock.lock();
 		notEmpty.signal();
 		lock.unlock();
+*/
 	}
 
 	@Override
 	public void run() {
-		android.os.Process
-				.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
+		//android.os.Process
+		//		.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
 
-		at.play();
+		//at.play();
 		running = true;
 		while (running) {
-			final boolean mixed = mix(bufferSize);
-			if (mixed) {
-				at.write(out, 0, bufferSize);
-//				at.flush();
-			} else {
+//			final boolean mixed = mix(bufferSize);
+//			if (mixed) {
+//				at.write(out, 0, bufferSize);
+				//at.flush();
+//			} else {
 				try {
 					lock.lock();
 					if (outputMap.isEmpty()) {
-						at.stop();
+//						at.stop();
 						notEmpty.await();
 					}
 				} catch (final InterruptedException e) {
@@ -78,10 +92,20 @@ class AudioOutput implements Runnable {
 					running = false;
 				} finally {
 					lock.unlock();
-					at.play();
+//					at.play();
 				}
+//			}
+			lock.lock();
+			try {
+				notEmpty.await();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
+			lock.unlock();
 		}
+//		at.stop();
+//		at.release();
 	}
 
 	private boolean mix(final int nsamp) {
@@ -98,31 +122,22 @@ class AudioOutput implements Runnable {
 			}
 		}
 
+		Arrays.fill(tmpOut, (short)0);
+		Arrays.fill(out, (short)0);
 		if (!mix.isEmpty()) {
-			Arrays.fill(out, (short) 0);
 			for (final AudioUser au : mix) {
 				final short[] pfBuffer = au.pfBuffer;
 
 				for (int i = 0; i < nsamp; ++i) {
-					int x = out[i] + pfBuffer[i];
-					if (x > Short.MAX_VALUE)
-						x = Short.MAX_VALUE;
-					else if (x < Short.MIN_VALUE)
-						x = Short.MIN_VALUE;
-					out[i] = (short) x;
-//					tmpout[i] += pfBuffer[i];
+					tmpOut[i] += pfBuffer[i];
 				}
 			}
-			
-//			for (int i = 0; i < nsamp; ++i) {
-//				if (out[i] > Short.MAX_VALUE)
-//					this.out[i] = Short.MAX_VALUE;
-//				else if (out[i] < Short.MIN_VALUE) {
-//					this.out[i] = Short.MIN_VALUE;
-//				} else {
-//					this.out[i] = (short) tmpout[i];
-//				}
-//			}
+
+			for (int i = 0; i < nsamp; ++i) {
+				//out[i] = (short)(Short.MAX_VALUE * (tmpOut[i] < -1.0f ? -1.0f : (tmpOut[i] > 1.0f ? 1.0f : tmpOut[i])));
+				//out[i] = (short)(Short.MAX_VALUE * tmpOut[i]);
+				out[i] = tmpOut[i];
+			}
 		}
 
 		for (final User u : del) {
@@ -138,7 +153,7 @@ class AudioOutput implements Runnable {
 
 	@Override
 	protected final void finalize() {
-		celt.celt_decoder_destroy(celtDecoder);
-		celt.celt_mode_destroy(celtMode);
+		Native.celt_decoder_destroy(celtDecoder);
+		Native.celt_mode_destroy(celtMode);
 	}
 }
