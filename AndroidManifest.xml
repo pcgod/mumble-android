@@ -9,7 +9,7 @@
 				<category android:name="android.intent.category.LAUNCHER"></category>
 			</intent-filter>
 		</activity>
-		<activity android:name=".app.ServerAdd"></activity>
+		<activity android:name=".app.ServerInfo"></activity>
 		<activity android:name=".app.ChannelList"></activity>
 		<activity android:name=".app.UserList"></activity>
 		<activity android:name=".app.ChatActivity"></activity>

@@ -73,6 +73,18 @@ class DbAdapter {
 		return db.insert(SERVER_TABLE, null, values);
 	}
 
+	public final void updateServer(final long id, final String name, final String host,
+			final int port, final String username, final String password) {
+		final ContentValues values = new ContentValues();
+		values.put(SERVER_COL_NAME, name);
+		values.put(SERVER_COL_HOST, host);
+		values.put(SERVER_COL_PORT, port);
+		values.put(SERVER_COL_USERNAME, username);
+		values.put(SERVER_COL_PASSWORD, password);
+		db.update(SERVER_TABLE, values,
+				SERVER_COL_ID + "=?", new String[] { Long.toString(id) });
+	}
+
 	public final boolean deleteServer(final long serverId) {
 		return db.delete(SERVER_TABLE, SERVER_COL_ID + " = " + serverId, null) > 0;
 	}

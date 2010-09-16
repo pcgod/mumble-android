@@ -126,6 +126,7 @@ public class ServerList extends ListActivity {
 			onListItemClick(getListView(), getCurrentFocus(), info.position, getListAdapter().getItemId(info.position));
 			return true;
 		case MENU_EDIT_SERVER:
+			editServer(getListAdapter().getItemId(info.position));
 			return true;
 		case MENU_DELETE_SERVER:
 			serverToDeleteId = info.id;
@@ -150,8 +151,8 @@ public class ServerList extends ListActivity {
 
 		menu.add(0, MENU_CONNECT_SERVER, 1, "Connect").setIcon(
 				android.R.drawable.ic_menu_view);
-//		menu.add(0, MENU_EDIT_SERVER, 1, "Edit").setIcon(
-//				android.R.drawable.ic_menu_edit);
+		menu.add(0, MENU_EDIT_SERVER, 1, "Edit").setIcon(
+				android.R.drawable.ic_menu_edit);
 		menu.add(0, MENU_DELETE_SERVER, 1, "Delete").setIcon(
 				android.R.drawable.ic_menu_delete);
 	}
@@ -186,7 +187,13 @@ public class ServerList extends ListActivity {
 	}
 
 	private void addServer() {
-		final Intent i = new Intent(this, ServerAdd.class);
+		final Intent i = new Intent(this, ServerInfo.class);
+		startActivityForResult(i, ACTIVITY_ADD_SERVER);
+	}
+
+	private void editServer(long id) {
+		final Intent i = new Intent(this, ServerInfo.class);
+		i.putExtra("serverId", id);
 		startActivityForResult(i, ACTIVITY_ADD_SERVER);
 	}
 
