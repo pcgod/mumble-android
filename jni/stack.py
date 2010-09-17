@@ -5,6 +5,7 @@
 import os, string
 
 SYMBOLS_DIR = ""
+NDK_ROOT = "~/android-ndk-r4b"
 
 # returns a list containing the function name and the file/lineno
 def CallAddr2Line(lib, addr):
@@ -19,7 +20,7 @@ def CallAddr2Line(lib, addr):
 		uname = "linux-x86"
 
 	if lib != "":
-		cmd = "./build/prebuilt/" + uname\
+		cmd = NDK_ROOT + "/build/prebuilt/" + uname\
 			+ "/arm-eabi-4.4.0/bin/arm-eabi-addr2line"\
 			+ " -f -e " + SYMBOLS_DIR + lib\
 			+ " 0x" + addr
@@ -32,7 +33,7 @@ def CallAddr2Line(lib, addr):
 			# Name like "move_forward_type<JavaVMOption>" causes troubles
 			mangled_name = re.sub('<', '\<', list[0]);
 			mangled_name = re.sub('>', '\>', mangled_name);
-			cmd = "./build/prebuilt/" + uname + "/arm-eabi-4.2.1/bin/arm-eabi-c++filt "\
+			cmd = NDK_ROOT + "/build/prebuilt/" + uname + "/arm-eabi-4.2.1/bin/arm-eabi-c++filt "\
 				+ mangled_name
 			stream = os.popen(cmd)
 			list[0] = stream.readline()
@@ -42,8 +43,9 @@ def CallAddr2Line(lib, addr):
 			list = [ "(unknown)", "(unknown)" ]
 	return list
 
-lib = '../../../out/apps/mumble-android/armeabi/libcelt_interface.so';
-addrs = ['00010314', '000032ee']
+lib = '../obj/local/armeabi/libnative.so';
+#addrs = ['0000346e', '00002eda']
+addrs = ['00010b76', '00002ee4']
 
 print "ADDR      FUNCTION                        FILE:LINE"
 for x in addrs:

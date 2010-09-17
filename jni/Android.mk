@@ -35,15 +35,15 @@ LOCAL_SRC_FILES		:= cb_search.c		exc_10_32_table.c 	exc_8_128_table.c 	filters.c
 					   exc_5_64_table.c	gain_table_lbr.c 	hexc_10_32_table.c	lpc.c \
 					   lsp_tables_nb.c 	modes.c 			modes_wb.c 			nb_celp.c \
 					   quant_lsp.c		sb_celp.c			speex_callbacks.c 	speex_header.c \
-					   window.c			resample.c
+					   window.c			resample.c			jitter.c
 LOCAL_CFLAGS		:= -I$(LOCAL_PATH)/../include -D__EMX__ -DFIXED_POINT -DEXPORT=''
 include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
-LOCAL_PATH				:= $(ROOT)/celt_wrapper
-LOCAL_MODULE			:= libcelt_interface
-LOCAL_SRC_FILES 		:= celt_wrap.c
-LOCAL_CFLAGS			:= -I$(LIBPATH) -fvisibility=hidden
+LOCAL_PATH				:= $(ROOT)/new
+LOCAL_MODULE			:= libnative
+LOCAL_SRC_FILES			:= hawtjni.c hawtjni_native.c hawtjni_native_stats.c hawtjni_native_structs.c
+LOCAL_CFLAGS			:= -I$(ROOT)/celt/libcelt -fvisibility=hidden
 LOCAL_STATIC_LIBRARIES	:= libcelt libspeex
 
 include $(BUILD_SHARED_LIBRARY)

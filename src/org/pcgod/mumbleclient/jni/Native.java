@@ -2,10 +2,13 @@ package org.pcgod.mumbleclient.jni;
 
 import org.fusesource.hawtjni.runtime.JniArg;
 import org.fusesource.hawtjni.runtime.JniClass;
+import org.fusesource.hawtjni.runtime.JniField;
 import org.fusesource.hawtjni.runtime.JniMethod;
 
 import static org.fusesource.hawtjni.runtime.ArgFlag.*;
 import static org.fusesource.hawtjni.runtime.ClassFlag.*;
+import static org.fusesource.hawtjni.runtime.FieldFlag.*;
+import static org.fusesource.hawtjni.runtime.MethodFlag.*;
 
 
 @JniClass
@@ -51,7 +54,7 @@ public class Native {
 	public final static native @JniMethod(cast = "JitterBuffer *") long jitter_buffer_init(int step_size);
 	public final static native void jitter_buffer_destroy(@JniArg(cast = "JitterBuffer *") long jitter);
 	public final static native void jitter_buffer_put(@JniArg(cast = "JitterBuffer *") long jitter, @JniArg(flags = {NO_OUT}) JitterBufferPacket packet);
-	public final static native int jitter_buffer_get(@JniArg(cast = "JitterBuffer *") long jitter, @JniArg(flags = {NO_IN}) JitterBufferPacket packet, int desired_span, @JniArg(flags = {NO_IN}) int[] current_timestamp);
+	public final static native int jitter_buffer_get(@JniArg(cast = "JitterBuffer *") long jitter, JitterBufferPacket packet, int desired_span, @JniArg(flags = {NO_IN}) int[] current_timestamp);
 	public final static native int jitter_buffer_get_pointer_timestamp(@JniArg(cast = "JitterBuffer *") long jitter);
 	public final static native void jitter_buffer_tick(@JniArg(cast = "JitterBuffer *") long jitter);
 	public final static native int jitter_buffer_ctl(@JniArg(cast = "JitterBuffer *") long jitter, int request, int[] ptr);
