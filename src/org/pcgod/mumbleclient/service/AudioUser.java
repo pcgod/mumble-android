@@ -1,4 +1,4 @@
-package org.pcgod.mumbleclient;
+package org.pcgod.mumbleclient.service;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -10,6 +10,9 @@ import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.util.Log;
+
+import org.pcgod.mumbleclient.service.model.Channel;
+import org.pcgod.mumbleclient.service.model.User;
 
 class AudioUser {
 	//JitterBuffer jb;

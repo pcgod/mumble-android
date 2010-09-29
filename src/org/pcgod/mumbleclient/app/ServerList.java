@@ -1,6 +1,6 @@
 package org.pcgod.mumbleclient.app;
 
-import org.pcgod.mumbleclient.MumbleClient;
+import org.pcgod.mumbleclient.service.MumbleClient;
 import org.pcgod.mumbleclient.R;
 
 import android.app.AlertDialog;

@@ -1,4 +1,4 @@
-package org.pcgod.mumbleclient;
+package org.pcgod.mumbleclient.service;
 
 class JitterBuffer {
 	private class TimingBuffer {

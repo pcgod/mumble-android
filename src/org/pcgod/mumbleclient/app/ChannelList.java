@@ -2,8 +2,8 @@ package org.pcgod.mumbleclient.app;
 
 import java.util.List;
 
-import org.pcgod.mumbleclient.Channel;
-import org.pcgod.mumbleclient.MumbleClient;
+import org.pcgod.mumbleclient.service.model.Channel;
+import org.pcgod.mumbleclient.service.MumbleClient;
 import org.pcgod.mumbleclient.R;
 
 import android.app.ListActivity;

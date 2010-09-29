@@ -1,4 +1,4 @@
-package org.pcgod.mumbleclient;
+package org.pcgod.mumbleclient.service.model;
 
 public class Channel {
 	public int id;

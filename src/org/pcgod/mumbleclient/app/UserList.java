@@ -3,9 +3,9 @@ package org.pcgod.mumbleclient.app;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.pcgod.mumbleclient.MumbleClient;
+import org.pcgod.mumbleclient.service.MumbleClient;
 import org.pcgod.mumbleclient.R;
-import org.pcgod.mumbleclient.User;
+import org.pcgod.mumbleclient.service.model.User;
 
 import android.app.ListActivity;
 import android.content.BroadcastReceiver;

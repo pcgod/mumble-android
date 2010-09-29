@@ -1,4 +1,4 @@
-package org.pcgod.mumbleclient;
+package org.pcgod.mumbleclient.service;
 
 import java.io.IOException;
 

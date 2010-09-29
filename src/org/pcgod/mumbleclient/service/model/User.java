@@ -1,4 +1,4 @@
-package org.pcgod.mumbleclient;
+package org.pcgod.mumbleclient.service.model;
 
 public class User {
 	public static final int TALKINGSTATE_PASSIVE = 0;
