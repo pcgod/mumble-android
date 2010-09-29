@@ -15,6 +15,12 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
 
+/**
+ * Thread responsible for recording voice and sending it over to server.
+ *
+ * @author pcgod
+ *
+ */
 public class RecordThread implements Runnable {
 	private static final int AUDIO_QUALITY = 60000;
 	private static int frameSize;

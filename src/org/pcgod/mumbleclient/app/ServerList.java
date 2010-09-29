@@ -27,6 +27,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 
+/**
+ * The main server list activity.
+ *
+ * Shows a list of servers and allows connecting to these. Also provides
+ * ways to start creating and editing servers.
+ *
+ * @author pcgod
+ *
+ */
 public class ServerList extends ListActivity {
 	private class ServerAdapter extends BaseAdapter {
 		private final Context context;

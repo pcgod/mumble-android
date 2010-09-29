@@ -27,6 +27,12 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+/**
+ * Shows users on a channel on the connected server.
+ *
+ * @author pcgod
+ *
+ */
 public class UserList extends ListActivity {
 	private class UserAdapter extends ArrayAdapter<User> {
 		public UserAdapter(final Context context, final List<User> users) {

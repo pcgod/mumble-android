@@ -24,6 +24,12 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+/**
+ * Shows channels for the connected server
+ *
+ * @author pcgod
+ *
+ */
 public class ChannelList extends ListActivity {
 	private class ChannelAdapter extends ArrayAdapter<Channel> {
 		public ChannelAdapter(final Context context,

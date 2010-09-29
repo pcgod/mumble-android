@@ -36,6 +36,15 @@ import android.content.Intent;
 import android.text.format.DateUtils;
 import android.util.Log;
 
+/**
+ * The main mumble client connection
+ *
+ * Maintains connection to the server and implements the low level
+ * communication protocol
+ *
+ * @author pcgod
+ *
+ */
 public class MumbleClient implements Runnable {
 	public enum MessageType {
 		Version, UDPTunnel, Authenticate, Ping, Reject, ServerSync, ChannelRemove, ChannelState, UserRemove, UserState, BanList, TextMessage, PermissionDenied, ACL, QueryUsers, CryptSetup, ContextActionAdd, ContextAction, UserList, VoiceTarget, PermissionQuery, CodecVersion, UserStats, RequestBlob, ServerConfig
