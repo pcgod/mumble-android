@@ -30,28 +30,28 @@ class AudioOutput implements Runnable {
 	private final Condition notEmpty = lock.newCondition();
 	private final ArrayList<AudioUser> mix = new ArrayList<AudioUser>();
 	private final ArrayList<User> del = new ArrayList<User>();
-	private static int bufferSize = MumbleClient.FRAME_SIZE;
+	private static int bufferSize = MumbleConnection.FRAME_SIZE;
 
 	AudioOutput() {
 /*		double minbuffer = Math.max(AudioTrack
-				.getMinBufferSize(MumbleClient.SAMPLE_RATE,
+				.getMinBufferSize(MumbleConnection.SAMPLE_RATE,
 						AudioFormat.CHANNEL_CONFIGURATION_MONO,
 						AudioFormat.ENCODING_PCM_16BIT), bufferSize);
 		Log.i("mumbleclient", "buffer size: " + minbuffer);
-		bufferSize = (int) (Math.ceil(minbuffer / MumbleClient.FRAME_SIZE) * MumbleClient.FRAME_SIZE);
+		bufferSize = (int) (Math.ceil(minbuffer / MumbleConnection.FRAME_SIZE) * MumbleConnection.FRAME_SIZE);
 		Log.i("mumbleclient", "new buffer size: " + bufferSize);
 */
 /*
 		at = new AudioTrack(AudioManager.STREAM_MUSIC,
-				MumbleClient.SAMPLE_RATE,
+				MumbleConnection.SAMPLE_RATE,
 				AudioFormat.CHANNEL_CONFIGURATION_MONO,
 				AudioFormat.ENCODING_PCM_16BIT, bufferSize * 20,
 				AudioTrack.MODE_STREAM);
 */
 		out = new short[bufferSize];
 		tmpOut = new short[bufferSize];
-		celtMode = Native.celt_mode_create(MumbleClient.SAMPLE_RATE,
-				MumbleClient.FRAME_SIZE);
+		celtMode = Native.celt_mode_create(MumbleConnection.SAMPLE_RATE,
+				MumbleConnection.FRAME_SIZE);
 		celtDecoder = Native.celt_decoder_create(celtMode, 1);
 	}
 

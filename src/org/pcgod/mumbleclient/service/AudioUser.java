@@ -24,21 +24,21 @@ class AudioUser {
 	private int missCount;
 	private int ucFlags = 0xFF;
 	private boolean hasTerminator;
-	private short[] pOut = new short[MumbleClient.FRAME_SIZE];
+	private short[] pOut = new short[MumbleConnection.FRAME_SIZE];
 	private AudioTrack at;
 	private short[] out;
-	private int bufferSize = MumbleClient.FRAME_SIZE;
+	private int bufferSize = MumbleConnection.FRAME_SIZE;
 	private static double[] fadeIn;
 	private static double[] fadeOut;
 	long jitterBuffer;
 	Object jbLock = new Object();
 
 	static {
-		fadeIn = new double[MumbleClient.FRAME_SIZE];
-		fadeOut = new double[MumbleClient.FRAME_SIZE];
-		final double mul = Math.PI / (2.0 * MumbleClient.FRAME_SIZE);
-		for (int i = 0; i < MumbleClient.FRAME_SIZE; ++i) {
-			fadeIn[i] = fadeOut[MumbleClient.FRAME_SIZE - i - 1] = Math.sin(i
+		fadeIn = new double[MumbleConnection.FRAME_SIZE];
+		fadeOut = new double[MumbleConnection.FRAME_SIZE];
+		final double mul = Math.PI / (2.0 * MumbleConnection.FRAME_SIZE);
+		for (int i = 0; i < MumbleConnection.FRAME_SIZE; ++i) {
+			fadeIn[i] = fadeOut[MumbleConnection.FRAME_SIZE - i - 1] = Math.sin(i
 					* mul);
 		}
 	}
@@ -46,16 +46,16 @@ class AudioUser {
 	AudioUser(final User u_) {
 		u = u_;
 		/*
-		jb = new JitterBuffer(MumbleClient.FRAME_SIZE);
-		jb.setMargin(50 * MumbleClient.FRAME_SIZE);
+		jb = new JitterBuffer(MumbleConnection.FRAME_SIZE);
+		jb.setMargin(50 * MumbleConnection.FRAME_SIZE);
 		*/
 
-		jitterBuffer = Native.jitter_buffer_init(MumbleClient.FRAME_SIZE);
+		jitterBuffer = Native.jitter_buffer_init(MumbleConnection.FRAME_SIZE);
 		// 0 = JITTER_BUFFER_SET_MARGIN
-		Native.jitter_buffer_ctl(jitterBuffer, 0, new int[] { 50 * MumbleClient.FRAME_SIZE});		
+		Native.jitter_buffer_ctl(jitterBuffer, 0, new int[] { 50 * MumbleConnection.FRAME_SIZE });
 
 		at = new AudioTrack(AudioManager.STREAM_MUSIC,
-				MumbleClient.SAMPLE_RATE,
+				MumbleConnection.SAMPLE_RATE,
 				AudioFormat.CHANNEL_CONFIGURATION_MONO,
 				AudioFormat.ENCODING_PCM_16BIT, bufferSize * 20,
 				AudioTrack.MODE_STREAM);
@@ -88,8 +88,8 @@ class AudioUser {
 			final JitterBufferPacket jbp = new JitterBufferPacket();
 			jbp.flags = flags;
 			jbp.data = packet;
-			jbp.span = MumbleClient.FRAME_SIZE * frames;
-			jbp.timestamp = MumbleClient.FRAME_SIZE * iSeq;
+			jbp.span = MumbleConnection.FRAME_SIZE * frames;
+			jbp.timestamp = MumbleConnection.FRAME_SIZE * iSeq;
 			*/
 
 			/*
@@ -99,8 +99,8 @@ class AudioUser {
 			packet.get(tmp);
 			njbp.data = tmp;
 			njbp.len = tmp.length;
-			njbp.span = MumbleClient.FRAME_SIZE * frames;
-			njbp.timestamp = MumbleClient.FRAME_SIZE * iSeq;
+			njbp.span = MumbleConnection.FRAME_SIZE * frames;
+			njbp.timestamp = MumbleConnection.FRAME_SIZE * iSeq;
 			*/
 
 			byte[] tmp = new byte[256];
@@ -113,7 +113,7 @@ class AudioUser {
 					Native.celt_decode(AudioOutput.celtDecoder, tmp,
 							len, pOut);
 
-					at.write(pOut, 0, MumbleClient.FRAME_SIZE);
+					at.write(pOut, 0, MumbleConnection.FRAME_SIZE);
 				} else {
 					hasTerminator = true;
 				}
@@ -141,7 +141,7 @@ class AudioUser {
 
 		while (bufferFilled < snum) {
 			if (!lastAlive) {
-				Arrays.fill(pfBuffer, bufferFilled, bufferFilled + MumbleClient.FRAME_SIZE, (short) 0);
+				Arrays.fill(pfBuffer, bufferFilled, bufferFilled + MumbleConnection.FRAME_SIZE, (short) 0);
 			} else {
 				final int timestamp;
 				final int available;
@@ -163,8 +163,8 @@ class AudioUser {
 					if (available < want) {
 						++missCount;
 						if (missCount < 20) {
-							Arrays.fill(pfBuffer, bufferFilled, bufferFilled + MumbleClient.FRAME_SIZE, (short) 0);
-							bufferFilled += MumbleClient.FRAME_SIZE;
+							Arrays.fill(pfBuffer, bufferFilled, bufferFilled + MumbleConnection.FRAME_SIZE, (short) 0);
+							bufferFilled += MumbleConnection.FRAME_SIZE;
 							continue;
 						}
 					}
@@ -174,7 +174,7 @@ class AudioUser {
 					/*
 					final JitterBufferPacket jbp;
 					synchronized (jb) {
-						jbp = jb.get(MumbleClient.FRAME_SIZE);
+						jbp = jb.get(MumbleConnection.FRAME_SIZE);
 					}
 					*/
 					final Native.JitterBufferPacket jbp = new Native.JitterBufferPacket();
@@ -182,7 +182,7 @@ class AudioUser {
 					jbp.len = 1024;
 					synchronized (jbLock) {
 						int current_timestamp[] = new int[1];
-						Native.jitter_buffer_get(jitterBuffer, jbp, MumbleClient.FRAME_SIZE, current_timestamp);
+						Native.jitter_buffer_get(jitterBuffer, jbp, MumbleConnection.FRAME_SIZE, current_timestamp);
 						byte[] tmp = new byte[jbp.len];
 						System.arraycopy(jbp.data, 0, tmp, 0, tmp.length);
 						jbp.data = tmp;
@@ -256,9 +256,9 @@ class AudioUser {
 								frame.length, pOut);
 					//}
 
-					at.write(pOut, 0, MumbleClient.FRAME_SIZE);
+					at.write(pOut, 0, MumbleConnection.FRAME_SIZE);
 					//at.flush();
-//					System.arraycopy(pOut, 0, pfBuffer, bufferFilled, MumbleClient.FRAME_SIZE);
+//					System.arraycopy(pOut, 0, pfBuffer, bufferFilled, MumbleConnection.FRAME_SIZE);
 					final boolean update = true;
 //	                if (p) {
 //	                    float &fPowerMax = p->fPowerMax;
@@ -299,11 +299,11 @@ class AudioUser {
 				}
 
 //				if (!nextAlive) {
-//					for (int i = 0; i < MumbleClient.FRAME_SIZE; ++i) {
+//					for (int i = 0; i < MumbleConnection.FRAME_SIZE; ++i) {
 //						pOut[i] *= fadeOut[i];
 //					}
 //				} else if (timestamp == 0) {
-//					for (int i = 0; i < MumbleClient.FRAME_SIZE; ++i) {
+//					for (int i = 0; i < MumbleConnection.FRAME_SIZE; ++i) {
 //						pOut[i] *= fadeIn[i];
 //					}
 //				}
@@ -317,7 +317,7 @@ class AudioUser {
 					Native.jitter_buffer_tick(jitterBuffer);
 				}
 			}
-			bufferFilled += MumbleClient.FRAME_SIZE;
+			bufferFilled += MumbleConnection.FRAME_SIZE;
 		}
 
 		if (u != null) {

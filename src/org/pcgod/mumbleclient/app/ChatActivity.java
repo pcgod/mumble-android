@@ -1,6 +1,8 @@
 package org.pcgod.mumbleclient.app;
 
-import org.pcgod.mumbleclient.service.MumbleClient;
+import org.pcgod.mumbleclient.service.MumbleConnection;
+import org.pcgod.mumbleclient.service.MumbleService;
+import org.pcgod.mumbleclient.service.MumbleServiceConnection;
 import org.pcgod.mumbleclient.R;
 
 import android.app.Activity;
@@ -27,6 +29,9 @@ public class ChatActivity extends Activity {
 			updateText();
 		}
 	}
+
+	MumbleServiceConnection mServiceConn = new MumbleServiceConnection(this);
+	MumbleService mService;
 
 	TextView chatText;
 	EditText chatTextEdit;
@@ -75,7 +80,6 @@ public class ChatActivity extends Activity {
 		switch (item.getItemId()) {
 		case MENU_CLEAR:
 			chatText.setText("");
-			ServerList.client.chatList.clear();
 			return true;
 		default:
 			return super.onMenuItemSelected(featureId, item);
@@ -108,23 +112,23 @@ public class ChatActivity extends Activity {
 
 		updateText();
 		final IntentFilter ifilter = new IntentFilter(
-				MumbleClient.INTENT_CHAT_TEXT_UPDATE);
+				MumbleConnection.INTENT_CHAT_TEXT_UPDATE);
 		bcReceiver = new ChatBroadcastReceiver();
 		registerReceiver(bcReceiver, ifilter);
 	}
 
 	void sendMessage(TextView v) {
-		ServerList.client.sendChannelTextMessage(v.getText().toString());
+		mService.sendChannelTextMessage(v.getText().toString());
 		v.setText("");
 	}
 
 	void updateText() {
 		chatText.beginBatchEdit();
 		chatText.setText("");
-		for (final String s : ServerList.client.chatList) {
-			chatText.append(s);
-		}
-		chatText.endBatchEdit();
+//		for (final String s : ServerList.client.chatList) {
+//			chatText.append(s);
+//		}
+//		chatText.endBatchEdit();
 //		chatText.post(new Runnable() {
 //			@Override
 //			public void run() {

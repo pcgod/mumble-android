@@ -5,14 +5,19 @@ import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 import java.util.LinkedList;
 
-import org.pcgod.mumbleclient.MumbleClient;
 import org.pcgod.mumbleclient.PacketDataStream;
 import org.pcgod.mumbleclient.jni.Native;
 import org.pcgod.mumbleclient.jni.celtConstants;
+import org.pcgod.mumbleclient.service.MumbleConnection;
+import org.pcgod.mumbleclient.service.MumbleService;
+import org.pcgod.mumbleclient.service.PacketDataStream;
 
+import android.content.ComponentName;
+import android.content.ServiceConnection;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.os.IBinder;
 import android.util.Log;
 
 /**
@@ -25,7 +30,7 @@ public class RecordThread implements Runnable {
 	private static final int AUDIO_QUALITY = 60000;
 	private static int frameSize;
 	private static int recordingSampleRate;
-	private static final int TARGET_SAMPLE_RATE = MumbleClient.SAMPLE_RATE;
+	private static final int TARGET_SAMPLE_RATE = MumbleConnection.SAMPLE_RATE;
 	private final AudioRecord ar;
 	private final short[] buffer;
 	private int bufferSize;
@@ -33,11 +38,14 @@ public class RecordThread implements Runnable {
 	private final long celtMode;
 	private final int framesPerPacket = 6;
 	private final LinkedList<ByteBuffer> outputQueue = new LinkedList<ByteBuffer>();
-	private final short[] resampleBuffer = new short[MumbleClient.FRAME_SIZE];
+	private final short[] resampleBuffer = new short[MumbleConnection.FRAME_SIZE];
 	private int seq;
 	private final long speexResamplerState;
+	private final MumbleService mService;
 
-	public RecordThread() {
+	public RecordThread(MumbleService service) {
+		mService = service;
+
 		for (final int s : new int[] { 48000, 44100, 22050, 11025, 8000 }) {
 			bufferSize = AudioRecord.getMinBufferSize(s,
 					AudioFormat.CHANNEL_CONFIGURATION_MONO,
@@ -62,8 +70,8 @@ public class RecordThread implements Runnable {
 				AudioFormat.ENCODING_PCM_16BIT, 64 * 1024);
 
 		buffer = new short[frameSize];
-		celtMode = Native.celt_mode_create(MumbleClient.SAMPLE_RATE,
-				MumbleClient.FRAME_SIZE);
+		celtMode = Native.celt_mode_create(MumbleConnection.SAMPLE_RATE,
+				MumbleConnection.FRAME_SIZE);
 		celtEncoder = Native.celt_encoder_create(celtMode, 1);
 		Native.celt_encoder_ctl(celtEncoder, celtConstants.CELT_SET_PREDICTION_REQUEST, 0);
 		Native.celt_encoder_ctl(celtEncoder, celtConstants.CELT_SET_VBR_RATE_REQUEST, AUDIO_QUALITY);
@@ -129,7 +137,7 @@ public class RecordThread implements Runnable {
 				final ByteBuffer tmpBuf = ByteBuffer.allocate(1024);
 
 				int flags = 0;
-				flags |= MumbleClient.UDPMESSAGETYPE_UDPVOICECELTALPHA << 5;
+				flags |= MumbleConnection.UDPMESSAGETYPE_UDPVOICECELTALPHA << 5;
 				tmpBuf.put((byte) flags);
 
 				final PacketDataStream pds = new PacketDataStream(tmpBuf
@@ -154,7 +162,7 @@ public class RecordThread implements Runnable {
 				final byte[] dst = new byte[pds.size() + 1];
 				tmpBuf.get(dst);
 				try {
-					ServerList.client.sendUdpTunnelMessage(dst);
+					mService.sendUdpTunnelMessage(dst);
 				} catch (final IOException e) {
 					e.printStackTrace();
 					running = false;

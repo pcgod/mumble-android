@@ -1,18 +1,22 @@
 package org.pcgod.mumbleclient.app;
 
-import org.pcgod.mumbleclient.service.MumbleClient;
+import org.pcgod.mumbleclient.service.MumbleService;
+import org.pcgod.mumbleclient.service.MumbleServiceConnection;
 import org.pcgod.mumbleclient.R;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ListActivity;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -36,7 +40,8 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
  * @author pcgod
  *
  */
-public class ServerList extends ListActivity {
+public class ServerList extends ConnectedListActivity {
+
 	private class ServerAdapter extends BaseAdapter {
 		private final Context context;
 		private final Cursor cursor;
@@ -90,13 +95,6 @@ public class ServerList extends ListActivity {
 			final String serverPassword = cursor.getString(cursor
 					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD));
 
-			if (client != null
-					&& client.isSameServer(serverHost, serverPort,
-							serverUsername, serverPassword)) {
-				nameText.setTypeface(Typeface.DEFAULT_BOLD);
-				userText.setTypeface(Typeface.DEFAULT_BOLD);
-			}
-
 			if ("".equals(serverName)) {
 				nameText.setText(serverHost + ":" + serverPort);
 				userText.setText(serverUsername);
@@ -110,7 +108,6 @@ public class ServerList extends ListActivity {
 		}
 	}
 
-	static MumbleClient client;
 	long serverToDeleteId = -1;
 	DbAdapter dbAdapter;
 
@@ -289,6 +286,15 @@ public class ServerList extends ListActivity {
 			final int position, final long id) {
 		super.onListItemClick(l, v, position, id);
 
+		connectServer(id);
+	}
+
+	/**
+	 * Starts connecting to a server.
+	 *
+	 * @param id
+	 */
+	protected final void connectServer(final long id) {
 		final Cursor c = dbAdapter.fetchServer(id);
 		final String host = c.getString(c
 				.getColumnIndexOrThrow(DbAdapter.SERVER_COL_HOST));
@@ -300,24 +306,14 @@ public class ServerList extends ListActivity {
 				.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD));
 		c.close();
 
-		if (client != null
-				&& client.isSameServer(host, port, username, password)
-				&& client.isConnected()) {
-			final Intent i = new Intent(this, ChannelList.class);
-			startActivityForResult(i, ACTIVITY_CHANNEL_LIST);
-			return;
+		mService.setServer(host, port, username, password);
+
+		while (!mService.isConnected()) {
+			Thread.yield();
 		}
 
 		if (clientThread != null) {
 			clientThread.interrupt();
-		}
-
-		client = new MumbleClient(this, host, port, username, password);
-		clientThread = new Thread(client, "net");
-		clientThread.start();
-
-		while (!client.isConnected()) {
-			Thread.yield();
 		}
 
 		final Intent i = new Intent(this, ChannelList.class);

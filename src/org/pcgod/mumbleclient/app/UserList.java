@@ -3,18 +3,23 @@ package org.pcgod.mumbleclient.app;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.pcgod.mumbleclient.service.MumbleClient;
 import org.pcgod.mumbleclient.R;
+import org.pcgod.mumbleclient.service.MumbleConnection;
+import org.pcgod.mumbleclient.service.MumbleService;
+import org.pcgod.mumbleclient.service.MumbleServiceConnection;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.app.ListActivity;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -33,7 +38,7 @@ import android.widget.ToggleButton;
  * @author pcgod
  *
  */
-public class UserList extends ListActivity {
+public class UserList extends ConnectedListActivity {
 	private class UserAdapter extends ArrayAdapter<User> {
 		public UserAdapter(final Context context, final List<User> users) {
 			super(context, android.R.layout.simple_list_item_1, users);
@@ -50,11 +55,6 @@ public class UserList extends ListActivity {
 			final User u = getItem(position);
 			final TextView tv = (TextView) v.findViewById(android.R.id.text1);
 			tv.setText(u.name);
-			if (u.session == ServerList.client.session) {
-				tv.setTypeface(Typeface.DEFAULT_BOLD);
-			} else {
-				tv.setTypeface(Typeface.DEFAULT);
-			}
 			return tv;
 		}
 	}
@@ -62,11 +62,11 @@ public class UserList extends ListActivity {
 	private class UserBroadcastReceiver extends BroadcastReceiver {
 		@Override
 		public final void onReceive(final Context ctx, final Intent i) {
-			if (MumbleClient.INTENT_USER_LIST_UPDATE.equals(i.getAction())) {
+			if (MumbleConnection.INTENT_USER_LIST_UPDATE.equals(i.getAction())) {
 				updateList();
-			} else if (MumbleClient.INTENT_CURRENT_CHANNEL_CHANGED.equals(i
+			} else if (MumbleConnection.INTENT_CURRENT_CHANNEL_CHANGED.equals(i
 					.getAction())) {
-				channelId = ServerList.client.currentChannel;
+				channelId = mService.getCurrentChannel();
 			}
 			updateButtonVisibility();
 		}
@@ -84,23 +84,14 @@ public class UserList extends ListActivity {
 	private final OnClickListener joinButtonClickEvent = new OnClickListener() {
 		@Override
 		public void onClick(final View v) {
-			ServerList.client.joinChannel(channelId);
+			mService.joinChannel(channelId);
 		}
 	};
 
 	private final OnClickListener speakButtonClickEvent = new OnClickListener() {
 		@Override
 		public void onClick(final View v) {
-			if (rt == null) {
-				// start record
-				// TODO check initialized
-				rt = new Thread(new RecordThread(), "record");
-				rt.start();
-			} else {
-				// stop record
-				rt.interrupt();
-				rt = null;
-			}
+			mService.setRecording(!mService.isRecording());
 		}
 	};
 
@@ -125,14 +116,14 @@ public class UserList extends ListActivity {
 	}
 
 	private void updateButtonVisibility() {
-		if (channelId == ServerList.client.currentChannel) {
+		if (channelId == mService.getCurrentChannel()) {
 			joinButton.setVisibility(View.GONE);
 			speakButton.setVisibility(View.VISIBLE);
 		} else {
 			joinButton.setVisibility(View.VISIBLE);
 			speakButton.setVisibility(View.GONE);
 		}
-		speakButton.setEnabled(ServerList.client.canSpeak);
+		speakButton.setEnabled(mService.canSpeak());
 	}
 
 	@Override
@@ -140,16 +131,6 @@ public class UserList extends ListActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.user_list);
 		setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
-
-		if (ServerList.client == null) {
-			finish();
-			return;
-		}
-
-		if (!ServerList.client.isConnected()) {
-			finish();
-			return;
-		}
 
 		joinButton = (Button) findViewById(R.id.joinButton);
 		speakButton = (ToggleButton) findViewById(R.id.speakButton);
@@ -159,10 +140,14 @@ public class UserList extends ListActivity {
 
 		final Intent i = getIntent();
 		channelId = (int) i.getLongExtra("channelId", -1);
-		updateButtonVisibility();
 
 		setListAdapter(new UserAdapter(this, userList));
+	}
+
+	@Override
+	protected void onServiceBound() {
 		updateList();
+		updateButtonVisibility();
 	}
 
 	@Override
@@ -183,15 +168,15 @@ public class UserList extends ListActivity {
 
 		speakButton.setChecked(false);
 		final IntentFilter ifilter = new IntentFilter(
-				MumbleClient.INTENT_USER_LIST_UPDATE);
-		ifilter.addAction(MumbleClient.INTENT_CURRENT_CHANNEL_CHANGED);
+				MumbleConnection.INTENT_USER_LIST_UPDATE);
+		ifilter.addAction(MumbleConnection.INTENT_CURRENT_CHANNEL_CHANGED);
 		bcReceiver = new UserBroadcastReceiver();
 		registerReceiver(bcReceiver, ifilter);
 	}
 
 	void updateList() {
 		userList.clear();
-		for (final User u : ServerList.client.userArray) {
+		for (final User u : mService.getUsers()) {
 			if (u.channel == channelId) {
 				userList.add(u);
 			}

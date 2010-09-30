@@ -6,9 +6,9 @@ import net.sf.mumble.MumbleProto.Ping;
 
 class PingThread implements Runnable {
 	private boolean running = true;
-	private final MumbleClient mc;
+	private final MumbleConnection mc;
 
-	public PingThread(final MumbleClient mc_) {
+	public PingThread(final MumbleConnection mc_) {
 		this.mc = mc_;
 	}
 
@@ -18,7 +18,7 @@ class PingThread implements Runnable {
 			try {
 				final Ping.Builder p = Ping.newBuilder();
 				p.setTimestamp(System.currentTimeMillis());
-				mc.sendMessage(MumbleClient.MessageType.Ping, p);
+				mc.sendMessage(MumbleConnection.MessageType.Ping, p);
 				Thread.sleep(5000);
 			} catch (final IOException e) {
 				e.printStackTrace();

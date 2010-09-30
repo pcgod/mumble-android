@@ -45,7 +45,7 @@ import android.util.Log;
  * @author pcgod
  *
  */
-public class MumbleClient implements Runnable {
+public class MumbleConnection implements Runnable {
 	public enum MessageType {
 		Version, UDPTunnel, Authenticate, Ping, Reject, ServerSync, ChannelRemove, ChannelState, UserRemove, UserState, BanList, TextMessage, PermissionDenied, ACL, QueryUsers, CryptSetup, ContextActionAdd, ContextAction, UserList, VoiceTarget, PermissionQuery, CodecVersion, UserStats, RequestBlob, ServerConfig
 	}
@@ -117,7 +117,7 @@ public class MumbleClient implements Runnable {
 	private AudioOutput ao;
 	private Thread audioOutputThread;
 
-	public MumbleClient(final Context ctx_, final String host_,
+	public MumbleConnection(final Context ctx_, final String host_,
 			final int port_, final String username_, final String password_) {
 		ctx = ctx_.getApplicationContext();
 		host = host_;

@@ -15,6 +15,7 @@
 		<activity android:name=".app.ChatActivity"></activity>
 	</application>
 	<uses-sdk android:targetSdkVersion="8" android:minSdkVersion="3" />
+	<service android:enabled="true" android:name=".service.MumbleService"></service>
 	<uses-permission android:name="android.permission.RECORD_AUDIO"></uses-permission>
 	<uses-permission android:name="android.permission.INTERNET"></uses-permission>
 </manifest> 
