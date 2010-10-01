@@ -58,12 +58,14 @@ public class ChatActivity extends Activity {
 			return true;
 		}
 	};
+
 	private OnClickListener sendOnClickEvent = new OnClickListener() {
 		@Override
 		public void onClick(final View v) {
 			sendMessage(chatTextEdit);
 		}
 	};
+
 	private ChatBroadcastReceiver bcReceiver;
 
 	@Override

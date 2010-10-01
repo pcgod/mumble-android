@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.pcgod.mumbleclient.app.RecordThread;
+import org.pcgod.mumbleclient.service.MumbleConnectionHost.ConnectionState;
 import org.pcgod.mumbleclient.service.model.Message;
 import org.pcgod.mumbleclient.service.model.User;
 import org.pcgod.mumbleclient.service.model.Channel;
@@ -26,7 +27,7 @@ import android.os.IBinder;
  * @author wace
  *
  */
-public class MumbleService extends Service implements MumbleConnectionHost {
+public class MumbleService extends Service {
 
 	public static final String INTENT_CHANNEL_LIST_UPDATE = "mumbleclient.intent.CHANNEL_LIST_UPDATE";
 	public static final String INTENT_CURRENT_CHANNEL_CHANGED = "mumbleclient.intent.CURRENT_CHANNEL_CHANGED";
@@ -46,6 +47,41 @@ public class MumbleService extends Service implements MumbleConnectionHost {
 	private MumbleConnection mClient;
 	private Thread mClientThread;
 	private Thread mRecordThread;
+
+	private MumbleConnectionHost connectionHost = new MumbleConnectionHost() {
+		public void channelsUpdated() {
+			sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
+		}
+
+		public void currentChannelChanged() {
+			sendBroadcast(INTENT_CURRENT_CHANNEL_CHANGED);
+		}
+
+		public void messageReceived(Message msg) {
+			messages.add(msg);
+			Bundle b = new Bundle();
+			b.putSerializable(EXTRA_MESSAGE, msg);
+			sendBroadcast(INTENT_CHAT_TEXT_UPDATE, b);
+		}
+
+		public void messageSent(Message msg) {
+			messages.add(msg);
+			Bundle b = new Bundle();
+			b.putSerializable(EXTRA_MESSAGE, msg);
+			sendBroadcast(INTENT_CHAT_TEXT_UPDATE, b);
+		}
+
+		public void setConnectionState(ConnectionState state) {
+			MumbleService.this.state = state;
+			Bundle b = new Bundle();
+			b.putSerializable(EXTRA_CONNECTION_STATE, state);
+			sendBroadcast(INTENT_CONNECTION_STATE_CHANGED);
+		}
+
+		public void userListUpdated() {
+			sendBroadcast(INTENT_USER_LIST_UPDATE);
+		}
+	};
 
 	private final LocalBinder mBinder = new LocalBinder();
 
@@ -74,7 +110,7 @@ public class MumbleService extends Service implements MumbleConnectionHost {
 
 		if (mClientThread != null) mClientThread.interrupt();
 
-		mClient = new MumbleConnection(this, host, port, username, password);
+		mClient = new MumbleConnection(connectionHost, host, port, username, password);
 		mClientThread = new Thread(mClient, "net");
 		mClientThread.start();
 	}
@@ -140,39 +176,6 @@ public class MumbleService extends Service implements MumbleConnectionHost {
 			mRecordThread.interrupt();
 			mRecordThread = null;
 		}
-	}
-
-	public void channelsUpdated() {
-		sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
-	}
-
-	public void currentChannelChanged() {
-		sendBroadcast(INTENT_CURRENT_CHANNEL_CHANGED);
-	}
-
-	public void messageReceived(Message msg) {
-		messages.add(msg);
-		Bundle b = new Bundle();
-		b.putSerializable(EXTRA_MESSAGE, msg);
-		sendBroadcast(INTENT_CHAT_TEXT_UPDATE, b);
-	}
-
-	public void messageSent(Message msg) {
-		messages.add(msg);
-		Bundle b = new Bundle();
-		b.putSerializable(EXTRA_MESSAGE, msg);
-		sendBroadcast(INTENT_CHAT_TEXT_UPDATE, b);
-	}
-
-	public void setConnectionState(ConnectionState state) {
-		this.state = state;
-		Bundle b = new Bundle();
-		b.putSerializable(EXTRA_CONNECTION_STATE, state);
-		sendBroadcast(INTENT_CONNECTION_STATE_CHANGED);
-	}
-
-	public void userListUpdated() {
-		sendBroadcast(INTENT_USER_LIST_UPDATE);
 	}
 
 	private void assertConnected() {
