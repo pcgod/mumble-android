@@ -1,6 +1,5 @@
 package org.pcgod.mumbleclient.app;
 
-import org.pcgod.mumbleclient.service.MumbleConnection;
 import org.pcgod.mumbleclient.service.MumbleService;
 import org.pcgod.mumbleclient.service.MumbleServiceConnection;
 import org.pcgod.mumbleclient.R;
@@ -112,7 +111,7 @@ public class ChatActivity extends Activity {
 
 		updateText();
 		final IntentFilter ifilter = new IntentFilter(
-				MumbleConnection.INTENT_CHAT_TEXT_UPDATE);
+				MumbleService.INTENT_CHAT_TEXT_UPDATE);
 		bcReceiver = new ChatBroadcastReceiver();
 		registerReceiver(bcReceiver, ifilter);
 	}

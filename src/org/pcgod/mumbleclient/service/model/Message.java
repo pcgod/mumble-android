@@ -1,0 +1,14 @@
+package org.pcgod.mumbleclient.service.model;
+
+import java.io.Serializable;
+
+public class Message implements Serializable {
+
+	private static final long serialVersionUID = 1L;
+
+	public String message;
+	public String sender;
+	public User actor;
+	public Channel channel;
+	public long timestamp;
+}

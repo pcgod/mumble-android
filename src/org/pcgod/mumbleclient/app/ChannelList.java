@@ -130,8 +130,8 @@ public class ChannelList extends ConnectedListActivity {
 
 		updateList();
 		final IntentFilter ifilter = new IntentFilter(
-				MumbleConnection.INTENT_CHANNEL_LIST_UPDATE);
-		ifilter.addAction(MumbleConnection.INTENT_USER_LIST_UPDATE);
+				MumbleService.INTENT_CHANNEL_LIST_UPDATE);
+		ifilter.addAction(MumbleService.INTENT_USER_LIST_UPDATE);
 		bcReceiver = new ChannelBroadcastReceiver();
 		registerReceiver(bcReceiver, ifilter);
 	}
