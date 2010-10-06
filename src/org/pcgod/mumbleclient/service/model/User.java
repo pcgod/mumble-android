@@ -1,6 +1,10 @@
 package org.pcgod.mumbleclient.service.model;
 
-public class User {
+import java.io.Serializable;
+
+public class User implements Serializable{
+	private static final long serialVersionUID = 1L;
+
 	public static final int TALKINGSTATE_PASSIVE = 0;
 	public static final int TALKINGSTATE_TALKING = 1;
 	public static final int TALKINGSTATE_SHOUTING = 2;

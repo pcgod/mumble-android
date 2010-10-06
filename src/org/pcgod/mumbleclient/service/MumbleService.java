@@ -232,6 +232,10 @@ public class MumbleService extends Service {
 		return Collections.unmodifiableList( mClient.channelArray );
 	}
 
+	public List<Message> getMessageList() {
+		return Collections.unmodifiableList( messages );
+	}
+
 	public void sendUdpTunnelMessage(byte[] buffer) throws IOException {
 		assertConnected();
 

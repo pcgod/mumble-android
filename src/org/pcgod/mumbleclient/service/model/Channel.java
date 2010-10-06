@@ -1,6 +1,10 @@
 package org.pcgod.mumbleclient.service.model;
 
-public class Channel {
+import java.io.Serializable;
+
+public class Channel implements Serializable {
+	private static final long serialVersionUID = 1L;
+
 	public int id;
 	public String name;
 	public int userCount;

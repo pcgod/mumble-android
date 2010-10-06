@@ -1,8 +1,12 @@
 package org.pcgod.mumbleclient.app;
 
+import java.util.List;
+
+import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.service.MumbleService;
 import org.pcgod.mumbleclient.service.MumbleServiceConnection;
-import org.pcgod.mumbleclient.R;
+import org.pcgod.mumbleclient.service.model.Message;
+import org.pcgod.mumbleclient.service.model.Message.Direction;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -10,6 +14,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.text.format.DateUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -21,16 +26,14 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 
-public class ChatActivity extends Activity {
+public class ChatActivity extends ConnectedActivity {
 	private class ChatBroadcastReceiver extends BroadcastReceiver {
 		@Override
 		public final void onReceive(final Context ctx, final Intent i) {
-			updateText();
+			Message msg = (Message)i.getSerializableExtra(MumbleService.EXTRA_MESSAGE);
+			addMessage(msg);
 		}
 	}
-
-	MumbleServiceConnection mServiceConn = new MumbleServiceConnection(this);
-	MumbleService mService;
 
 	TextView chatText;
 	EditText chatTextEdit;
@@ -104,14 +107,27 @@ public class ChatActivity extends Activity {
 	protected final void onPause() {
 		super.onPause();
 
-		unregisterReceiver(bcReceiver);
+		if (bcReceiver != null) {
+			unregisterReceiver(bcReceiver);
+			bcReceiver = null;
+		}
 	}
 
 	@Override
 	protected final void onResume() {
 		super.onResume();
 
-		updateText();
+	}
+
+	@Override
+	protected void onServiceBound() {
+		super.onServiceBound();
+
+		List<Message> messages = mService.getMessageList();
+		for (Message m : messages) {
+			addMessage(m);
+		}
+
 		final IntentFilter ifilter = new IntentFilter(
 				MumbleService.INTENT_CHAT_TEXT_UPDATE);
 		bcReceiver = new ChatBroadcastReceiver();
@@ -121,6 +137,29 @@ public class ChatActivity extends Activity {
 	void sendMessage(TextView v) {
 		mService.sendChannelTextMessage(v.getText().toString());
 		v.setText("");
+	}
+
+	void addMessage(Message msg) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("[");
+		sb.append(DateUtils.formatDateTime(this, msg.timestamp,
+				DateUtils.FORMAT_SHOW_TIME));
+		sb.append("]");
+
+		if (msg.direction == Direction.Sent) {
+			sb.append("To ");
+			sb.append(msg.channel.name);
+		} else {
+			if (msg.channelIds > 0) { sb.append("(C) "); }
+			if (msg.treeIds > 0) { sb.append("(T) "); }
+
+			if (msg.actor != null) { sb.append(msg.actor.name); }
+			else { sb.append("Server"); }
+		}
+		sb.append(": ");
+		sb.append(msg.message);
+		sb.append("\n");
+		chatText.append(sb.toString());
 	}
 
 	void updateText() {
