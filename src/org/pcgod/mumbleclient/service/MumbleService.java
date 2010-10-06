@@ -29,6 +29,8 @@ import android.os.IBinder;
  */
 public class MumbleService extends Service {
 
+	public static final String ACTION_CONNECT = "mumbleclient.action.CONNECT";
+
 	public static final String INTENT_CHANNEL_LIST_UPDATE = "mumbleclient.intent.CHANNEL_LIST_UPDATE";
 	public static final String INTENT_CURRENT_CHANNEL_CHANGED = "mumbleclient.intent.CURRENT_CHANNEL_CHANGED";
 	public static final String INTENT_USER_LIST_UPDATE = "mumbleclient.intent.USER_LIST_UPDATE";
@@ -37,6 +39,11 @@ public class MumbleService extends Service {
 
 	public static final String EXTRA_MESSAGE = "mumbleclient.extra.MESSAGE";
 	public static final String EXTRA_CONNECTION_STATE = "mumbleclient.extra.CONNECTION_STATE";
+
+	public static final String EXTRA_HOST = "mumbleclient.extra.HOST";
+	public static final String EXTRA_PORT = "mumbleclient.extra.PORT";
+	public static final String EXTRA_USERNAME = "mumbleclient.extra.USERNAME";
+	public static final String EXTRA_PASSWORD = "mumbleclient.extra.PASSWORD";
 
 	public class LocalBinder extends Binder {
 		public MumbleService getService() {
@@ -47,6 +54,8 @@ public class MumbleService extends Service {
 	private MumbleConnection mClient;
 	private Thread mClientThread;
 	private Thread mRecordThread;
+
+	private boolean mHasConnections;
 
 	private MumbleConnectionHost connectionHost = new MumbleConnectionHost() {
 		public void channelsUpdated() {
@@ -76,6 +85,11 @@ public class MumbleService extends Service {
 			Bundle b = new Bundle();
 			b.putSerializable(EXTRA_CONNECTION_STATE, state);
 			sendBroadcast(INTENT_CONNECTION_STATE_CHANGED);
+
+			// If the connection was disconnected and there are no bound
+			// connections to this service, finish it.
+			if (state == ConnectionState.Disconnected && !mHasConnections)
+				stopSelf();
 		}
 
 		public void userListUpdated() {
@@ -97,26 +111,55 @@ public class MumbleService extends Service {
 
 	@Override
 	public IBinder onBind(Intent intent) {
+		mHasConnections = true;
 		return mBinder;
 	}
 
-	public void setServer(final String host, final int port,
-			final String username, final String password) {
-		if (mClient != null
-				&& mClient.isSameServer(host, port, username, password)
-				&& isConnected()) {
-			return;
+	@Override
+	public boolean onUnbind(Intent intent) {
+		mHasConnections = false;
+
+		if (state == ConnectionState.Disconnected) {
+			stopSelf();
 		}
 
-		if (mClientThread != null) mClientThread.interrupt();
+		return false;
+	}
+
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		String host = intent.getStringExtra(EXTRA_HOST);
+		int port = intent.getIntExtra(EXTRA_PORT, -1);
+		String username = intent.getStringExtra(EXTRA_USERNAME);
+		String password = intent.getStringExtra(EXTRA_PASSWORD);
+
+		if (mClient != null &&
+			mClient.isSameServer(host, port, username, password) &&
+			isConnected()) {
+			return START_STICKY;
+		}
+
+		if (mClientThread != null)
+			mClientThread.interrupt();
 
 		mClient = new MumbleConnection(connectionHost, host, port, username, password);
 		mClientThread = new Thread(mClient, "net");
 		mClientThread.start();
+		return START_STICKY;
 	}
 
 	public boolean isConnected() {
 		return state == ConnectionState.Connected;
+	}
+
+	public ConnectionState getConnectionState() {
+		return state;
+	}
+
+	public void disconnect() {
+		assertConnected();
+
+		mClient.disconnect();
 	}
 
 	public int getCurrentChannel() {

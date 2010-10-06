@@ -3,6 +3,7 @@ package org.pcgod.mumbleclient.app;
 import org.pcgod.mumbleclient.service.MumbleService;
 import org.pcgod.mumbleclient.service.MumbleServiceConnection;
 import org.pcgod.mumbleclient.R;
+import org.pcgod.mumbleclient.service.MumbleService;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -11,7 +12,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.ServiceConnection;
+import android.content.IntentSender.SendIntentException;
 import android.database.Cursor;
 import android.graphics.Typeface;
 import android.media.AudioManager;
@@ -121,8 +122,6 @@ public class ServerList extends ConnectedListActivity {
 	private static final int MENU_EXIT = Menu.FIRST + 3;
 	private static final int MENU_CONNECT_SERVER = Menu.FIRST + 4;
 
-	private Thread clientThread;
-
 	@Override
 	public final boolean onContextItemSelected(final MenuItem item) {
 		final AdapterContextMenuInfo info = (AdapterContextMenuInfo) item
@@ -181,9 +180,6 @@ public class ServerList extends ConnectedListActivity {
 			addServer();
 			return true;
 		case MENU_EXIT:
-			if (clientThread != null) {
-				clientThread.interrupt();
-			}
 			finish();
 			System.exit(0);
 			return true;
@@ -306,15 +302,14 @@ public class ServerList extends ConnectedListActivity {
 				.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD));
 		c.close();
 
-		mService.setServer(host, port, username, password);
-
-		while (!mService.isConnected()) {
-			Thread.yield();
-		}
-
-		if (clientThread != null) {
-			clientThread.interrupt();
-		}
+		Intent connectionIntent = new Intent(this, MumbleService.class);
+		connectionIntent.setAction(MumbleService.ACTION_CONNECT);
+		connectionIntent.putExtra(MumbleService.EXTRA_HOST, host);
+		connectionIntent.putExtra(MumbleService.EXTRA_PORT, port);
+		connectionIntent.putExtra(MumbleService.EXTRA_USERNAME, username);
+		connectionIntent.putExtra(MumbleService.EXTRA_PASSWORD, password);
+		startService(connectionIntent);
+		//mService.setServer(host, port, username, password);
 
 		final Intent i = new Intent(this, ChannelList.class);
 		startActivityForResult(i, ACTIVITY_CHANNEL_LIST);
