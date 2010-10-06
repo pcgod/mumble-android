@@ -14,7 +14,7 @@ class PingThread implements Runnable {
 
 	@Override
 	public final void run() {
-		while (running) {
+		while (running && mc.isConnectionAlive()) {
 			try {
 				final Ping.Builder p = Ping.newBuilder();
 				p.setTimestamp(System.currentTimeMillis());
