@@ -33,6 +33,7 @@ import android.content.Intent;
 import android.text.format.DateUtils;
 import android.util.Log;
 
+import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.service.MumbleConnectionHost.ConnectionState;
 import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.Message;
@@ -60,7 +61,6 @@ public class MumbleConnection implements Runnable {
 	public static final int SAMPLE_RATE = 48000;
 	public static final int FRAME_SIZE = SAMPLE_RATE / 100;
 
-	private static final String LOG_TAG = "mumbleclient";
 	private static final MessageType[] MT_CONSTANTS = MessageType.class.getEnumConstants();
 
 	private static final int protocolVersion = (1 << 16) | (2 << 8)
@@ -192,7 +192,7 @@ public class MumbleConnection implements Runnable {
 		}
 
 		if (t != MessageType.Ping) {
-			Log.i(LOG_TAG, "<<< " + t);
+			Log.i(Globals.LOG_TAG, "<<< " + t);
 		}
 	}
 
@@ -287,7 +287,7 @@ public class MumbleConnection implements Runnable {
 						}
 					}
 				} catch (IOException ex) {
-					Log.e(LOG_TAG, ex.toString());
+					Log.e(Globals.LOG_TAG, ex.toString());
 				} finally {
 					synchronized(stateLock) {
 						connectionHost.setConnectionState(ConnectionState.Disconnecting);
@@ -328,20 +328,20 @@ public class MumbleConnection implements Runnable {
 
 	@SuppressWarnings("unused")
 	private void printChanneList() {
-		Log.i(LOG_TAG, "--- begin channel list ---");
+		Log.i(Globals.LOG_TAG, "--- begin channel list ---");
 		for (final Channel c : channelArray) {
-			Log.i(LOG_TAG, c.toString());
+			Log.i(Globals.LOG_TAG, c.toString());
 		}
-		Log.i(LOG_TAG, "--- end channel list ---");
+		Log.i(Globals.LOG_TAG, "--- end channel list ---");
 	}
 
 	@SuppressWarnings("unused")
 	private void printUserList() {
-		Log.i(LOG_TAG, "--- begin user list ---");
+		Log.i(Globals.LOG_TAG, "--- begin user list ---");
 		for (final User u : userArray) {
-			Log.i(LOG_TAG, u.toString());
+			Log.i(Globals.LOG_TAG, u.toString());
 		}
-		Log.i(LOG_TAG, "--- end user list ---");
+		Log.i(Globals.LOG_TAG, "--- end user list ---");
 	}
 
 	private void processMsg(final MessageType t, final byte[] buffer)
@@ -362,7 +362,7 @@ public class MumbleConnection implements Runnable {
 
 			pingThread = new Thread(new PingThread(this), "ping");
 			pingThread.start();
-			Log.i(LOG_TAG, ">>> " + t);
+			Log.i(Globals.LOG_TAG, ">>> " + t);
 
 			ao = new AudioOutput();
 			audioOutputThread = new Thread(ao, "audio output");
@@ -451,7 +451,7 @@ public class MumbleConnection implements Runnable {
 			// TODO: Implementation. See git history for unfinished example.
 			break;
 		default:
-			Log.i(LOG_TAG, "unhandled message type " + t);
+			Log.i(Globals.LOG_TAG, "unhandled message type " + t);
 		}
 	}
 
@@ -471,7 +471,7 @@ public class MumbleConnection implements Runnable {
 
 		final User u = findUser((int) uiSession);
 		if (u == null) {
-			Log.e(LOG_TAG, "User session " + uiSession + "not found!");
+			Log.e(Globals.LOG_TAG, "User session " + uiSession + "not found!");
 		}
 
 		ao.addFrameToBuffer(u, pds, flags);

@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.app.ChannelList;
 import org.pcgod.mumbleclient.app.RecordThread;
@@ -21,6 +22,7 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 
 /**
  * Service for providing the client an access to the connection.
@@ -86,10 +88,15 @@ public class MumbleService extends Service {
 		}
 
 		public void setConnectionState(ConnectionState state) {
+			if (MumbleService.this.state == state)
+				return;
+
 			MumbleService.this.state = state;
 			Bundle b = new Bundle();
 			b.putSerializable(EXTRA_CONNECTION_STATE, state);
 			sendBroadcast(INTENT_CONNECTION_STATE_CHANGED);
+
+			Log.i(Globals.LOG_TAG, "MumbleService: Connection state changed to " + state.toString());
 
 			// Handle foreground stuff
 			if (state == ConnectionState.Connected) {
@@ -109,8 +116,10 @@ public class MumbleService extends Service {
 
 			// If the connection was disconnected and there are no bound
 			// connections to this service, finish it.
-			if (state == ConnectionState.Disconnected && !mHasConnections)
+			if (state == ConnectionState.Disconnected && !mHasConnections) {
+				Log.i(Globals.LOG_TAG, "MumbleService: Service disconnected while there are no connections up.");
 				stopSelf();
+			}
 		}
 
 		public void userListUpdated() {
@@ -127,12 +136,21 @@ public class MumbleService extends Service {
 	public void onCreate() {
 		super.onCreate();
 
+		Log.i(Globals.LOG_TAG, "MumbleService: Created");
 		state = ConnectionState.Disconnected;
+	}
+
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		Log.i(Globals.LOG_TAG, "MumbleService: Destroyed");
 	}
 
 	@Override
 	public IBinder onBind(Intent intent) {
 		mHasConnections = true;
+
+		Log.i(Globals.LOG_TAG, "MumbleService: Bound");
 		return mBinder;
 	}
 
@@ -140,8 +158,11 @@ public class MumbleService extends Service {
 	public boolean onUnbind(Intent intent) {
 		mHasConnections = false;
 
+		Log.i(Globals.LOG_TAG, "MumbleService: Unbound");
+
 		if (state == ConnectionState.Disconnected) {
 			stopSelf();
+			Log.i(Globals.LOG_TAG, "MumbleService: No clients bound and connection is not alive -> Stopping");
 		}
 
 		return false;
