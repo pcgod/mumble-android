@@ -6,12 +6,16 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.pcgod.mumbleclient.R;
+import org.pcgod.mumbleclient.app.ChannelList;
 import org.pcgod.mumbleclient.app.RecordThread;
 import org.pcgod.mumbleclient.service.MumbleConnectionHost.ConnectionState;
+import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.Message;
 import org.pcgod.mumbleclient.service.model.User;
-import org.pcgod.mumbleclient.service.model.Channel;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
@@ -55,6 +59,7 @@ public class MumbleService extends Service {
 	private Thread mClientThread;
 	private Thread mRecordThread;
 
+	private Notification mNotification;
 	private boolean mHasConnections;
 
 	private MumbleConnectionHost connectionHost = new MumbleConnectionHost() {
@@ -85,6 +90,22 @@ public class MumbleService extends Service {
 			Bundle b = new Bundle();
 			b.putSerializable(EXTRA_CONNECTION_STATE, state);
 			sendBroadcast(INTENT_CONNECTION_STATE_CHANGED);
+
+			// Handle foreground stuff
+			if (state == ConnectionState.Connected) {
+				mNotification = new Notification(R.drawable.icon, "Mumble connected", System.currentTimeMillis());
+
+				Intent channelListIntent = new Intent(MumbleService.this, ChannelList.class );
+				channelListIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+				mNotification.setLatestEventInfo(MumbleService.this, "Mumble", "Mumble is connected to a server",
+												 PendingIntent.getActivity(MumbleService.this, 0, channelListIntent, 0));
+				startForeground(1, mNotification);
+			} else if (state == ConnectionState.Disconnected) {
+				if (mNotification != null) {
+					stopForeground(true);
+					mNotification = null;
+				}
+			}
 
 			// If the connection was disconnected and there are no bound
 			// connections to this service, finish it.

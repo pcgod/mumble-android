@@ -10,7 +10,7 @@
 			</intent-filter>
 		</activity>
 		<activity android:name=".app.ServerInfo"></activity>
-		<activity android:name=".app.ChannelList"></activity>
+		<activity android:name=".app.ChannelList" android:launchMode="singleTask"></activity>
 		<activity android:name=".app.UserList"></activity>
 		<activity android:name=".app.ChatActivity"></activity>
 	</application>
