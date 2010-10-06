@@ -276,13 +276,20 @@ public class MumbleConnection implements Runnable {
 				byte[] msg = null;
 				try {
 					while (socket_.isConnected() && !disconnecting) {
-						synchronized (stateLock) {
-							final short type = in.readShort();
-							final int length = in.readInt();
-							if (msg == null || msg.length != length) {
-								msg = new byte[length];
-							}
-							in.readFully(msg);
+
+						// Do the socket read outside of any lock as this is blocking operation
+						// which might take a while and must be interruptible.
+						// Interrupt itself is synchronized through stateLock.
+						final short type = in.readShort();
+						final int length = in.readInt();
+						if (msg == null || msg.length != length) {
+							msg = new byte[length];
+						}
+						in.readFully(msg);
+
+						// Message processing can be done inside stateLock as it shouldn't involve
+						// slow network operations.
+						synchronized(stateLock) {
 							processMsg(MT_CONSTANTS[type], msg);
 						}
 					}
