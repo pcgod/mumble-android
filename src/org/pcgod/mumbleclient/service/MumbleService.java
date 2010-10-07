@@ -170,6 +170,16 @@ public class MumbleService extends Service {
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
+		// When using START_STICKY the onStartCommand can be called with
+		// null intent after the whole service process has been killed.
+		// Such scenario doesn't make sense for the service process so
+		// returning START_NOT_STICKY for now.
+		//
+		// Leaving the null check in though just in case.
+		//
+		// TODO: Figure out the correct start type.
+		if (intent == null) return START_NOT_STICKY;
+
 		String host = intent.getStringExtra(EXTRA_HOST);
 		int port = intent.getIntExtra(EXTRA_PORT, -1);
 		String username = intent.getStringExtra(EXTRA_USERNAME);
@@ -178,7 +188,7 @@ public class MumbleService extends Service {
 		if (mClient != null &&
 			mClient.isSameServer(host, port, username, password) &&
 			isConnected()) {
-			return START_STICKY;
+			return START_NOT_STICKY;
 		}
 
 		if (mClientThread != null)
@@ -187,7 +197,7 @@ public class MumbleService extends Service {
 		mClient = new MumbleConnection(connectionHost, host, port, username, password);
 		mClientThread = new Thread(mClient, "net");
 		mClientThread.start();
-		return START_STICKY;
+		return START_NOT_STICKY;
 	}
 
 	public boolean isConnected() {
