@@ -112,6 +112,7 @@ public class UserList extends ConnectedListActivity {
 		if (channelId == mService.getCurrentChannel()) {
 			joinButton.setVisibility(View.GONE);
 			speakButton.setVisibility(View.VISIBLE);
+			speakButton.setChecked(mService.isRecording());
 		} else {
 			joinButton.setVisibility(View.VISIBLE);
 			speakButton.setVisibility(View.GONE);
