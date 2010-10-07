@@ -1,6 +1,8 @@
 package org.pcgod.mumbleclient.service;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -16,6 +18,7 @@ import org.pcgod.mumbleclient.service.model.Message;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
@@ -106,10 +109,10 @@ public class MumbleService extends Service {
 				channelListIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 				mNotification.setLatestEventInfo(MumbleService.this, "Mumble", "Mumble is connected to a server",
 												 PendingIntent.getActivity(MumbleService.this, 0, channelListIntent, 0));
-				startForeground(1, mNotification);
+				startForegroundCompat(1, mNotification);
 			} else if (state == ConnectionState.Disconnected) {
 				if (mNotification != null) {
-					stopForeground(true);
+					stopForegroundCompat(1);
 					mNotification = null;
 				}
 			}
@@ -136,6 +139,16 @@ public class MumbleService extends Service {
 	public void onCreate() {
 		super.onCreate();
 
+		try {
+			mStartForeground = getClass().getMethod("startForeground",
+					mStartForegroundSignature);
+			mStopForeground = getClass().getMethod("stopForeground",
+					mStopForegroundSignature);
+		} catch (NoSuchMethodException e) {
+			// Running on an older platform.
+			mStartForeground = mStopForeground = null;
+		}
+		
 		Log.i(Globals.LOG_TAG, "MumbleService: Created");
 		state = ConnectionState.Disconnected;
 	}
@@ -143,6 +156,10 @@ public class MumbleService extends Service {
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
+
+		// Make sure our notification is gone.
+		stopForegroundCompat(1);
+
 		Log.i(Globals.LOG_TAG, "MumbleService: Destroyed");
 	}
 
@@ -168,8 +185,7 @@ public class MumbleService extends Service {
 		return false;
 	}
 
-	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
+	public int handleCommand(Intent intent) {
 		// When using START_STICKY the onStartCommand can be called with
 		// null intent after the whole service process has been killed.
 		// Such scenario doesn't make sense for the service process so
@@ -178,7 +194,8 @@ public class MumbleService extends Service {
 		// Leaving the null check in though just in case.
 		//
 		// TODO: Figure out the correct start type.
-		if (intent == null) return START_NOT_STICKY;
+		if (intent == null)
+			return START_NOT_STICKY;
 
 		String host = intent.getStringExtra(EXTRA_HOST);
 		int port = intent.getIntExtra(EXTRA_PORT, -1);
@@ -198,6 +215,16 @@ public class MumbleService extends Service {
 		mClientThread = new Thread(mClient, "net");
 		mClientThread.start();
 		return START_NOT_STICKY;
+	}
+	
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		return handleCommand(intent);
+	}
+	
+	@Override
+	public void onStart(Intent intent, int startId) {
+		handleCommand(intent);
 	}
 
 	public boolean isConnected() {
@@ -293,5 +320,69 @@ public class MumbleService extends Service {
 			i.putExtras(extras);
 
 		sendBroadcast(i);
+	}
+
+	// -----------------------------------------------------------------------
+	// StartForeground API Wrapper
+	
+	private static final Class[] mStartForegroundSignature = new Class[] {
+			int.class, Notification.class };
+	private static final Class[] mStopForegroundSignature = new Class[] { boolean.class };
+
+	private Method mStartForeground;
+	private Method mStopForeground;
+	private Object[] mStartForegroundArgs = new Object[2];
+	private Object[] mStopForegroundArgs = new Object[1];
+
+	/**
+	 * This is a wrapper around the new startForeground method, using the older
+	 * APIs if it is not available.
+	 */
+	void startForegroundCompat(int id, Notification notification) {
+		// If we have the new startForeground API, then use it.
+		if (mStartForeground != null) {
+			mStartForegroundArgs[0] = Integer.valueOf(id);
+			mStartForegroundArgs[1] = notification;
+			try {
+				mStartForeground.invoke(this, mStartForegroundArgs);
+			} catch (InvocationTargetException e) {
+				// Should not happen.
+				Log.w(Globals.LOG_TAG, "Unable to invoke startForeground", e);
+			} catch (IllegalAccessException e) {
+				// Should not happen.
+				Log.w(Globals.LOG_TAG, "Unable to invoke startForeground", e);
+			}
+			return;
+		}
+
+		// Fall back on the old API.
+		setForeground(true);
+		((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(id, notification);
+	}
+
+	/**
+	 * This is a wrapper around the new stopForeground method, using the older
+	 * APIs if it is not available.
+	 */
+	void stopForegroundCompat(int id) {
+		// If we have the new stopForeground API, then use it.
+		if (mStopForeground != null) {
+			mStopForegroundArgs[0] = Boolean.TRUE;
+			try {
+				mStopForeground.invoke(this, mStopForegroundArgs);
+			} catch (InvocationTargetException e) {
+				// Should not happen.
+				Log.w(Globals.LOG_TAG, "Unable to invoke stopForeground", e);
+			} catch (IllegalAccessException e) {
+				// Should not happen.
+				Log.w(Globals.LOG_TAG, "Unable to invoke stopForeground", e);
+			}
+			return;
+		}
+
+		// Fall back on the old API.  Note to cancel BEFORE changing the
+		// foreground state, since we could be killed at that point.
+		((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).cancel(id);
+		setForeground(false);
 	}
 }
