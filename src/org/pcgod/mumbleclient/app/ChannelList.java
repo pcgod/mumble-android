@@ -4,6 +4,7 @@ import java.util.List;
 
 import junit.framework.Assert;
 
+import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.service.MumbleService;
 import org.pcgod.mumbleclient.service.model.Channel;
@@ -18,6 +19,7 @@ import android.content.IntentFilter;
 import android.content.DialogInterface.OnClickListener;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -67,9 +69,11 @@ public class ChannelList extends ConnectedListActivity {
 			if (i.getAction().equals(MumbleService.INTENT_CONNECTION_STATE_CHANGED)) {
 				switch (mService.getConnectionState()) {
 				case Connecting:
+					Log.i(Globals.LOG_TAG, "ChannelList: Connecting");
 					mProgressDialog = ProgressDialog.show(ChannelList.this, "Connecting", "Connecting to Mumble server", true);
 					break;
 				case Connected:
+					Log.i(Globals.LOG_TAG, "ChannelList: Connected");
 					if (mProgressDialog != null) {
 						mProgressDialog.dismiss();
 						mProgressDialog = null;
@@ -155,13 +159,6 @@ public class ChannelList extends ConnectedListActivity {
 		default:
 			Assert.fail("Unknown connection state");
 		}
-
-		final IntentFilter ifilter = new IntentFilter();
-		ifilter.addAction(MumbleService.INTENT_CHANNEL_LIST_UPDATE);
-		ifilter.addAction(MumbleService.INTENT_USER_LIST_UPDATE);
-		ifilter.addAction(MumbleService.INTENT_CONNECTION_STATE_CHANGED);
-		bcReceiver = new ChannelBroadcastReceiver();
-		registerReceiver(bcReceiver, ifilter);
 	}
 
 	@Override
@@ -198,6 +195,13 @@ public class ChannelList extends ConnectedListActivity {
 	@Override
 	protected final void onResume() {
 		super.onResume();
+
+		final IntentFilter ifilter = new IntentFilter();
+		ifilter.addAction(MumbleService.INTENT_CHANNEL_LIST_UPDATE);
+		ifilter.addAction(MumbleService.INTENT_USER_LIST_UPDATE);
+		ifilter.addAction(MumbleService.INTENT_CONNECTION_STATE_CHANGED);
+		bcReceiver = new ChannelBroadcastReceiver();
+		registerReceiver(bcReceiver, ifilter);
 	}
 
 	@Override
