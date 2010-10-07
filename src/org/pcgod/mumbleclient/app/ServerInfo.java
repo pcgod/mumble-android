@@ -14,7 +14,6 @@ public class ServerInfo extends Activity {
 
 	private final OnClickListener addButtonListener = new OnClickListener() {
 		public void onClick(final View v) {
-
 			final EditText nameEdit = (EditText) findViewById(R.id.serverNameEdit);
 			final EditText hostEdit = (EditText) findViewById(R.id.serverHostEdit);
 			final EditText portEdit = (EditText) findViewById(R.id.serverPortEdit);

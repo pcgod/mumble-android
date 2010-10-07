@@ -7,7 +7,6 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,6 +18,7 @@ import javax.net.ssl.TrustManager;
 import net.sf.mumble.MumbleProto.Authenticate;
 import net.sf.mumble.MumbleProto.ChannelRemove;
 import net.sf.mumble.MumbleProto.ChannelState;
+import net.sf.mumble.MumbleProto.CodecVersion;
 import net.sf.mumble.MumbleProto.ServerSync;
 import net.sf.mumble.MumbleProto.TextMessage;
 import net.sf.mumble.MumbleProto.UserRemove;
@@ -55,6 +55,10 @@ public class MumbleConnection implements Runnable {
 	public static final int UDPMESSAGETYPE_UDPVOICESPEEX = 2;
 	public static final int UDPMESSAGETYPE_UDPVOICECELTBETA = 3;
 
+	public static final int CODEC_NOCODEC = -1;
+	public static final int CODEC_ALPHA = UDPMESSAGETYPE_UDPVOICECELTALPHA;
+	public static final int CODEC_BETA = UDPMESSAGETYPE_UDPVOICECELTBETA;
+
 	public static final int SAMPLE_RATE = 48000;
 	public static final int FRAME_SIZE = SAMPLE_RATE / 100;
 
@@ -63,11 +67,14 @@ public class MumbleConnection implements Runnable {
 	private static final int protocolVersion = (1 << 16) | (2 << 8)
 			| (3 & 0xFF);
 
+	private static final int supportedCodec = 0x8000000b;
+	
 	public Map<Integer, Channel> channels = new HashMap<Integer, Channel>();
 	public Map<Integer, User> users = new HashMap<Integer, User>();
 	public Channel currentChannel = null;
 	public int session;
 	public boolean canSpeak = true;
+	public int codec = CODEC_NOCODEC;
 	private final MumbleConnectionHost connectionHost;
 
 	private DataInputStream in;
@@ -242,7 +249,7 @@ public class MumbleConnection implements Runnable {
 			final Authenticate.Builder a = Authenticate.newBuilder();
 			a.setUsername(username);
 			a.setPassword(password);
-			a.addCeltVersions(0x8000000b);
+			a.addCeltVersions(supportedCodec);
 
 			sendMessage(MessageType.Version, v);
 			sendMessage(MessageType.Authenticate, a);
@@ -348,6 +355,16 @@ public class MumbleConnection implements Runnable {
 		case Ping:
 			// ignore
 			break;
+		case CodecVersion:
+			final CodecVersion codecVersion = CodecVersion.parseFrom(buffer);
+			codec = CODEC_NOCODEC;
+			if (codecVersion.hasAlpha() && codecVersion.getAlpha() == supportedCodec) {
+				codec = CODEC_ALPHA;
+			} else if (codecVersion.hasBeta() && codecVersion.getBeta() == supportedCodec) {
+				codec = CODEC_BETA;
+			}
+			canSpeak = canSpeak && (codec != CODEC_NOCODEC);
+			break;
 		case ServerSync:
 			final ServerSync ss = ServerSync.parseFrom(buffer);
 			session = ss.getSession();
@@ -413,10 +430,10 @@ public class MumbleConnection implements Runnable {
 				if (us.getSession() == session) {
 					if (us.hasMute() || us.hasSuppress()) {
 						if (us.hasMute()) {
-							canSpeak = !us.getMute();
+							canSpeak = (codec != CODEC_NOCODEC) && !us.getMute();
 						}
 						if (us.hasSuppress()) {
-							canSpeak = !us.getSuppress();
+							canSpeak = (codec != CODEC_NOCODEC) && !us.getSuppress();
 						}
 						connectionHost.userUpdated(u);
 					}

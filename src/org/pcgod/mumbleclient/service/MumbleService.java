@@ -107,7 +107,7 @@ public class MumbleService extends Service {
 				Intent channelListIntent = new Intent(MumbleService.this, ChannelList.class );
 				channelListIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 				mNotification.setLatestEventInfo(MumbleService.this, "Mumble", "Mumble is connected to a server",
-												 PendingIntent.getActivity(MumbleService.this, 0, channelListIntent, 0));
+						PendingIntent.getActivity(MumbleService.this, 0, channelListIntent, 0));
 				startForegroundCompat(1, mNotification);
 			} else if (state == ConnectionState.Disconnected) {
 				if (mNotification != null) {
@@ -236,7 +236,7 @@ public class MumbleService extends Service {
 			// Running on an older platform.
 			mStartForeground = mStopForeground = null;
 		}
-		
+
 		Log.i(Globals.LOG_TAG, "MumbleService: Created");
 		state = ConnectionState.Disconnected;
 	}
@@ -291,8 +291,8 @@ public class MumbleService extends Service {
 		String password = intent.getStringExtra(EXTRA_PASSWORD);
 
 		if (mClient != null &&
-			mClient.isSameServer(host, port, username, password) &&
-			isConnected()) {
+				mClient.isSameServer(host, port, username, password) &&
+				isConnected()) {
 			return START_NOT_STICKY;
 		}
 
@@ -304,12 +304,12 @@ public class MumbleService extends Service {
 		mClientThread.start();
 		return START_NOT_STICKY;
 	}
-	
+
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		return handleCommand(intent);
 	}
-	
+
 	@Override
 	public void onStart(Intent intent, int startId) {
 		handleCommand(intent);
@@ -359,6 +359,13 @@ public class MumbleService extends Service {
 
 	public List<Message> getMessageList() {
 		return Collections.unmodifiableList(messages);
+	}
+
+	public int getCodec() {
+		if (mClient.codec == MumbleConnection.CODEC_NOCODEC)
+			throw new IllegalStateException("Called getCodec on a connection with unsupported codec");
+
+		return mClient.codec;
 	}
 
 	public void sendUdpTunnelMessage(byte[] buffer) throws IOException {
@@ -412,9 +419,9 @@ public class MumbleService extends Service {
 
 	// -----------------------------------------------------------------------
 	// StartForeground API Wrapper
-	
+
 	private static final Class[] mStartForegroundSignature = new Class[] {
-			int.class, Notification.class };
+		int.class, Notification.class };
 	private static final Class[] mStopForegroundSignature = new Class[] { boolean.class };
 
 	private Method mStartForeground;

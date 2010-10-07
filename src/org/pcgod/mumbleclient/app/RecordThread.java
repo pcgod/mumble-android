@@ -132,7 +132,7 @@ public class RecordThread implements Runnable {
 				final ByteBuffer tmpBuf = ByteBuffer.allocate(1024);
 
 				int flags = 0;
-				flags |= MumbleConnection.UDPMESSAGETYPE_UDPVOICECELTALPHA << 5;
+				flags |= mService.getCodec() << 5;
 				tmpBuf.put((byte) flags);
 
 				final PacketDataStream pds = new PacketDataStream(tmpBuf
