@@ -9,6 +9,15 @@ public class Channel implements Serializable {
 	public String name;
 	public int userCount;
 
+	/**
+	 * Value signaling whether this channel has just been removed.
+	 *
+	 * Once this value is set the connection signals one last update for the
+	 * channel which should result in the channel being removed from all the
+	 * caches where it might be stored.
+	 */
+	public boolean removed = false;
+
 	@Override
 	public final boolean equals(final Object o) {
 		if (!(o instanceof Channel)) {

@@ -3,6 +3,7 @@ package org.pcgod.mumbleclient.service;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -24,6 +25,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -68,9 +70,6 @@ public class MumbleService extends Service {
 	private boolean mHasConnections;
 
 	private MumbleConnectionHost connectionHost = new MumbleConnectionHost() {
-		public void channelsUpdated() {
-			sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
-		}
 
 		public void currentChannelChanged() {
 			sendBroadcast(INTENT_CURRENT_CHANNEL_CHANGED);
@@ -115,6 +114,10 @@ public class MumbleService extends Service {
 					stopForegroundCompat(1);
 					mNotification = null;
 				}
+
+				// Clear the user and channel collections.
+				users.clear();
+				channels.clear();
 			}
 
 			// If the connection was disconnected and there are no bound
@@ -125,15 +128,100 @@ public class MumbleService extends Service {
 			}
 		}
 
-		public void userListUpdated() {
-			sendBroadcast(INTENT_USER_LIST_UPDATE);
+		@Override
+		public void channelAdded(final Channel channel) {
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					channels.add(channel);
+					sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
+				}
+			});
+		}
+
+		@Override
+		public void channelRemoved(final int channelId) {
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					for (int i = 0; i < channels.size(); i++) {
+						if (channels.get(i).id == channelId) {
+							channels.remove(i);
+							break;
+						}
+					}
+					sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
+				}
+			});
+		}
+
+		@Override
+		public void channelUpdated(final Channel channel) {
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					for (int i = 0; i < channels.size(); i++) {
+						if (channels.get(i).id == channel.id) {
+							channels.set(i, channel);
+							break;
+						}
+					}
+					sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
+				}
+			});
+		}
+
+		@Override
+		public void userAdded(final User user) {
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					users.add(user);
+					sendBroadcast(INTENT_USER_LIST_UPDATE);
+				}
+			});
+		}
+
+		@Override
+		public void userRemoved(final int userId) {
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					for (int i = 0; i < users.size(); i++) {
+						if (users.get(i).session == userId) {
+							users.remove(i);
+							break;
+						}
+					}
+					sendBroadcast(INTENT_USER_LIST_UPDATE);
+				}
+			});
+		}
+
+		@Override
+		public void userUpdated(final User user) {
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					for (int i = 0; i < users.size(); i++) {
+						if (users.get(i).session == user.session) {
+							users.set(i, user);
+							break;
+						}
+					}
+					sendBroadcast(INTENT_USER_LIST_UPDATE);
+				}
+			});
 		}
 	};
 
 	private final LocalBinder mBinder = new LocalBinder();
+	private final Handler handler = new Handler();
 
 	private ConnectionState state;
 	private final List<Message> messages = new LinkedList<Message>();
+	private final List<Channel> channels = new ArrayList<Channel>();
+	private final List<User> users = new ArrayList<User>();
 
 	@Override
 	public void onCreate() {
@@ -244,7 +332,7 @@ public class MumbleService extends Service {
 	public int getCurrentChannel() {
 		assertConnected();
 
-		return mClient.currentChannel;
+		return mClient.currentChannel.id;
 	}
 
 	public void joinChannel(int channelId) {
@@ -260,17 +348,17 @@ public class MumbleService extends Service {
 	public Collection<User> getUsers() {
 		assertConnected();
 
-		return Collections.unmodifiableCollection(mClient.userArray);
+		return Collections.unmodifiableCollection(users);
 	}
 
 	public List<Channel> getChannelList() {
 		assertConnected();
 
-		return Collections.unmodifiableList( mClient.channelArray );
+		return Collections.unmodifiableList(channels);
 	}
 
 	public List<Message> getMessageList() {
-		return Collections.unmodifiableList( messages );
+		return Collections.unmodifiableList(messages);
 	}
 
 	public void sendUdpTunnelMessage(byte[] buffer) throws IOException {

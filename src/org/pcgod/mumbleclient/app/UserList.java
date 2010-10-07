@@ -171,7 +171,7 @@ public class UserList extends ConnectedListActivity {
 	void updateList() {
 		userList.clear();
 		for (final User u : mService.getUsers()) {
-			if (u.channel == channelId) {
+			if (u.getChannel().id == channelId) {
 				userList.add(u);
 			}
 		}

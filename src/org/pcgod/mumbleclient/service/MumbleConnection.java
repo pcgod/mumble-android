@@ -8,6 +8,8 @@ import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
@@ -61,11 +63,11 @@ public class MumbleConnection implements Runnable {
 	private static final int protocolVersion = (1 << 16) | (2 << 8)
 			| (3 & 0xFF);
 
-	public ArrayList<Channel> channelArray = new ArrayList<Channel>();
-	public int currentChannel = -1;
+	public Map<Integer, Channel> channels = new HashMap<Integer, Channel>();
+	public Map<Integer, User> users = new HashMap<Integer, User>();
+	public Channel currentChannel = null;
 	public int session;
 	public boolean canSpeak = true;
-	public ArrayList<User> userArray = new ArrayList<User>();
 	private final MumbleConnectionHost connectionHost;
 
 	private DataInputStream in;
@@ -155,7 +157,7 @@ public class MumbleConnection implements Runnable {
 
 	public final void sendChannelTextMessage(final String message) {
 		final TextMessage.Builder tmb = TextMessage.newBuilder();
-		tmb.addChannelId(currentChannel);
+		tmb.addChannelId(currentChannel.id);
 		tmb.setMessage(message);
 		try {
 			sendMessage(MessageType.TextMessage, tmb);
@@ -163,12 +165,10 @@ public class MumbleConnection implements Runnable {
 			e.printStackTrace();
 		}
 
-		final Channel c = findChannel(currentChannel);
-
 		Message msg = new Message();
 		msg.timestamp = System.currentTimeMillis();
 		msg.message = message;
-		msg.channel = c;
+		msg.channel = currentChannel;
 		msg.direction = Direction.Sent;
 		connectionHost.messageSent(msg);
 	}
@@ -220,23 +220,11 @@ public class MumbleConnection implements Runnable {
 	}
 
 	private Channel findChannel(final int id) {
-		for (final Channel c : channelArray) {
-			if (c.id == id) {
-				return c;
-			}
-		}
-
-		return null;
+		return channels.get(id);
 	}
 
 	private User findUser(final int session_) {
-		for (final User u : userArray) {
-			if (u.session == session_) {
-				return u;
-			}
-		}
-
-		return null;
+		return users.get(session_);
 	}
 
 	private void handleProtocol(final Socket socket_) throws IOException, InterruptedException {
@@ -332,7 +320,7 @@ public class MumbleConnection implements Runnable {
 	@SuppressWarnings("unused")
 	private void printChanneList() {
 		Log.i(Globals.LOG_TAG, "--- begin channel list ---");
-		for (final Channel c : channelArray) {
+		for (final Channel c : channels.values()) {
 			Log.i(Globals.LOG_TAG, c.toString());
 		}
 		Log.i(Globals.LOG_TAG, "--- end channel list ---");
@@ -341,7 +329,7 @@ public class MumbleConnection implements Runnable {
 	@SuppressWarnings("unused")
 	private void printUserList() {
 		Log.i(Globals.LOG_TAG, "--- begin user list ---");
-		for (final User u : userArray) {
+		for (final User u : users.values()) {
 			Log.i(Globals.LOG_TAG, u.toString());
 		}
 		Log.i(Globals.LOG_TAG, "--- end user list ---");
@@ -349,6 +337,10 @@ public class MumbleConnection implements Runnable {
 
 	private void processMsg(final MessageType t, final byte[] buffer)
 			throws IOException {
+
+		Channel channel;
+		User user;
+		
 		switch (t) {
 		case UDPTunnel:
 			processVoicePacket(buffer);
@@ -360,8 +352,8 @@ public class MumbleConnection implements Runnable {
 			final ServerSync ss = ServerSync.parseFrom(buffer);
 			session = ss.getSession();
 
-			final User user = findUser(session);
-			currentChannel = user.channel;
+			user = findUser(session);
+			currentChannel = user.getChannel();
 
 			pingThread = new Thread(new PingThread(this), "ping");
 			pingThread.start();
@@ -377,44 +369,45 @@ public class MumbleConnection implements Runnable {
 //					.copyFromUtf8("Manual placement\000test"));
 			sendMessage(MessageType.UserState, usb);
 
-			connectionHost.channelsUpdated();
+			connectionHost.currentChannelChanged();
 			break;
 		case ChannelState:
 			final ChannelState cs = ChannelState.parseFrom(buffer);
-			Channel c = findChannel(cs.getChannelId());
-			if (c != null) {
+			channel = findChannel(cs.getChannelId());
+			if (channel != null) {
 				if (cs.hasName()) {
-					c.name = cs.getName();
+					channel.name = cs.getName();
 				}
-				connectionHost.channelsUpdated();
+				connectionHost.channelUpdated(channel);
 				break;
 			}
 
 			// New channel
-			c = new Channel();
-			c.id = cs.getChannelId();
-			c.name = cs.getName();
-			channelArray.add(c);
-			connectionHost.channelsUpdated();
+			channel = new Channel();
+			channel.id = cs.getChannelId();
+			channel.name = cs.getName();
+			channels.put(channel.id, channel);
+			connectionHost.channelAdded(channel);
 			break;
 		case ChannelRemove:
 			final ChannelRemove cr = ChannelRemove.parseFrom(buffer);
-			channelArray.remove(findChannel(cr.getChannelId()));
-
-			connectionHost.channelsUpdated();
+			channel = findChannel(cr.getChannelId());
+			channel.removed = true;
+			channels.remove(channel.id);
+			connectionHost.channelRemoved(channel.id);
 			break;
 		case UserState:
 			final UserState us = UserState.parseFrom(buffer);
 			User u = findUser(us.getSession());
 			if (u != null) {
 				if (us.hasChannelId()) {
-					u.channel = us.getChannelId();
-					recountChannelUsers();
+					Channel c = channels.get(us.getChannelId());
+					u.setChannel(c);
 					if (us.getSession() == session) {
-						currentChannel = u.channel;
+						currentChannel = c;
 						connectionHost.currentChannelChanged();
 					}
-					connectionHost.channelsUpdated();
+					connectionHost.channelUpdated(c);
 				}
 
 				if (us.getSession() == session) {
@@ -425,7 +418,7 @@ public class MumbleConnection implements Runnable {
 						if (us.hasSuppress()) {
 							canSpeak = !us.getSuppress();
 						}
-						connectionHost.userListUpdated();
+						connectionHost.userUpdated(u);
 					}
 				}
 				break;
@@ -434,18 +427,22 @@ public class MumbleConnection implements Runnable {
 			u = new User();
 			u.session = us.getSession();
 			u.name = us.getName();
-			u.channel = us.getChannelId();
-			recountChannelUsers();
-			userArray.add(u);
+			u.setChannel(channels.get(us.getChannelId()));
+			users.put(u.session, u);
 
-			connectionHost.userListUpdated();
+			connectionHost.userAdded(u);
+			connectionHost.channelUpdated(u.getChannel());
 			break;
 		case UserRemove:
 			final UserRemove ur = UserRemove.parseFrom(buffer);
-			userArray.remove(findUser(ur.getSession()));
-			recountChannelUsers();
+			user = findUser(ur.getSession());
+			users.remove(user.session);
 
-			connectionHost.userListUpdated();
+			// Remove the user from the channel as well.
+			user.getChannel().userCount--;
+
+			connectionHost.channelUpdated(user.getChannel());
+			connectionHost.userRemoved(user.session);
 			break;
 		case TextMessage:
 			handleTextMessage(TextMessage.parseFrom(buffer));
@@ -480,14 +477,4 @@ public class MumbleConnection implements Runnable {
 		ao.addFrameToBuffer(u, pds, flags);
 	}
 
-	private void recountChannelUsers() {
-		for (final Channel c : channelArray) {
-			c.userCount = 0;
-		}
-
-		for (final User u : userArray) {
-			final Channel c = findChannel(u.channel);
-			c.userCount++;
-		}
-	}
 }

@@ -1,6 +1,8 @@
 package org.pcgod.mumbleclient.service;
 
+import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.Message;
+import org.pcgod.mumbleclient.service.model.User;
 
 public interface MumbleConnectionHost {
 	public enum ConnectionState {
@@ -12,8 +14,13 @@ public interface MumbleConnectionHost {
 	public void messageReceived(Message msg);
 	public void messageSent(Message msg);
 
-	public void channelsUpdated();
-	public void userListUpdated();
-	public void currentChannelChanged();
+	public void channelAdded(Channel channel);
+	public void channelUpdated(Channel channel);
+	public void channelRemoved(int channelId);
 
+	public void userAdded(User user);
+	public void userUpdated(User user);
+	public void userRemoved(int userId);
+
+	public void currentChannelChanged();
 }

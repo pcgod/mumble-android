@@ -2,7 +2,9 @@ package org.pcgod.mumbleclient.service.model;
 
 import java.io.Serializable;
 
-public class User implements Serializable{
+import junit.framework.Assert;
+
+public class User implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	public static final int TALKINGSTATE_PASSIVE = 0;
@@ -12,9 +14,28 @@ public class User implements Serializable{
 
 	public int session;
 	public String name;
-	public int channel;
 	public float averageAvailable;
 	public int talkingState;
+
+	private Channel channel;
+
+	public void setChannel(final Channel newChannel) {
+		// Moving user to another channel?
+		// If so, remove the user from the original first.
+		if (this.channel != null) {
+			this.channel.userCount--;
+		}
+
+		// User should never leave channel without joining a new one?
+		Assert.assertNotNull(newChannel);
+
+		this.channel = newChannel;
+		this.channel.userCount++;
+	}
+
+	public final Channel getChannel() {
+		return this.channel;
+	}
 
 	@Override
 	public final boolean equals(final Object o) {
