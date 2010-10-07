@@ -1,10 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	android:layout_width="fill_parent" android:layout_height="fill_parent"
-	android:orientation="vertical">
-	<ListView android:id="@+id/android:list" android:layout_width="fill_parent"
-		android:layout_height="fill_parent">
-	</ListView>
-	<TextView android:layout_height="wrap_content" android:id="@+id/android:empty"
-		android:text="@string/noChannels" android:layout_width="fill_parent"></TextView>
+	android:id="@+id/connectionViewRoot"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent">
+
+	<!-- Channel name + Browse row -->
+	<LinearLayout android:layout_height="wrap_content" android:layout_width="fill_parent">
+		<TextView android:id="@+id/channelName"
+			android:textSize="30sp"
+			android:layout_height="fill_parent"
+			android:layout_weight="1"
+			android:gravity="center_vertical"
+			android:layout_width="wrap_content" />
+
+		<Button android:id="@+id/browseButton"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:text="@string/channels"/>
+	</LinearLayout>
+
+	<TextView android:id="@+id/noUsersText"
+		android:text="@string/noUsers"
+		android:textSize="40sp"
+		android:layout_height="fill_parent"
+		android:gravity="center"
+		android:layout_width="fill_parent"
+		android:layout_weight="1" />
+	<ListView android:id="@+id/channelUsers"
+		android:layout_height="wrap_content"
+		android:layout_width="fill_parent"
+		android:layout_weight="1" />
+
+	<!-- Bottom row: Placeholder + Speak/Join + Speaker -->
+	<LinearLayout android:id="@+id/LinearLayout02"
+		android:layout_height="wrap_content"
+		android:layout_gravity="center"
+		android:gravity="center"
+		android:layout_marginBottom="0sp" android:orientation="horizontal" android:layout_width="fill_parent">
+
+		<!-- Placeholder -->
+		<LinearLayout android:id="@+id/LinearLayout01"
+			android:layout_height="wrap_content"
+			android:layout_weight="0"
+			android:layout_width="0dp">
+		</LinearLayout>
+
+		<!--  Speak/Join. Only one of these should be visible at any one moment -->
+		<Button android:id="@+id/joinButton"
+			android:text="@string/userJoin"
+			android:textSize="20sp"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:visibility="gone"/>
+		<ToggleButton android:id="@+id/speakButton"
+			android:text="@+id/speakButton"
+			android:textOff="@string/userSpeak"
+			android:textOn="@string/userSpeak"
+			android:textSize="20sp"
+			android:layout_height="wrap_content"
+			android:layout_width="wrap_content"
+			android:layout_weight="1"/>
+
+		<!-- Speaker checkbox -->
+		<LinearLayout
+			android:layout_height="wrap_content"
+			android:layout_weight="0"
+			android:gravity="right|center_vertical"
+			android:layout_width="0dp">
+
+			<CheckBox android:id="@+id/speakerCheckBox"
+				android:layout_width="wrap_content"
+				android:layout_gravity="center_vertical"
+				android:layout_height="wrap_content"/>
+		</LinearLayout>
+	</LinearLayout>
+
 </LinearLayout>

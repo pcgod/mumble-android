@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="channels">Channels</string>
     <string name="userJoin">Join channel</string>
     <string name="userSpeak">Speak</string>
-	<string name="noServers">Server list empty</string>
+    <string name="noServers">Server list empty</string>
     <string name="noChannels">Channel list empty</string>
     <string name="noUsers">User list empty</string>
     <string name="serverAdd">Add Server</string>
@@ -15,4 +16,7 @@
     <string name="app_name">Mumble</string>
     <string name="server_deleted">Server deleted</string>
     <string name="chat_message">Chat message</string>
+    <string name="connectionProgressTitle">Establishing Connection</string>
+    <string name="connectionProgressConnectingMessage">Connecting to Mumble</string>
+    <string name="connectionProgressSynchronizingMessage">Synchronizing data with Mumble</string>
 </resources>

@@ -435,9 +435,10 @@ public class MumbleConnection implements Runnable {
 						if (us.hasSuppress()) {
 							canSpeak = (codec != CODEC_NOCODEC) && !us.getSuppress();
 						}
-						connectionHost.userUpdated(u);
 					}
 				}
+
+				connectionHost.userUpdated(user);
 				break;
 			}
 			// New user
@@ -493,5 +494,4 @@ public class MumbleConnection implements Runnable {
 
 		ao.addFrameToBuffer(u, pds, flags);
 	}
-
 }
