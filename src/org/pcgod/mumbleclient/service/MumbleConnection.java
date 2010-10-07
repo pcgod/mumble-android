@@ -5,19 +5,14 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
-import javax.crypto.Cipher;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
-
-import com.google.protobuf.ByteString;
-import com.google.protobuf.MessageLite;
 
 import net.sf.mumble.MumbleProto.Authenticate;
 import net.sf.mumble.MumbleProto.ChannelRemove;
@@ -28,17 +23,16 @@ import net.sf.mumble.MumbleProto.UserRemove;
 import net.sf.mumble.MumbleProto.UserState;
 import net.sf.mumble.MumbleProto.Version;
 
-import android.content.Context;
-import android.content.Intent;
-import android.text.format.DateUtils;
-import android.util.Log;
-
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.service.MumbleConnectionHost.ConnectionState;
 import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.Message;
 import org.pcgod.mumbleclient.service.model.User;
 import org.pcgod.mumbleclient.service.model.Message.Direction;
+
+import android.util.Log;
+
+import com.google.protobuf.MessageLite;
 
 /**
  * The main mumble client connection
@@ -84,8 +78,6 @@ public class MumbleConnection implements Runnable {
 	private final String username;
 	private final String password;
 
-	private Cipher encryptCipher;
-	private Cipher decryptCipher;
 	private AudioOutput ao;
 	private Thread audioOutputThread;
 	private Thread readingThread;

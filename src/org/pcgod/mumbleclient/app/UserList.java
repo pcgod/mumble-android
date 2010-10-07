@@ -5,20 +5,14 @@ import java.util.List;
 
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.service.MumbleService;
-import org.pcgod.mumbleclient.service.MumbleServiceConnection;
 import org.pcgod.mumbleclient.service.model.User;
 
-import android.app.ListActivity;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
-import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;

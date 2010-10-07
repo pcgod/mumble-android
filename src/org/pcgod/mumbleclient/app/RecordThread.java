@@ -2,22 +2,17 @@ package org.pcgod.mumbleclient.app;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ShortBuffer;
 import java.util.LinkedList;
 
-import org.pcgod.mumbleclient.PacketDataStream;
 import org.pcgod.mumbleclient.jni.Native;
 import org.pcgod.mumbleclient.jni.celtConstants;
 import org.pcgod.mumbleclient.service.MumbleConnection;
 import org.pcgod.mumbleclient.service.MumbleService;
 import org.pcgod.mumbleclient.service.PacketDataStream;
 
-import android.content.ComponentName;
-import android.content.ServiceConnection;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
-import android.os.IBinder;
 import android.util.Log;
 
 /**

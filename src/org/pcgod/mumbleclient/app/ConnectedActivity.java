@@ -3,11 +3,9 @@ package org.pcgod.mumbleclient.app;
 import org.pcgod.mumbleclient.service.MumbleService;
 
 import android.app.Activity;
-import android.app.ListActivity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 

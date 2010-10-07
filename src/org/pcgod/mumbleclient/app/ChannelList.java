@@ -2,16 +2,15 @@ package org.pcgod.mumbleclient.app;
 
 import java.util.List;
 
-import org.pcgod.mumbleclient.service.model.Channel;
-import org.pcgod.mumbleclient.service.MumbleConnection;
-import org.pcgod.mumbleclient.service.MumbleService;
-import org.pcgod.mumbleclient.service.MumbleServiceConnection;
+import junit.framework.Assert;
+
 import org.pcgod.mumbleclient.R;
+import org.pcgod.mumbleclient.service.MumbleService;
+import org.pcgod.mumbleclient.service.model.Channel;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;

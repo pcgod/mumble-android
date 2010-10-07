@@ -4,11 +4,9 @@ import java.util.List;
 
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.service.MumbleService;
-import org.pcgod.mumbleclient.service.MumbleServiceConnection;
 import org.pcgod.mumbleclient.service.model.Message;
 import org.pcgod.mumbleclient.service.model.Message.Direction;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;

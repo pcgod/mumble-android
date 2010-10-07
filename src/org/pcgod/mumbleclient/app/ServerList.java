@@ -1,23 +1,16 @@
 package org.pcgod.mumbleclient.app;
 
-import org.pcgod.mumbleclient.service.MumbleService;
-import org.pcgod.mumbleclient.service.MumbleServiceConnection;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.service.MumbleService;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.ListActivity;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentSender.SendIntentException;
 import android.database.Cursor;
-import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -93,8 +86,6 @@ public class ServerList extends ConnectedListActivity {
 					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT));
 			final String serverUsername = cursor.getString(cursor
 					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME));
-			final String serverPassword = cursor.getString(cursor
-					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD));
 
 			if ("".equals(serverName)) {
 				nameText.setText(serverHost + ":" + serverPort);
