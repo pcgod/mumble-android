@@ -79,6 +79,11 @@ public class ChannelList extends ConnectedListActivity {
 					break;
 				case Disconnected:
 				case Disconnecting:
+					if (mProgressDialog != null) {
+						mProgressDialog.dismiss();
+						mProgressDialog = null;
+					}
+					
 					if (mDisconnectDialog != null) {
 						mDisconnectDialog.dismiss();
 						mDisconnectDialog = null;
