@@ -17,6 +17,8 @@ public interface MumbleConnectionHost {
 
 	public void currentChannelChanged();
 
+	public void currentUserUpdated();
+
 	public void messageReceived(Message msg);
 
 	public void messageSent(Message msg);

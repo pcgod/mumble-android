@@ -146,6 +146,14 @@ public class ChannelList extends ConnectedActivity {
 				return;
 			}
 
+			if (action.equals(MumbleService.INTENT_CURRENT_USER_UPDATED)) {
+				// If the current user was updated, synchronize controls as well
+				// as it might have been muted/unmuted for example.
+				synchronizeControls();
+
+				return;
+			}
+
 			Assert.fail("Unknown intent broadcast");
 		}
 
@@ -389,6 +397,7 @@ public class ChannelList extends ConnectedActivity {
 			if (mService.getCurrentChannel().id == visibleChannel.id) {
 				speakButton.setVisibility(View.VISIBLE);
 				joinButton.setVisibility(View.GONE);
+				speakButton.setEnabled(mService.canSpeak());
 				speakButton.setChecked(mService.isRecording());
 			} else {
 				speakButton.setVisibility(View.GONE);
@@ -472,6 +481,7 @@ public class ChannelList extends ConnectedActivity {
 		ifilter.addAction(MumbleService.INTENT_USER_LIST_UPDATE);
 		ifilter.addAction(MumbleService.INTENT_CONNECTION_STATE_CHANGED);
 		ifilter.addAction(MumbleService.INTENT_CURRENT_CHANNEL_CHANGED);
+		ifilter.addAction(MumbleService.INTENT_CURRENT_USER_UPDATED);
 		bcReceiver = new ChannelBroadcastReceiver();
 		registerReceiver(bcReceiver, ifilter);
 

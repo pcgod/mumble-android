@@ -16,6 +16,7 @@ public class User implements Serializable {
 	public String name;
 	public float averageAvailable;
 	public int talkingState;
+	public boolean isCurrent;
 
 	private Channel channel;
 

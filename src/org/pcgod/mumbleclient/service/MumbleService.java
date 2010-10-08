@@ -8,6 +8,8 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import junit.framework.Assert;
+
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.app.ChannelList;
@@ -34,7 +36,7 @@ import android.util.Log;
  * MumbleService manages the MumbleClient connection and provides access to
  * it for binding activities.
  *
- * @author wace
+ * @author Rantanen
  */
 public class MumbleService extends Service {
 	public class LocalBinder extends Binder {
@@ -46,6 +48,7 @@ public class MumbleService extends Service {
 	public static final String ACTION_CONNECT = "mumbleclient.action.CONNECT";
 	public static final String INTENT_CHANNEL_LIST_UPDATE = "mumbleclient.intent.CHANNEL_LIST_UPDATE";
 	public static final String INTENT_CURRENT_CHANNEL_CHANGED = "mumbleclient.intent.CURRENT_CHANNEL_CHANGED";
+	public static final String INTENT_CURRENT_USER_UPDATED = "mumbleclient.intent.CURRENT_USER_UPDATED";
 	public static final String INTENT_USER_LIST_UPDATE = "mumbleclient.intent.USER_LIST_UPDATE";
 	public static final String INTENT_CHAT_TEXT_UPDATE = "mumbleclient.intent.CHAT_TEXT_UPDATE";
 
@@ -56,7 +59,6 @@ public class MumbleService extends Service {
 	public static final String EXTRA_HOST = "mumbleclient.extra.HOST";
 	public static final String EXTRA_PORT = "mumbleclient.extra.PORT";
 	public static final String EXTRA_USERNAME = "mumbleclient.extra.USERNAME";
-
 	public static final String EXTRA_PASSWORD = "mumbleclient.extra.PASSWORD";
 
 	private MumbleConnection mClient;
@@ -66,6 +68,23 @@ public class MumbleService extends Service {
 	private Notification mNotification;
 	private boolean mHasConnections;
 
+	/**
+	 * Connection host for MumbleConnection.
+	 *
+	 * MumbleConnection uses this interface to communicate back to
+	 * MumbleService. Since MumbleConnection processes the data packets in a
+	 * background thread these methods will be called from that thread.
+	 * MumbleService should expose itself as a single threaded Service so its
+	 * consumers don't need to bother with synchronizing. For this reason these
+	 * handlers should take care of the required synchronization.
+	 *
+	 * Also it is worth noting that in case a certain handler doesn't need
+	 * synchronizing for its own purposes it might need it to maintain the order
+	 * of events. Forwarding the CURRENT_USER_UPDATED event shouldn't be done
+	 * before the USER_ADDED event has been processed for that user. For this
+	 * reason even events like the CURRENT_USER_UPDATED are posted to the
+	 * MumbleService handler.
+	 */
 	private final MumbleConnectionHost connectionHost = new MumbleConnectionHost() {
 
 		@Override
@@ -112,7 +131,26 @@ public class MumbleService extends Service {
 		}
 
 		public void currentChannelChanged() {
-			sendBroadcast(INTENT_CURRENT_CHANNEL_CHANGED);
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					sendBroadcast(INTENT_CURRENT_CHANNEL_CHANGED);
+				}
+			});
+		}
+
+		@Override
+		public void currentUserUpdated() {
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					if (!canSpeak() && isRecording()) {
+						setRecording(false);
+					}
+
+					sendBroadcast(INTENT_CURRENT_USER_UPDATED);
+				}
+			});
 		}
 
 		public void messageReceived(final Message msg) {
@@ -278,6 +316,12 @@ public class MumbleService extends Service {
 		return mClient.currentChannel;
 	}
 
+	public User getCurrentUser() {
+		assertConnected();
+
+		return mClient.currentUser;
+	}
+
 	public List<Message> getMessageList() {
 		return Collections.unmodifiableList(messages);
 	}
@@ -419,6 +463,8 @@ public class MumbleService extends Service {
 		assertConnected();
 
 		if (mRecordThread == null && state) {
+			Assert.assertTrue(canSpeak());
+
 			// start record
 			// TODO check initialized
 			mRecordThread = new Thread(new RecordThread(this), "record");

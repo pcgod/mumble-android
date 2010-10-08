@@ -72,7 +72,7 @@ public class MumbleConnection implements Runnable {
 	public Map<Integer, Channel> channels = new HashMap<Integer, Channel>();
 	public Map<Integer, User> users = new HashMap<Integer, User>();
 	public Channel currentChannel = null;
-	public int session;
+	public User currentUser = null;
 	public boolean canSpeak = true;
 	public int codec = CODEC_NOCODEC;
 	private final MumbleConnectionHost connectionHost;
@@ -129,7 +129,7 @@ public class MumbleConnection implements Runnable {
 
 	public final void joinChannel(final int channelId) {
 		final UserState.Builder us = UserState.newBuilder();
-		us.setSession(session);
+		us.setSession(currentUser.session);
 		us.setChannelId(channelId);
 		try {
 			sendMessage(MessageType.UserState, us);
@@ -361,6 +361,7 @@ public class MumbleConnection implements Runnable {
 			// ignore
 			break;
 		case CodecVersion:
+			boolean oldCanSpeak = canSpeak;
 			final CodecVersion codecVersion = CodecVersion.parseFrom(buffer);
 			codec = CODEC_NOCODEC;
 			if (codecVersion.hasAlpha() &&
@@ -371,13 +372,25 @@ public class MumbleConnection implements Runnable {
 				codec = CODEC_BETA;
 			}
 			canSpeak = canSpeak && (codec != CODEC_NOCODEC);
+
+			if (canSpeak != oldCanSpeak) {
+				connectionHost.currentUserUpdated();
+			}
+
 			break;
 		case ServerSync:
 			final ServerSync ss = ServerSync.parseFrom(buffer);
-			session = ss.getSession();
 
-			user = findUser(session);
-			currentChannel = user.getChannel();
+			// On the off chance that there's something in the protocol that
+			// results in the current user being changed we'll make sure we
+			// don't have two users marked as being the current user.
+			if (currentUser != null) {
+				currentUser.isCurrent = false;
+			}
+
+			currentUser = findUser(ss.getSession());
+			currentUser.isCurrent = true;
+			currentChannel = currentUser.getChannel();
 
 			pingThread = new Thread(new PingThread(this), "ping");
 			pingThread.start();
@@ -388,12 +401,13 @@ public class MumbleConnection implements Runnable {
 			audioOutputThread.start();
 
 			final UserState.Builder usb = UserState.newBuilder();
-			usb.setSession(session);
+			usb.setSession(currentUser.session);
 //			usb.setPluginContext(ByteString
 //					.copyFromUtf8("Manual placement\000test"));
 			sendMessage(MessageType.UserState, usb);
 
 			connectionHost.currentChannelChanged();
+			connectionHost.currentUserUpdated();
 			break;
 		case ChannelState:
 			final ChannelState cs = ChannelState.parseFrom(buffer);
@@ -424,17 +438,19 @@ public class MumbleConnection implements Runnable {
 			final UserState us = UserState.parseFrom(buffer);
 			user = findUser(us.getSession());
 			if (user != null) {
+				boolean currentUpdated = false;
+
 				if (us.hasChannelId()) {
 					channel = channels.get(us.getChannelId());
 					user.setChannel(channel);
-					if (us.getSession() == session) {
+					if (us.getSession() == currentUser.session) {
 						currentChannel = channel;
-						connectionHost.currentChannelChanged();
+						currentUpdated = true;
 					}
 					connectionHost.channelUpdated(channel);
 				}
 
-				if (us.getSession() == session) {
+				if (us.getSession() == currentUser.session) {
 					if (us.hasMute() || us.hasSuppress()) {
 						if (us.hasMute()) {
 							canSpeak = (codec != CODEC_NOCODEC) &&
@@ -445,9 +461,13 @@ public class MumbleConnection implements Runnable {
 									!us.getSuppress();
 						}
 					}
+					currentUpdated = true;
 				}
 
 				connectionHost.userUpdated(user);
+				if (currentUpdated) {
+					connectionHost.currentUserUpdated();
+				}
 				break;
 			}
 			// New user
