@@ -475,7 +475,9 @@ public class ChannelList extends ConnectedActivity {
 		bcReceiver = new ChannelBroadcastReceiver();
 		registerReceiver(bcReceiver, ifilter);
 
-		synchronizeControls();
+		// Do not synchronize controls here as the service might not be
+		// available. The onServiceBound event should arrive soon. Once it
+		// arrives we'll first check that we are still connected to the server.
 	}
 
 	@Override
