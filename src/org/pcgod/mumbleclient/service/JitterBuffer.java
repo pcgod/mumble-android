@@ -6,7 +6,7 @@ class JitterBuffer {
 		int curr_count;
 		int[] timing = new int[MAX_TIMINGS];
 		short[] counts = new short[MAX_TIMINGS];
-		
+
 		public void add(final short timing_) {
 			if (filled >= MAX_TIMINGS && timing_ >= timing[filled - 1]) {
 				curr_count++;
@@ -51,17 +51,17 @@ class JitterBuffer {
 	private int buffered;
 
 	/** Packets stored in the buffer */
-	private JitterBufferPacket[] packets = new JitterBufferPacket[JITTER_MAX_BUFFER_SIZE];
+	private final JitterBufferPacket[] packets = new JitterBufferPacket[JITTER_MAX_BUFFER_SIZE];
 	/**
 	 * Packet arrival time (0 means it was late, even though it's a valid
 	 * timestamp)
 	 */
-	private int[] arrival = new int[JITTER_MAX_BUFFER_SIZE];
+	private final int[] arrival = new int[JITTER_MAX_BUFFER_SIZE];
 
 	/** Size of the steps when adjusting buffering (timestamp units) */
-	private int delay_step;
+	private final int delay_step;
 	/** Size of the packet loss concealment "units" */
-	private int concealment_size;
+	private final int concealment_size;
 	/** True if state was just reset */
 	private boolean reset_state;
 	/** How many frames we want to keep in the buffer (lower bound) */
@@ -100,8 +100,8 @@ class JitterBuffer {
 			boolean found = false;
 			int oldest = 0;
 			for (int i = 0; i < JITTER_MAX_BUFFER_SIZE; ++i) {
-				if (packets[i] != null
-						&& (!found || packets[i].timestamp < oldest)) {
+				if (packets[i] != null &&
+						(!found || packets[i].timestamp < oldest)) {
 					oldest = packets[i].timestamp;
 					found = true;
 				}
@@ -128,20 +128,20 @@ class JitterBuffer {
 
 		int i;
 		for (i = 0; i < JITTER_MAX_BUFFER_SIZE; ++i) {
-			if (packets[i] != null
-					&& packets[i].timestamp == timestamp
-					&& packets[i].timestamp + packets[i].span >= timestamp
-							+ desired_span) {
+			if (packets[i] != null &&
+					packets[i].timestamp == timestamp &&
+					packets[i].timestamp + packets[i].span >= timestamp +
+							desired_span) {
 				break;
 			}
 		}
 
 		if (i == JITTER_MAX_BUFFER_SIZE) {
 			for (i = 0; i < JITTER_MAX_BUFFER_SIZE; ++i) {
-				if (packets[i] != null
-						&& packets[i].timestamp <= timestamp
-						&& packets[i].timestamp + packets[i].span >= timestamp
-								+ desired_span) {
+				if (packets[i] != null &&
+						packets[i].timestamp <= timestamp &&
+						packets[i].timestamp + packets[i].span >= timestamp +
+								desired_span) {
 					break;
 				}
 			}
@@ -149,8 +149,8 @@ class JitterBuffer {
 
 		if (i == JITTER_MAX_BUFFER_SIZE) {
 			for (i = 0; i < JITTER_MAX_BUFFER_SIZE; ++i) {
-				if (packets[i] != null && packets[i].timestamp <= timestamp
-						&& packets[i].timestamp + packets[i].span > timestamp) {
+				if (packets[i] != null && packets[i].timestamp <= timestamp &&
+						packets[i].timestamp + packets[i].span > timestamp) {
 					break;
 				}
 			}
@@ -162,12 +162,12 @@ class JitterBuffer {
 			int best_span = 0;
 			int besti = 0;
 			for (i = 0; i < JITTER_MAX_BUFFER_SIZE; ++i) {
-				if (packets[i] != null
-						&& packets[i].timestamp < timestamp + desired_span
-						&& packets[i].timestamp >= timestamp) {
-					if (!found
-							|| packets[i].timestamp < best_time
-							|| (packets[i].timestamp == best_time && packets[i].span > best_span)) {
+				if (packets[i] != null &&
+						packets[i].timestamp < timestamp + desired_span &&
+						packets[i].timestamp >= timestamp) {
+					if (!found ||
+							packets[i].timestamp < best_time ||
+							(packets[i].timestamp == best_time && packets[i].span > best_span)) {
 						best_time = packets[i].timestamp;
 						best_span = packets[i].span;
 						besti = i;
@@ -206,7 +206,8 @@ class JitterBuffer {
 //			Log.i("mumble.jb",
 //					"JITTER_BUFFER_INSERTION - Forced to interpolate");
 		} else {
-			final int tmp_desired_span = Math.min(desired_span, concealment_size);
+			final int tmp_desired_span = Math.min(desired_span,
+					concealment_size);
 			timestamp += tmp_desired_span;
 			buffered = tmp_desired_span - tmp_desired_span;
 //			Log.i("mumble.jb", "JITTER_BUFFER_MISSING - Normal loss");
@@ -233,8 +234,8 @@ class JitterBuffer {
 
 		if (!reset_state) {
 			for (int i = 0; i < JITTER_MAX_BUFFER_SIZE; ++i) {
-				if (packets[i] != null
-						&& packets[i].timestamp + packets[i].span <= timestamp) {
+				if (packets[i] != null &&
+						packets[i].timestamp + packets[i].span <= timestamp) {
 					packets[i] = null;
 				}
 			}
@@ -249,8 +250,8 @@ class JitterBuffer {
 			reset();
 		}
 
-		if (reset_state
-				|| packet.timestamp + packet.span + delay_step >= timestamp) {
+		if (reset_state ||
+				packet.timestamp + packet.span + delay_step >= timestamp) {
 			int i;
 			for (i = 0; i < JITTER_MAX_BUFFER_SIZE; ++i) {
 				if (packets[i] == null) {
@@ -296,8 +297,8 @@ class JitterBuffer {
 			timeBuffers[i] = new TimingBuffer();
 		}
 	}
-	
-	public void setMargin(int margin) {
+
+	public void setMargin(final int margin) {
 		buffer_margin = margin;
 	}
 
@@ -370,8 +371,8 @@ class JitterBuffer {
 			int next = -1;
 			int latest = 32767;
 			for (int j = 0; j < MAX_BUFFERS; ++j) {
-				if (pos[j] < timeBuffers[j].filled
-						&& timeBuffers[j].timing[pos[j]] < latest) {
+				if (pos[j] < timeBuffers[j].filled &&
+						timeBuffers[j].timing[pos[j]] < latest) {
 					next = j;
 					latest = timeBuffers[j].timing[pos[j]];
 				}

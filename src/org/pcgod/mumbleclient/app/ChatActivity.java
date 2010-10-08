@@ -28,7 +28,8 @@ public class ChatActivity extends ConnectedActivity {
 	private class ChatBroadcastReceiver extends BroadcastReceiver {
 		@Override
 		public final void onReceive(final Context ctx, final Intent i) {
-			Message msg = (Message)i.getSerializableExtra(MumbleService.EXTRA_MESSAGE);
+			final Message msg = (Message) i
+					.getSerializableExtra(MumbleService.EXTRA_MESSAGE);
 			addMessage(msg);
 		}
 	}
@@ -38,11 +39,12 @@ public class ChatActivity extends ConnectedActivity {
 
 	private static final int MENU_CLEAR = Menu.FIRST;
 
-	private OnEditorActionListener chatTextEditActionEvent = new OnEditorActionListener() {
+	private final OnEditorActionListener chatTextEditActionEvent = new OnEditorActionListener() {
 		@Override
-		public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+		public boolean onEditorAction(final TextView v, final int actionId,
+				final KeyEvent event) {
 			if (event != null && !event.isShiftPressed() && v != null) {
-				View focus = v.focusSearch(View.FOCUS_RIGHT);
+				final View focus = v.focusSearch(View.FOCUS_RIGHT);
 				if (focus != null) {
 					focus.requestFocus();
 					return true;
@@ -60,7 +62,7 @@ public class ChatActivity extends ConnectedActivity {
 		}
 	};
 
-	private OnClickListener sendOnClickEvent = new OnClickListener() {
+	private final OnClickListener sendOnClickEvent = new OnClickListener() {
 		@Override
 		public void onClick(final View v) {
 			sendMessage(chatTextEdit);
@@ -121,8 +123,8 @@ public class ChatActivity extends ConnectedActivity {
 	protected void onServiceBound() {
 		super.onServiceBound();
 
-		List<Message> messages = mService.getMessageList();
-		for (Message m : messages) {
+		final List<Message> messages = mService.getMessageList();
+		for (final Message m : messages) {
 			addMessage(m);
 		}
 
@@ -132,13 +134,8 @@ public class ChatActivity extends ConnectedActivity {
 		registerReceiver(bcReceiver, ifilter);
 	}
 
-	void sendMessage(TextView v) {
-		mService.sendChannelTextMessage(v.getText().toString());
-		v.setText("");
-	}
-
-	void addMessage(Message msg) {
-		StringBuilder sb = new StringBuilder();
+	void addMessage(final Message msg) {
+		final StringBuilder sb = new StringBuilder();
 		sb.append("[");
 		sb.append(DateUtils.formatDateTime(this, msg.timestamp,
 				DateUtils.FORMAT_SHOW_TIME));
@@ -148,16 +145,28 @@ public class ChatActivity extends ConnectedActivity {
 			sb.append("To ");
 			sb.append(msg.channel.name);
 		} else {
-			if (msg.channelIds > 0) { sb.append("(C) "); }
-			if (msg.treeIds > 0) { sb.append("(T) "); }
+			if (msg.channelIds > 0) {
+				sb.append("(C) ");
+			}
+			if (msg.treeIds > 0) {
+				sb.append("(T) ");
+			}
 
-			if (msg.actor != null) { sb.append(msg.actor.name); }
-			else { sb.append("Server"); }
+			if (msg.actor != null) {
+				sb.append(msg.actor.name);
+			} else {
+				sb.append("Server");
+			}
 		}
 		sb.append(": ");
 		sb.append(msg.message);
 		sb.append("\n");
 		chatText.append(sb.toString());
+	}
+
+	void sendMessage(final TextView v) {
+		mService.sendChannelTextMessage(v.getText().toString());
+		v.setText("");
 	}
 
 	void updateText() {

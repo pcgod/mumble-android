@@ -3,10 +3,11 @@ package org.pcgod.mumbleclient.service.model;
 import java.io.Serializable;
 
 public class Message implements Serializable {
+	public enum Direction {
+		Sent, Received
+	}
 
 	private static final long serialVersionUID = 1L;
-
-	public enum Direction { Sent, Received }
 
 	public String message;
 	public String sender;

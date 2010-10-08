@@ -19,6 +19,23 @@ public class User implements Serializable {
 
 	private Channel channel;
 
+	@Override
+	public final boolean equals(final Object o) {
+		if (!(o instanceof User)) {
+			return false;
+		}
+		return session == ((User) o).session;
+	}
+
+	public final Channel getChannel() {
+		return this.channel;
+	}
+
+	@Override
+	public final int hashCode() {
+		return session;
+	}
+
 	public void setChannel(final Channel newChannel) {
 		// Moving user to another channel?
 		// If so, remove the user from the original first.
@@ -33,26 +50,9 @@ public class User implements Serializable {
 		this.channel.userCount++;
 	}
 
-	public final Channel getChannel() {
-		return this.channel;
-	}
-
-	@Override
-	public final boolean equals(final Object o) {
-		if (!(o instanceof User)) {
-			return false;
-		}
-		return session == ((User) o).session;
-	}
-
-	@Override
-	public final int hashCode() {
-		return session;
-	}
-
 	@Override
 	public final String toString() {
-		return "User [session=" + session + ", name=" + name + ", channel="
-				+ channel + "]";
+		return "User [session=" + session + ", name=" + name + ", channel=" +
+				channel + "]";
 	}
 }

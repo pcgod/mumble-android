@@ -9,18 +9,23 @@ public interface MumbleConnectionHost {
 		Disconnected, Connecting, Connected, Disconnecting
 	}
 
-	public void setConnectionState(ConnectionState state);
-
-	public void messageReceived(Message msg);
-	public void messageSent(Message msg);
-
 	public void channelAdded(Channel channel);
-	public void channelUpdated(Channel channel);
+
 	public void channelRemoved(int channelId);
 
-	public void userAdded(User user);
-	public void userUpdated(User user);
-	public void userRemoved(int userId);
+	public void channelUpdated(Channel channel);
 
 	public void currentChannelChanged();
+
+	public void messageReceived(Message msg);
+
+	public void messageSent(Message msg);
+
+	public void setConnectionState(ConnectionState state);
+
+	public void userAdded(User user);
+
+	public void userRemoved(int userId);
+
+	public void userUpdated(User user);
 }

@@ -8,14 +8,14 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 
 public class MumbleServiceConnection {
-
 	ServiceConnection mServiceConn = new ServiceConnection() {
-		public void onServiceDisconnected(ComponentName arg0) {
-			mService = null;
+		public void onServiceConnected(final ComponentName className,
+				final IBinder binder) {
+			mService = ((MumbleService.LocalBinder) binder).getService();
 		}
 
-		public void onServiceConnected(ComponentName className, IBinder binder) {
-			mService = ((MumbleService.LocalBinder)binder).getService();
+		public void onServiceDisconnected(final ComponentName arg0) {
+			mService = null;
 		}
 	};
 	protected MumbleService mService;
@@ -28,7 +28,7 @@ public class MumbleServiceConnection {
 	public void bind() {
 		Assert.assertNull(mService);
 
-		Intent intent = new Intent(ctx, MumbleService.class);
+		final Intent intent = new Intent(ctx, MumbleService.class);
 		ctx.bindService(intent, mServiceConn, Context.BIND_AUTO_CREATE);
 	}
 

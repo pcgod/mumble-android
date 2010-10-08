@@ -43,7 +43,6 @@ import com.google.protobuf.MessageLite;
  * communication protocol
  *
  * @author pcgod
- *
  */
 public class MumbleConnection implements Runnable {
 	public enum MessageType {
@@ -62,13 +61,14 @@ public class MumbleConnection implements Runnable {
 	public static final int SAMPLE_RATE = 48000;
 	public static final int FRAME_SIZE = SAMPLE_RATE / 100;
 
-	private static final MessageType[] MT_CONSTANTS = MessageType.class.getEnumConstants();
+	private static final MessageType[] MT_CONSTANTS = MessageType.class
+			.getEnumConstants();
 
-	private static final int protocolVersion = (1 << 16) | (2 << 8)
-			| (3 & 0xFF);
+	private static final int protocolVersion = (1 << 16) | (2 << 8) |
+			(3 & 0xFF);
 
 	private static final int supportedCodec = 0x8000000b;
-	
+
 	public Map<Integer, Channel> channels = new HashMap<Integer, Channel>();
 	public Map<Integer, User> users = new HashMap<Integer, User>();
 	public Channel currentChannel = null;
@@ -90,11 +90,11 @@ public class MumbleConnection implements Runnable {
 	private AudioOutput ao;
 	private Thread audioOutputThread;
 	private Thread readingThread;
-	private Object stateLock = new Object();
+	private final Object stateLock = new Object();
 
 	public MumbleConnection(final MumbleConnectionHost connectionHost_,
-			final String host_, final int port_,
-			final String username_, final String password_) {
+			final String host_, final int port_, final String username_,
+			final String password_) {
 		connectionHost = connectionHost_;
 		host = host_;
 		port = port_;
@@ -104,10 +104,27 @@ public class MumbleConnection implements Runnable {
 		connectionHost.setConnectionState(ConnectionState.Disconnected);
 	}
 
+	public final void disconnect() {
+		synchronized (stateLock) {
+			if (readingThread != null) {
+				readingThread.interrupt();
+				readingThread = null;
+			}
+
+			disconnecting = true;
+			connectionHost.setConnectionState(ConnectionState.Disconnecting);
+			stateLock.notifyAll();
+		}
+	}
+
+	public final boolean isConnectionAlive() {
+		return !disconnecting;
+	}
+
 	public final boolean isSameServer(final String host_, final int port_,
 			final String username_, final String password_) {
-		return host.equals(host_) && port == port_
-				&& username.equals(username_) && password.equals(password_);
+		return host.equals(host_) && port == port_ &&
+				username.equals(username_) && password.equals(password_);
 	}
 
 	public final void joinChannel(final int channelId) {
@@ -128,13 +145,15 @@ public class MumbleConnection implements Runnable {
 		try {
 			SSLSocket socket_;
 
-			synchronized(stateLock) {
+			synchronized (stateLock) {
 				final SSLContext ctx_ = SSLContext.getInstance("TLS");
-				ctx_.init(null, new TrustManager[] { new LocalSSLTrustManager() },
-						null);
+				ctx_
+						.init(
+								null,
+								new TrustManager[] { new LocalSSLTrustManager() },
+								null);
 				final SSLSocketFactory factory = ctx_.getSocketFactory();
-				socket_ = (SSLSocket) factory.createSocket(host,
-						port);
+				socket_ = (SSLSocket) factory.createSocket(host, port);
 				socket_.setUseClientMode(true);
 				socket_.setEnabledProtocols(new String[] { "TLSv1" });
 				socket_.startHandshake();
@@ -153,11 +172,11 @@ public class MumbleConnection implements Runnable {
 			e.printStackTrace();
 		} catch (final IOException e) {
 			e.printStackTrace();
-		} catch (InterruptedException e) {
+		} catch (final InterruptedException e) {
 			e.printStackTrace();
 		}
 
-		synchronized(stateLock) {
+		synchronized (stateLock) {
 			connectionHost.setConnectionState(ConnectionState.Disconnected);
 		}
 	}
@@ -172,7 +191,7 @@ public class MumbleConnection implements Runnable {
 			e.printStackTrace();
 		}
 
-		Message msg = new Message();
+		final Message msg = new Message();
 		msg.timestamp = System.currentTimeMillis();
 		msg.message = message;
 		msg.channel = currentChannel;
@@ -209,23 +228,6 @@ public class MumbleConnection implements Runnable {
 		}
 	}
 
-	public final void disconnect() {
-		synchronized (stateLock) {
-			if (readingThread != null) {
-				readingThread.interrupt();
-				readingThread = null;
-			}
-
-			disconnecting = true;
-			connectionHost.setConnectionState(ConnectionState.Disconnecting);
-			stateLock.notifyAll();
-		}
-	}
-
-	public final boolean isConnectionAlive() {
-		return !disconnecting;
-	}
-
 	private Channel findChannel(final int id) {
 		return channels.get(id);
 	}
@@ -234,10 +236,12 @@ public class MumbleConnection implements Runnable {
 		return users.get(session_);
 	}
 
-	private void handleProtocol(final Socket socket_) throws IOException, InterruptedException {
+	private void handleProtocol(final Socket socket_) throws IOException,
+			InterruptedException {
 		synchronized (stateLock) {
-			if (disconnecting)
+			if (disconnecting) {
 				return;
+			}
 
 			out = new DataOutputStream(socket_.getOutputStream());
 			in = new DataInputStream(socket_.getInputStream());
@@ -278,15 +282,16 @@ public class MumbleConnection implements Runnable {
 
 						// Message processing can be done inside stateLock as it shouldn't involve
 						// slow network operations.
-						synchronized(stateLock) {
+						synchronized (stateLock) {
 							processMsg(MT_CONSTANTS[type], msg);
 						}
 					}
-				} catch (IOException ex) {
+				} catch (final IOException ex) {
 					Log.e(Globals.LOG_TAG, ex.toString());
 				} finally {
-					synchronized(stateLock) {
-						connectionHost.setConnectionState(ConnectionState.Disconnecting);
+					synchronized (stateLock) {
+						connectionHost
+								.setConnectionState(ConnectionState.Disconnecting);
 						disconnecting = true;
 
 						// The thread is dying so null it. This prevents the waiting loop from
@@ -314,7 +319,7 @@ public class MumbleConnection implements Runnable {
 			u = findUser(ts.getActor());
 		}
 
-		Message msg = new Message();
+		final Message msg = new Message();
 		msg.timestamp = System.currentTimeMillis();
 		msg.message = ts.getMessage();
 		msg.actor = u;
@@ -347,7 +352,7 @@ public class MumbleConnection implements Runnable {
 
 		Channel channel;
 		User user;
-		
+
 		switch (t) {
 		case UDPTunnel:
 			processVoicePacket(buffer);
@@ -358,9 +363,11 @@ public class MumbleConnection implements Runnable {
 		case CodecVersion:
 			final CodecVersion codecVersion = CodecVersion.parseFrom(buffer);
 			codec = CODEC_NOCODEC;
-			if (codecVersion.hasAlpha() && codecVersion.getAlpha() == supportedCodec) {
+			if (codecVersion.hasAlpha() &&
+					codecVersion.getAlpha() == supportedCodec) {
 				codec = CODEC_ALPHA;
-			} else if (codecVersion.hasBeta() && codecVersion.getBeta() == supportedCodec) {
+			} else if (codecVersion.hasBeta() &&
+					codecVersion.getBeta() == supportedCodec) {
 				codec = CODEC_BETA;
 			}
 			canSpeak = canSpeak && (codec != CODEC_NOCODEC);
@@ -415,25 +422,27 @@ public class MumbleConnection implements Runnable {
 			break;
 		case UserState:
 			final UserState us = UserState.parseFrom(buffer);
-			User u = findUser(us.getSession());
-			if (u != null) {
+			user = findUser(us.getSession());
+			if (user != null) {
 				if (us.hasChannelId()) {
-					Channel c = channels.get(us.getChannelId());
-					u.setChannel(c);
+					channel = channels.get(us.getChannelId());
+					user.setChannel(channel);
 					if (us.getSession() == session) {
-						currentChannel = c;
+						currentChannel = channel;
 						connectionHost.currentChannelChanged();
 					}
-					connectionHost.channelUpdated(c);
+					connectionHost.channelUpdated(channel);
 				}
 
 				if (us.getSession() == session) {
 					if (us.hasMute() || us.hasSuppress()) {
 						if (us.hasMute()) {
-							canSpeak = (codec != CODEC_NOCODEC) && !us.getMute();
+							canSpeak = (codec != CODEC_NOCODEC) &&
+									!us.getMute();
 						}
 						if (us.hasSuppress()) {
-							canSpeak = (codec != CODEC_NOCODEC) && !us.getSuppress();
+							canSpeak = (codec != CODEC_NOCODEC) &&
+									!us.getSuppress();
 						}
 					}
 				}
@@ -442,14 +451,14 @@ public class MumbleConnection implements Runnable {
 				break;
 			}
 			// New user
-			u = new User();
-			u.session = us.getSession();
-			u.name = us.getName();
-			u.setChannel(channels.get(us.getChannelId()));
-			users.put(u.session, u);
+			user = new User();
+			user.session = us.getSession();
+			user.name = us.getName();
+			user.setChannel(channels.get(us.getChannelId()));
+			users.put(user.session, user);
 
-			connectionHost.userAdded(u);
-			connectionHost.channelUpdated(u.getChannel());
+			connectionHost.userAdded(user);
+			connectionHost.channelUpdated(user.getChannel());
 			break;
 		case UserRemove:
 			final UserRemove ur = UserRemove.parseFrom(buffer);
@@ -478,7 +487,8 @@ public class MumbleConnection implements Runnable {
 		final int flags = buffer[0] & 0x1f;
 
 		// There is no speex support...
-		if (type != UDPMESSAGETYPE_UDPVOICECELTALPHA && type != UDPMESSAGETYPE_UDPVOICECELTBETA) {
+		if (type != UDPMESSAGETYPE_UDPVOICECELTALPHA &&
+				type != UDPMESSAGETYPE_UDPVOICECELTBETA) {
 			return;
 		}
 

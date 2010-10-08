@@ -1,20 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	android:orientation="vertical" android:layout_height="fill_parent"
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical"
+	android:layout_height="fill_parent"
 	android:layout_width="fill_parent">
-	<TextView android:layout_width="fill_parent" android:id="@+id/chatText"
-		android:scrollbars="vertical" android:layout_weight="1"
+	<TextView
+		android:layout_width="fill_parent"
+		android:id="@+id/chatText"
+		android:scrollbars="vertical"
+		android:layout_weight="1"
 		android:layout_height="0dip" />
-	<LinearLayout android:id="@+id/LinearLayout01"
-		android:layout_height="wrap_content" android:layout_width="fill_parent">
-		<EditText android:layout_width="wrap_content"
-			android:layout_height="wrap_content" android:visibility="invisible"
+	<LinearLayout
+		android:id="@+id/LinearLayout01"
+		android:layout_height="wrap_content"
+		android:layout_width="fill_parent">
+		<EditText
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:visibility="invisible"
 			android:id="@+id/chatTargetEdit"></EditText>
-		<EditText android:layout_height="wrap_content" android:id="@+id/chatTextEdit"
-			android:imeOptions="actionSend" android:layout_width="wrap_content"
-			android:layout_weight="1" android:hint="@string/chat_message"></EditText>
-		<Button android:layout_width="wrap_content"
-			android:layout_height="wrap_content" android:id="@+id/send_button"
+		<EditText
+			android:layout_height="wrap_content"
+			android:id="@+id/chatTextEdit"
+			android:imeOptions="actionSend"
+			android:layout_width="wrap_content"
+			android:layout_weight="1"
+			android:hint="@string/chat_message"></EditText>
+		<Button
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:id="@+id/send_button"
 			android:text="@string/sendText"></Button>
 	</LinearLayout>
 </LinearLayout>

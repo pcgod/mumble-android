@@ -30,6 +30,20 @@ public class PacketDataStream {
 		}
 	}
 
+	public void append(final ByteBuffer tmp) {
+		final int len = tmp.limit();
+		if (left() >= len) {
+			for (int i = 0; i < len; ++i) {
+				data.put(tmp.get(i));
+			}
+		} else {
+			final int l = left();
+			data.put(null, 0, l);
+			overshoot += len - l;
+			ok = false;
+		}
+	}
+
 	public final void append(final long v) {
 		if (data.position() < data.capacity()) {
 			data.put((byte) v);
@@ -67,20 +81,6 @@ public class PacketDataStream {
 		}
 	}
 
-	public void append(final ByteBuffer tmp) {
-		final int len = tmp.limit();
-		if (left() >= len) {
-			for (int i = 0; i < len; ++i) {
-				data.put(tmp.get(i));
-			}
-		} else {
-			final int l = left();
-			data.put(null, 0, l);
-			overshoot += len - l;
-			ok = false;
-		}
-	}
-
 	public final int capacity() {
 		return data.capacity();
 	}
@@ -94,7 +94,7 @@ public class PacketDataStream {
 			return false;
 		}
 	}
-	
+
 	public final boolean isValid() {
 		return ok;
 	}
@@ -124,8 +124,8 @@ public class PacketDataStream {
 			return 0;
 		}
 
-		final long i = next() | next() << 8 | next() << 16 | next() << 24
-				| next() << 32 | next() << 40 | next() << 48 | next() << 56;
+		final long i = next() | next() << 8 | next() << 16 | next() << 24 |
+				next() << 32 | next() << 40 | next() << 48 | next() << 56;
 		return i;
 	}
 
@@ -154,8 +154,8 @@ public class PacketDataStream {
 				i = next() << 24 | next() << 16 | next() << 8 | next();
 				break;
 			case 0xF4:
-				i = next() << 56 | next() << 48 | next() << 40 | next() << 32
-						| next() << 24 | next() << 16 | next() << 8 | next();
+				i = next() << 56 | next() << 48 | next() << 40 | next() << 32 |
+						next() << 24 | next() << 16 | next() << 8 | next();
 				break;
 			case 0xF8:
 				i = readLong();

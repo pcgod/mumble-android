@@ -1,38 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-	android:layout_width="fill_parent" android:layout_height="fill_parent">
-	<LinearLayout android:layout_height="wrap_content"
-		android:layout_width="fill_parent" android:orientation="vertical">
-		<TextView android:layout_width="wrap_content"
-			android:layout_height="wrap_content" android:id="@+id/serverName"
+<ScrollView
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+	<LinearLayout
+		android:layout_height="wrap_content"
+		android:layout_width="fill_parent"
+		android:orientation="vertical">
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:id="@+id/serverName"
 			android:text="@string/serverName"></TextView>
-		<EditText android:layout_height="wrap_content"
-			android:layout_width="fill_parent" android:id="@+id/serverNameEdit"
+		<EditText
+			android:layout_height="wrap_content"
+			android:layout_width="fill_parent"
+			android:id="@+id/serverNameEdit"
 			android:inputType="text"></EditText>
-		<TextView android:id="@+id/serverHost" android:layout_width="wrap_content"
-			android:layout_height="wrap_content" android:text="@string/serverHost"></TextView>
-		<EditText android:layout_height="wrap_content"
-			android:layout_width="fill_parent" android:id="@+id/serverHostEdit"
+		<TextView
+			android:id="@+id/serverHost"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/serverHost"></TextView>
+		<EditText
+			android:layout_height="wrap_content"
+			android:layout_width="fill_parent"
+			android:id="@+id/serverHostEdit"
 			android:inputType="text"></EditText>
-		<TextView android:layout_width="wrap_content"
-			android:layout_height="wrap_content" android:text="@string/serverPort"
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/serverPort"
 			android:id="@+id/serverPort"></TextView>
-		<EditText android:layout_height="wrap_content"
-			android:layout_width="fill_parent" android:id="@+id/serverPortEdit"
+		<EditText
+			android:layout_height="wrap_content"
+			android:layout_width="fill_parent"
+			android:id="@+id/serverPortEdit"
 			android:inputType="number"></EditText>
-		<TextView android:layout_width="wrap_content"
-			android:layout_height="wrap_content" android:text="@string/serverUsername"
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/serverUsername"
 			android:id="@+id/serverUsername"></TextView>
-		<EditText android:layout_height="wrap_content"
-			android:layout_width="fill_parent" android:id="@+id/serverUsernameEdit"
+		<EditText
+			android:layout_height="wrap_content"
+			android:layout_width="fill_parent"
+			android:id="@+id/serverUsernameEdit"
 			android:inputType="text"></EditText>
-		<TextView android:layout_width="wrap_content"
-			android:layout_height="wrap_content" android:id="@+id/serverPassword"
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:id="@+id/serverPassword"
 			android:text="@string/serverPassword"></TextView>
-		<EditText android:layout_height="wrap_content" android:id="@+id/serverPasswordEdit"
-			android:layout_width="fill_parent" android:inputType="textPassword"></EditText>
-		<Button android:layout_width="wrap_content"
-			android:layout_height="wrap_content" android:id="@+id/serverAdd"
+		<EditText
+			android:layout_height="wrap_content"
+			android:id="@+id/serverPasswordEdit"
+			android:layout_width="fill_parent"
+			android:inputType="textPassword"></EditText>
+		<Button
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:id="@+id/serverAdd"
 			android:text="@string/serverAdd"></Button>
 	</LinearLayout>
 </ScrollView>

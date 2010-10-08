@@ -38,7 +38,7 @@ public class RecordThread implements Runnable {
 	private final long speexResamplerState;
 	private final MumbleService mService;
 
-	public RecordThread(MumbleService service) {
+	public RecordThread(final MumbleService service) {
 		mService = service;
 
 		for (final int s : new int[] { 48000, 44100, 22050, 11025, 8000 }) {
@@ -68,12 +68,14 @@ public class RecordThread implements Runnable {
 		celtMode = Native.celt_mode_create(MumbleConnection.SAMPLE_RATE,
 				MumbleConnection.FRAME_SIZE);
 		celtEncoder = Native.celt_encoder_create(celtMode, 1);
-		Native.celt_encoder_ctl(celtEncoder, celtConstants.CELT_SET_PREDICTION_REQUEST, 0);
-		Native.celt_encoder_ctl(celtEncoder, celtConstants.CELT_SET_VBR_RATE_REQUEST, AUDIO_QUALITY);
+		Native.celt_encoder_ctl(celtEncoder,
+				celtConstants.CELT_SET_PREDICTION_REQUEST, 0);
+		Native.celt_encoder_ctl(celtEncoder,
+				celtConstants.CELT_SET_VBR_RATE_REQUEST, AUDIO_QUALITY);
 
 		if (recordingSampleRate != TARGET_SAMPLE_RATE) {
-			speexResamplerState = Native.speex_resampler_init(1, recordingSampleRate,
-					TARGET_SAMPLE_RATE, 3);
+			speexResamplerState = Native.speex_resampler_init(1,
+					recordingSampleRate, TARGET_SAMPLE_RATE, 3);
 		} else {
 			speexResamplerState = 0;
 		}
@@ -107,8 +109,8 @@ public class RecordThread implements Runnable {
 				out = resampleBuffer;
 				final int[] in_len = new int[] { buffer.length };
 				final int[] out_len = new int[] { out.length };
-				Native.speex_resampler_process_int(speexResamplerState, 0, buffer, in_len, out,
-						out_len);
+				Native.speex_resampler_process_int(speexResamplerState, 0,
+						buffer, in_len, out, out_len);
 			} else {
 				out = buffer;
 			}
@@ -119,7 +121,8 @@ public class RecordThread implements Runnable {
 			final byte[] comp = compressed.array();
 			int len;
 			synchronized (Native.class) {
-				len = Native.celt_encode(celtEncoder, out, comp, compressedSize);
+				len = Native
+						.celt_encode(celtEncoder, out, comp, compressedSize);
 			}
 			compressed.limit(len);
 			outputQueue.add(compressed);

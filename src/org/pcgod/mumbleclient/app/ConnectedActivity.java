@@ -19,14 +19,15 @@ import android.util.Log;
  */
 public class ConnectedActivity extends Activity {
 	ServiceConnection mServiceConn = new ServiceConnection() {
-		public void onServiceDisconnected(ComponentName arg0) {
-			mService = null;
-		}
-
-		public void onServiceConnected(ComponentName className, IBinder binder) {
-			mService = ((MumbleService.LocalBinder)binder).getService();
+		public void onServiceConnected(final ComponentName className,
+				final IBinder binder) {
+			mService = ((MumbleService.LocalBinder) binder).getService();
 			Log.i("Mumble", "mService set");
 			onServiceBound();
+		}
+
+		public void onServiceDisconnected(final ComponentName arg0) {
+			mService = null;
 		}
 	};
 	protected MumbleService mService;
@@ -40,9 +41,10 @@ public class ConnectedActivity extends Activity {
 	@Override
 	protected void onResume() {
 		super.onResume();
-		Intent intent = new Intent(this, MumbleService.class);
+		final Intent intent = new Intent(this, MumbleService.class);
 		bindService(intent, mServiceConn, BIND_AUTO_CREATE);
 	}
 
-	protected void onServiceBound() { }
+	protected void onServiceBound() {
+	}
 }

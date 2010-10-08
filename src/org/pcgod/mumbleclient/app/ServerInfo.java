@@ -11,7 +11,6 @@ import android.widget.Button;
 import android.widget.EditText;
 
 public class ServerInfo extends Activity {
-
 	private final OnClickListener addButtonListener = new OnClickListener() {
 		public void onClick(final View v) {
 			final EditText nameEdit = (EditText) findViewById(R.id.serverNameEdit);
@@ -26,7 +25,7 @@ public class ServerInfo extends Activity {
 			int port;
 			try {
 				port = Integer.parseInt((portEdit).getText().toString());
-			} catch (NumberFormatException ex) {
+			} catch (final NumberFormatException ex) {
 				port = 64738;
 			}
 
@@ -36,7 +35,8 @@ public class ServerInfo extends Activity {
 			final DbAdapter db = new DbAdapter(v.getContext());
 
 			db.open();
-			long serverId = ServerInfo.this.getIntent().getLongExtra("serverId", -1);
+			final long serverId = ServerInfo.this.getIntent().getLongExtra(
+					"serverId", -1);
 			if (serverId != -1) {
 				db.updateServer(serverId, name, host, port, username, password);
 			} else {
@@ -53,7 +53,7 @@ public class ServerInfo extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.server_add);
 
-		long serverId = this.getIntent().getLongExtra("serverId", -1);
+		final long serverId = this.getIntent().getLongExtra("serverId", -1);
 		if (serverId != -1) {
 			final EditText nameEdit = (EditText) findViewById(R.id.serverNameEdit);
 			final EditText hostEdit = (EditText) findViewById(R.id.serverHostEdit);
@@ -63,13 +63,17 @@ public class ServerInfo extends Activity {
 
 			final DbAdapter db = new DbAdapter(this);
 			db.open();
-			Cursor c = db.fetchServer(serverId);
-			nameEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_NAME)));
-			hostEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_HOST)));
-			portEdit.setText(Integer.toString(
-					c.getInt(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT))));
-			usernameEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME)));
-			passwordEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD)));
+			final Cursor c = db.fetchServer(serverId);
+			nameEdit.setText(c.getString(c
+					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_NAME)));
+			hostEdit.setText(c.getString(c
+					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_HOST)));
+			portEdit.setText(Integer.toString(c.getInt(c
+					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT))));
+			usernameEdit.setText(c.getString(c
+					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME)));
+			passwordEdit.setText(c.getString(c
+					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD)));
 			db.close();
 		}
 

@@ -11,7 +11,6 @@ public class Channel implements Serializable {
 
 	/**
 	 * Value signaling whether this channel has just been removed.
-	 *
 	 * Once this value is set the connection signals one last update for the
 	 * channel which should result in the channel being removed from all the
 	 * caches where it might be stored.
@@ -33,7 +32,7 @@ public class Channel implements Serializable {
 
 	@Override
 	public final String toString() {
-		return "Channel [id=" + id + ", name=" + name + ", userCount="
-				+ userCount + "]";
+		return "Channel [id=" + id + ", name=" + name + ", userCount=" +
+				userCount + "]";
 	}
 }
