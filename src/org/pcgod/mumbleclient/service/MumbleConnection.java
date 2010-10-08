@@ -492,6 +492,11 @@ public class MumbleConnection implements Runnable {
 			return;
 		}
 
+		// Don't try to decode the unsupported codec version.
+		if (type != codec) {
+			return;
+		}
+
 		final PacketDataStream pds = new PacketDataStream(buffer);
 		// skip type / flags
 		pds.skip(1);
