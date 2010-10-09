@@ -19,4 +19,5 @@
     <string name="connectionProgressTitle">Establishing Connection</string>
     <string name="connectionProgressConnectingMessage">Connecting to Mumble</string>
     <string name="connectionProgressSynchronizingMessage">Synchronizing data with Mumble</string>
+	<string name="connectionProgressDisconnectingMessage">Disconnecting...</string>
 </resources>

@@ -168,6 +168,16 @@ public class MumbleService extends Service {
 		}
 
 		public void setConnectionState(final ConnectionState state) {
+			// TODO: Synchronize this with the main application thread!
+			// This state is being set from the Connection thread which means
+			// it might be changed in the middle of a call from the Activities.
+			//
+			// This might result in assertion failures or worse even if the
+			// activities check that the Service is connected before requesting
+			// user lists for example in case the MumbleConnection decided to
+			// update the state between the isConnected check and the actual
+			// call.
+
 			if (MumbleService.this.state == state) {
 				return;
 			}
@@ -286,8 +296,6 @@ public class MumbleService extends Service {
 	}
 
 	public void disconnect() {
-		assertConnected();
-
 		mClient.disconnect();
 	}
 
@@ -344,6 +352,8 @@ public class MumbleService extends Service {
 		if (intent == null) {
 			return START_NOT_STICKY;
 		}
+
+		Log.i(Globals.LOG_TAG, "MumbleService: Starting service");
 
 		final String host = intent.getStringExtra(EXTRA_HOST);
 		final int port = intent.getIntExtra(EXTRA_PORT, -1);

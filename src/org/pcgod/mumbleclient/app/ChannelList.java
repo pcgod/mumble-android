@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.DialogInterface.OnCancelListener;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -89,6 +90,13 @@ import android.widget.ToggleButton;
  * can be used as the default value for currently visible channel.
  * </dl>
  *
+ * And just so the state wouldn't be too easy the connection can be cancelled.
+ * Disconnecting the service is practically synchronous operation. Intents
+ * broadcast by the Service aren't though. This means that after the ChannelList
+ * disconnects the service it might still have some unprocessed intents queued
+ * in a queue. For this reason all intents that require active connection must
+ * take care to check that the connection is still alive.
+ *
  * @author pcgod, Rantanen
  *
  */
@@ -101,10 +109,30 @@ public class ChannelList extends ConnectedActivity {
 		public final void onReceive(final Context ctx, final Intent i) {
 			final String action = i.getAction();
 
+			// It might be possible that intents are being received from the
+			// service before the service has been acquired by the Activity.
+			// Since processing intents requires the service we'll ignore the
+			// intents until we have the service reference.
+			//
+			// WARNING: There might be issues with this check. At first the
+			// broadcast receiver was registered in onServiceBound method but
+			// it was later changed to onResume for some reason.
+			//
+			// TODO: Figure out the correct solution.
+			if (mService == null) return;
+
+			// First process intents that do NOT require active connection.
 			if (action.equals(MumbleService.INTENT_CONNECTION_STATE_CHANGED)) {
 				onConnectionStateChanged();
 				return;
 			}
+
+			// Next try processing intents that imply an active connection.
+
+			// If the connection is NOT active at this point, skip everything.
+			// This means the connection WAS active but it was disconnected
+			// before the intents were processed.
+			if (!mService.isConnected()) return;
 
 			if (action.equals(MumbleService.INTENT_CURRENT_CHANNEL_CHANGED)) {
 				// Current channel being set is one of the requirements this
@@ -161,8 +189,7 @@ public class ChannelList extends ConnectedActivity {
 			switch (mService.getConnectionState()) {
 			case Connecting:
 				Log.i(Globals.LOG_TAG, "ChannelList: Connecting");
-				mProgressDialog = ProgressDialog.show(ChannelList.this,
-						"Connecting", "Connecting to Mumble server", true);
+				onConnecting();
 				break;
 			case Connected:
 				Log.i(Globals.LOG_TAG, "ChannelList: Connected");
@@ -342,6 +369,40 @@ public class ChannelList extends ConnectedActivity {
 		}
 	}
 
+	/**
+	 * Handles activity initialization when the Service is connecting.
+	 */
+	private void onConnecting() {
+		if (mProgressDialog == null) {
+			mProgressDialog = ProgressDialog.show(ChannelList.this,
+					getString(R.string.connectionProgressTitle),
+					getString(R.string.connectionProgressConnectingMessage),
+					true, true, new OnCancelListener() {
+						@Override
+						public void onCancel(DialogInterface dialog) {
+							mService.disconnect();
+							mProgressDialog
+									.setMessage(getString(R.string.connectionProgressDisconnectingMessage));
+						}
+					});
+		}
+	}
+
+	/**
+	 * Handles activity initialization when the Service has connected.
+	 *
+	 * Should be called when there is a reason to believe that the connection
+	 * might have became valid. The connection MUST be established but other
+	 * validity criteria may still be unfilled such as server synchronization
+	 * being complete.
+	 *
+	 * The method implements the logic required for making sure that the
+	 * Connected service is in such a state that it fills all the connection
+	 * criteria for ChannelList.
+	 *
+	 * The method also takes care of making sure that its initialization code
+	 * is executed only once so calling it several times doesn't cause problems.
+	 */
 	private void onConnected() {
 		if (isConnected || mService.getCurrentChannel() == null) {
 			if (mProgressDialog != null &&
@@ -408,10 +469,10 @@ public class ChannelList extends ConnectedActivity {
 	}
 
 	private void updateUserList() {
-		final List<User> allUsers = mService.getUserList();
 		channelUsers.clear();
 
 		if (isConnected) {
+			final List<User> allUsers = mService.getUserList();
 			for (final User u : allUsers) {
 				if (u.getChannel().id == visibleChannel.id) {
 					channelUsers.add(u);
@@ -503,10 +564,7 @@ public class ChannelList extends ConnectedActivity {
 	protected final void onServiceBound() {
 		switch (mService.getConnectionState()) {
 		case Connecting:
-			mProgressDialog = ProgressDialog.show(this,
-					getString(R.string.connectionProgressTitle),
-					getString(R.string.connectionProgressConnectingMessage),
-					true);
+			onConnecting();
 			break;
 		case Connected:
 			// We might have resumed right after the connection was established

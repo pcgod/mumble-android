@@ -123,13 +123,13 @@ public class MumbleConnection implements Runnable {
 	}
 
 	public final void disconnect() {
+		disconnecting = true;
 		synchronized (stateLock) {
 			if (readingThread != null) {
 				readingThread.interrupt();
 				readingThread = null;
 			}
 
-			disconnecting = true;
 			connectionHost.setConnectionState(ConnectionState.Disconnecting);
 			stateLock.notifyAll();
 		}
@@ -273,6 +273,10 @@ public class MumbleConnection implements Runnable {
 
 			sendMessage(MessageType.Version, v);
 			sendMessage(MessageType.Authenticate, a);
+
+			if (disconnecting) {
+				return;
+			}
 
 			connectionHost.setConnectionState(ConnectionState.Connected);
 		}
