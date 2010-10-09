@@ -92,6 +92,24 @@ public class MumbleConnection implements Runnable {
 	private Thread readingThread;
 	private final Object stateLock = new Object();
 
+	/**
+	 * Constructor for new connection thread.
+	 *
+	 * This thread should be started shortly after construction. Construction
+	 * sets the connection state for the host to "Connecting" even if the actual
+	 * connection won't be attempted until the thread has been started.
+	 *
+	 * This is to combat an issue where the Service is asked to connect and the
+	 * thread is started but the thread isn't given execution time before another
+	 * activity checks for connection state and finds out the service is in
+	 * Disconnected state.
+	 *
+	 * @param connectionHost_ Host interface for this Connection
+	 * @param host_           Mumble server host address
+	 * @param port_           Mumble server port
+	 * @param username_       Username
+	 * @param password_       Server password
+	 */
 	public MumbleConnection(final MumbleConnectionHost connectionHost_,
 			final String host_, final int port_, final String username_,
 			final String password_) {
@@ -101,7 +119,7 @@ public class MumbleConnection implements Runnable {
 		username = username_;
 		password = password_;
 
-		connectionHost.setConnectionState(ConnectionState.Disconnected);
+		connectionHost.setConnectionState(ConnectionState.Connecting);
 	}
 
 	public final void disconnect() {
@@ -140,8 +158,6 @@ public class MumbleConnection implements Runnable {
 
 	@Override
 	public final void run() {
-		connectionHost.setConnectionState(ConnectionState.Connecting);
-
 		try {
 			SSLSocket socket_;
 
