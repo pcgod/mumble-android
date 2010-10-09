@@ -179,6 +179,13 @@ public class MumbleConnection implements Runnable {
 
 			handleProtocol(socket_);
 
+			// Clean connection state that might have been initialized.
+			// Do this before closing the socket as the threads could use it.
+			if (ao != null) {
+				ao.stop();
+				audioOutputThread.join();
+			}
+
 			socket_.close();
 		} catch (final NoSuchAlgorithmException e) {
 			e.printStackTrace();
