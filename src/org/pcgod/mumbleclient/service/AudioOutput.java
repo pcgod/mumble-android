@@ -8,7 +8,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.pcgod.mumbleclient.Globals;
-import org.pcgod.mumbleclient.jni.Native;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.media.AudioFormat;
@@ -23,10 +22,8 @@ import android.util.Log;
  * @author pcgod, Rantanen
  */
 class AudioOutput implements Runnable {
-	static long celtDecoder;
 	private boolean shouldRun;
 	private final AudioTrack at;
-	private final long celtMode;
 	private final int bufferSize;
 
 	private final Map<User, AudioUser> userPackets = new ConcurrentHashMap<User, AudioUser>();
@@ -41,8 +38,8 @@ class AudioOutput implements Runnable {
 		minBufferSize *= 2;
 
 		// Resolve the minimum frame count that fills the minBuffer requirement.
-		final int frameCount = (int) Math.round(Math.ceil((double) minBufferSize /
-														  MumbleConnection.FRAME_SIZE));
+		final int frameCount = (int) Math.ceil((double) minBufferSize /
+											   MumbleConnection.FRAME_SIZE);
 
 		bufferSize = frameCount * MumbleConnection.FRAME_SIZE;
 
@@ -53,11 +50,6 @@ class AudioOutput implements Runnable {
 			AudioFormat.ENCODING_PCM_16BIT,
 			bufferSize,
 			AudioTrack.MODE_STREAM);
-
-		celtMode = Native.celt_mode_create(
-			MumbleConnection.SAMPLE_RATE,
-			MumbleConnection.FRAME_SIZE);
-		celtDecoder = Native.celt_decoder_create(celtMode, 1);
 
 		// Set this here so this.start(); this.shouldRun = false; doesn't
 		// result in run() setting shouldRun to true afterwards and continuing
@@ -179,11 +171,5 @@ class AudioOutput implements Runnable {
 		}
 		at.flush();
 		at.stop();
-	}
-
-	@Override
-	protected final void finalize() {
-		Native.celt_decoder_destroy(celtDecoder);
-		Native.celt_mode_destroy(celtMode);
 	}
 }

@@ -15,6 +15,8 @@ import org.pcgod.mumbleclient.service.model.User;
  * @author pcgod, Rantanen
  */
 class AudioUser {
+	private final long celtMode;
+	private final long celtDecoder;
 	private final User user;
 	private final Queue<float[]> frames = new ConcurrentLinkedQueue<float[]>();
 	private boolean destroyable = true;
@@ -22,6 +24,11 @@ class AudioUser {
 
 	public AudioUser(final User user) {
 		this.user = user;
+
+		celtMode = Native.celt_mode_create(
+			MumbleConnection.SAMPLE_RATE,
+			MumbleConnection.FRAME_SIZE);
+		celtDecoder = Native.celt_decoder_create(celtMode, 1);
 	}
 
 	public boolean addFrameToBuffer(
@@ -55,11 +62,7 @@ class AudioUser {
 				pds.dataBlock(data, dataLength);
 
 				final float[] out = new float[MumbleConnection.FRAME_SIZE];
-				Native.celt_decode_float(
-					AudioOutput.celtDecoder,
-					data,
-					dataLength,
-					out);
+				Native.celt_decode_float(celtDecoder, data, dataLength, out);
 
 				frames.add(out);
 
@@ -94,5 +97,11 @@ class AudioUser {
 		synchronized (syncLock) {
 			this.destroyable = destroyable;
 		}
+	}
+
+	@Override
+	protected final void finalize() {
+		Native.celt_decoder_destroy(celtDecoder);
+		Native.celt_mode_destroy(celtMode);
 	}
 }
