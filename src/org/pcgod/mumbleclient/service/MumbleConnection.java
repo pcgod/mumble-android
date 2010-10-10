@@ -554,6 +554,8 @@ public class MumbleConnection implements Runnable {
 			Log.e(Globals.LOG_TAG, "User session " + uiSession + "not found!");
 		}
 
+		// Rewind the packet. Otherwise consumers are confusing to implement.
+		pds.rewind();
 		ao.addFrameToBuffer(u, pds, flags);
 	}
 }

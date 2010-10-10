@@ -3,17 +3,26 @@ package org.pcgod.mumbleclient.service;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.jni.Native;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.util.Log;
 
+/**
+ * Audio output thread.
+ *
+ * Handles the playback of UDP packets added with addFrameToBuffer.
+ *
+ * @author pcgod, Rantanen
+ *
+ */
 class AudioOutput implements Runnable {
 	static long celtDecoder;
 	private boolean shouldRun;
@@ -21,10 +30,8 @@ class AudioOutput implements Runnable {
 	private final long celtMode;
 	private final int bufferSize;
 
-	private final Map<User, Queue<short[]>> userPackets =
-		new ConcurrentHashMap<User, Queue<short[]>>();
-	private int lastPacket = 0;
-	private final Object packetLock = new Object();
+	private final Map<User, AudioUser> userPackets =
+		new ConcurrentHashMap<User, AudioUser>();
 
 	public AudioOutput() {
 		int minBufferSize = AudioTrack.getMinBufferSize(
@@ -60,18 +67,22 @@ class AudioOutput implements Runnable {
 	public void addFrameToBuffer(final User u, final PacketDataStream pds,
 			final int flags) {
 
-		Queue<short[]> queue;
+		AudioUser user;
 
-		// addFrameToBuffer should only ever be called from MumbleConnection
-		// thread and no other thread should modify the userPackets map.
-		// For this reason the get/put shouldn't require synchronization.
-		queue = userPackets.get(u);
-		if (queue == null) {
-			queue = new ConcurrentLinkedQueue<short[]>();
-			userPackets.put(u, queue);
+		// Get user and mark it as non-destroyable so we won't lose it after
+		// we have acquired it.
+		synchronized(userPackets) {
+			user = userPackets.get(u);
+			if (user == null) {
+				user = new AudioUser(u);
+				userPackets.put(u, user);
+			}
+			user.setDestroyable(false);
 		}
 
-		decode(pds, queue);
+		user.addFrameToBuffer(pds, userPackets);
+
+		user.setDestroyable(true);
 	}
 
 	@Override
@@ -86,8 +97,8 @@ class AudioOutput implements Runnable {
 
 	public void stop() {
 		shouldRun = false;
-		synchronized(packetLock) {
-			packetLock.notify();
+		synchronized(userPackets) {
+			userPackets.notify();
 		}
 	}
 
@@ -95,66 +106,71 @@ class AudioOutput implements Runnable {
 		double[] out = new double[MumbleConnection.FRAME_SIZE];
 		short[] clipOut = new short[MumbleConnection.FRAME_SIZE];
 		List<short[]> mix = new LinkedList<short[]>();
+		List<Entry<User, AudioUser>> del = new LinkedList<Entry<User, AudioUser>>();
 
 		at.play();
 		while (shouldRun) {
 
-			int packetSnapshot;
-			synchronized(packetLock) {
-				packetSnapshot = lastPacket;
-			}
-
 			mix.clear();
-			for (Queue<short[]> queue : userPackets.values()) {
-				short[] buffer = queue.poll();
-				if (buffer != null)
-					mix.add(buffer);
+			del.clear();
+			for (Entry<User, AudioUser> pair : userPackets.entrySet()) {
+				short[] frame = pair.getValue().getFrame();
+				if (frame != null) {
+					mix.add(frame);
+				} else {
+					del.add(pair);
+				}
 			}
 
-			// If there is no output, wait for some and try again.
-			if (mix.size() == 0) {
-//				// if audio is playing stop it while we wait for more
-//				// audio packets.
-//				if (at.getplaystate() == audiotrack.playstate_playing) {
-//					at.flush();
-//					at.stop();
-//				}
+			// If there is output, play it now.
+			if (mix.size() > 0) {
 
-				synchronized(packetLock) {
-					while (shouldRun && lastPacket == packetSnapshot) {
-						packetLock.wait();
+				// Reset mix buffer.
+				for (int i = 0; i < out.length; i++) { out[i] = 0; }
+
+				// Sum the buffers.
+				for (short[] userBuffer : mix) {
+					for (int i = 0; i < out.length; i++) {
+						out[i] += userBuffer[i];
 					}
 				}
 
-				// Restart audio if we are still running before re-starting
-				// the loop again.
-//				if (shouldRun) at.play();
+				// Clip buffer for real output.
+				for (int i = 0; i < MumbleConnection.FRAME_SIZE; i++) {
+					clipOut[i] = (short)Math.round(Math.max(Math.min(out[i], Short.MAX_VALUE), Short.MIN_VALUE));
+				}
+
+				at.write(clipOut, 0, MumbleConnection.FRAME_SIZE);
+
+				// Don't spend time cleaning users at this point. Do so when
+				// there's a pause in the playback.
 				continue;
 			}
 
-			// We got input. Mix it and play. Use the first buffer as base
-			// and add rest of the buffers to that one.
-			//out = mix.remove(0);
-			short[] firstBuffer = mix.remove(0);
-			for (int i = 0; i < out.length; i++) {
-				out[i] = firstBuffer[i];
-			}
-			for (short[] userBuffer : mix) {
-				for (int i = 0; i < out.length; i++) {
-					out[i] += userBuffer[i];
+			Log.i(Globals.LOG_TAG, "Playback paused");
+
+			// If there were empty users see if they can be destroyed.
+			if (del.size() > 0) {
+				int removedUsers = 0;
+				synchronized(userPackets) {
+					for (Entry<User, AudioUser> pair : del) {
+						if (pair.getValue().canDestroy()) {
+							userPackets.remove(pair.getKey());
+							removedUsers++;
+						}
+					}
+				}
+				if (removedUsers > 0) {
+					Log.i(Globals.LOG_TAG, String.format("AudioOutput: Removed %d users", removedUsers));
 				}
 			}
 
-			// Clip buffer for real output.
-			for (int i = 0; i < MumbleConnection.FRAME_SIZE; i++) {
-				clipOut[i] = (short)Math.round(Math.max(Math.min(out[i], Short.MAX_VALUE), Short.MIN_VALUE));
+			// Wait for more input.
+			synchronized(userPackets) {
+				while (shouldRun && userPackets.isEmpty()) {
+					userPackets.wait();
+				}
 			}
-
-//			for (int i = 0; i < MumbleConnection.FRAME_SIZE; i++) {
-//				out[i] = (short)Math.round(Math.sin(((double)i/48000)*400*2*3.14)*Short.MAX_VALUE);
-//			}
-
-			at.write(clipOut, 0, MumbleConnection.FRAME_SIZE);
 		}
 		at.flush();
 		at.stop();
@@ -164,46 +180,5 @@ class AudioOutput implements Runnable {
 	protected final void finalize() {
 		Native.celt_decoder_destroy(celtDecoder);
 		Native.celt_mode_destroy(celtMode);
-	}
-
-	private void decode(PacketDataStream pds, Queue<short[]> queue) {
-		// skip iSeq
-		pds.readLong();
-
-		int frames = 0;
-		int header = 0;
-		do {
-			header = pds.next();
-			++frames;
-			pds.skip(header & 0x7f);
-		} while (((header & 0x80) > 0) && pds.isValid());
-
-		if (pds.isValid()) {
-			pds.rewind();
-			pds.skip(1);
-			// skip uiSession
-			pds.readLong();
-			/* final long iSeq = */pds.readLong();
-
-			final byte[] tmp = new byte[256];
-			header = 0;
-			do {
-				header = pds.next();
-				if (header > 0) {
-					final int len = header & 0x7f;
-					pds.dataBlock(tmp, len);
-					short[] out = new short[MumbleConnection.FRAME_SIZE];
-
-					Native.celt_decode(AudioOutput.celtDecoder, tmp, len, out);
-					queue.add(out);
-
-					synchronized(packetLock) {
-						lastPacket++;
-						packetLock.notify();
-					}
-				}
-			} while (((header & 0x80) > 0) && pds.isValid());
-		}
-
 	}
 }
