@@ -20,14 +20,20 @@ class AudioUser {
 		public void packetReady(AudioUser user);
 	}
 
+	private final boolean useJitterBuffer = false;
+
+	private final Object jbLock;
+	private final long jitterBuffer;
+	private final int[] currentTimestamp;
+	private final Queue<Native.JitterBufferPacket> normalBuffer;
+
 	private final long celtMode;
 	private final long celtDecoder;
-	private final Queue<float[]> frames = new ConcurrentLinkedQueue<float[]>();
-	float[] freeFrame = new float[MumbleConnection.FRAME_SIZE];
-	float[] lastFrame;
-	private final Queue<float[]> freeFrames = new ConcurrentLinkedQueue<float[]>();
-	final byte[] data = new byte[128];
+	private final Queue<byte[]> dataArrayPool = new ConcurrentLinkedQueue<byte[]>();
+	float[] lastFrame = new float[MumbleConnection.FRAME_SIZE];
 	private final User user;
+
+	private int missedFrames = 0;
 
 	public AudioUser(final User user) {
 		this.user = user;
@@ -36,7 +42,36 @@ class AudioUser {
 			MumbleConnection.FRAME_SIZE);
 		celtDecoder = Native.celt_decoder_create(celtMode, 1);
 
+		// Initialize one of the buffers.
+		if (useJitterBuffer) {
+			jbLock = new Object();
+			currentTimestamp = new int[1];
+			jitterBuffer = Native.jitter_buffer_init(MumbleConnection.FRAME_SIZE);
+			Native.jitter_buffer_ctl(
+				jitterBuffer,
+				0,
+				new int[] { 5 * MumbleConnection.FRAME_SIZE });
+
+			normalBuffer = null;
+		} else {
+			normalBuffer = new ConcurrentLinkedQueue<Native.JitterBufferPacket>();
+
+			jitterBuffer = 0;
+			currentTimestamp = null;
+			jbLock = null;
+		}
+
 		Log.i(Globals.LOG_TAG, "AudioUser created");
+	}
+
+	private byte[] acquireDataArray() {
+		byte[] data = dataArrayPool.poll();
+
+		if (data == null) {
+			data = new byte[128];
+		}
+
+		return data;
 	}
 
 	public boolean addFrameToBuffer(
@@ -58,30 +93,58 @@ class AudioUser {
 		}
 
 		/* long session = */pds.readLong();
-		/* long sequence = */pds.readLong();
+		final long sequence = pds.readLong();
 
 		int dataHeader;
+		int frameCount = 0;
+
+		byte[] data;
+		// Jitter buffer can use one data array to pass all the packets to the buffer.
+		if (useJitterBuffer) {
+			data = acquireDataArray();
+		}
 		do {
 			dataHeader = pds.next();
 			final int dataLength = dataHeader & 0x7f;
 			if (dataLength > 0) {
+
+				// If not using jitter buffer acquire data array for each packet.
+				// They are released when dequeueing them fromt he buffer.
+				if (!useJitterBuffer) {
+					data = acquireDataArray();
+				}
 				pds.dataBlock(data, dataLength);
 
-				final float[] out = acquireFrame();
-				Native.celt_decode_float(celtDecoder, data, dataLength, out);
-				frames.add(out);
+				final Native.JitterBufferPacket jbp = new Native.JitterBufferPacket();
+				jbp.data = data;
+				jbp.len = dataLength;
+
+				if (useJitterBuffer) {
+					jbp.timestamp = (short) (sequence + frameCount) *
+									MumbleConnection.FRAME_SIZE;
+					jbp.span = MumbleConnection.FRAME_SIZE;
+
+					synchronized (jbLock) {
+						Native.jitter_buffer_put(jitterBuffer, jbp);
+					}
+				} else {
+					normalBuffer.add(jbp);
+				}
 
 				readyHandler.packetReady(this);
+				frameCount++;
+
 			}
 		} while ((dataHeader & 0x80) > 0 && pds.isValid());
 
+		if (useJitterBuffer) {
+			freeDataArray(data);
+		}
 		return true;
 	}
 
-	public void freeFrame(final float[] frame) {
-		synchronized (freeFrames) {
-			freeFrames.add(frame);
-		}
+	public void freeDataArray(byte[] data) {
+		dataArrayPool.add(data);
 	}
 
 	public User getUser() {
@@ -94,25 +157,63 @@ class AudioUser {
 	 * @return
 	 */
 	public boolean hasFrame() {
-		final float[] frame = frames.poll();
-		lastFrame = frame;
-		return (lastFrame != null);
-	}
+		byte[] data = null;
+		int dataLength = 0;
 
-	private float[] acquireFrame() {
-		float[] frame = freeFrames.poll();
+		Native.JitterBufferPacket jbp;
 
-		if (frame == null) {
-			frame = freeFrame;
-			freeFrame = new float[MumbleConnection.FRAME_SIZE];
+		if (useJitterBuffer) {
+			jbp = new Native.JitterBufferPacket();
+			jbp.data = acquireDataArray();
+			jbp.len = jbp.data.length;
+
+			synchronized (jbLock) {
+				if (Native.jitter_buffer_get(
+					jitterBuffer,
+					jbp,
+					MumbleConnection.FRAME_SIZE,
+					currentTimestamp) == 0) {
+
+					data = jbp.data;
+					dataLength = jbp.len;
+					missedFrames = 0;
+				} else {
+					missedFrames++;
+				}
+
+				Native.jitter_buffer_update_delay(jitterBuffer, null, null);
+			}
+
+			if (missedFrames > 20) {
+				return false;
+			}
+
+		} else {
+			jbp = normalBuffer.poll();
+			if (jbp != null) {
+				data = jbp.data;
+				dataLength = jbp.len;
+			}
 		}
 
-		return frame;
+		Native.celt_decode_float(celtDecoder, data, dataLength, lastFrame);
+
+		if (data != null) {
+			freeDataArray(data);
+		}
+
+		if (useJitterBuffer) {
+			synchronized (jbLock) {
+				Native.jitter_buffer_tick(jitterBuffer);
+			}
+		}
+		return (useJitterBuffer || data != null);
 	}
 
 	@Override
 	protected final void finalize() {
 		Native.celt_decoder_destroy(celtDecoder);
 		Native.celt_mode_destroy(celtMode);
+		Native.jitter_buffer_destroy(jitterBuffer);
 	}
 }
