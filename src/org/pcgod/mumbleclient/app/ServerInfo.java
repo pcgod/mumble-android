@@ -36,7 +36,8 @@ public class ServerInfo extends Activity {
 
 			db.open();
 			final long serverId = ServerInfo.this.getIntent().getLongExtra(
-					"serverId", -1);
+				"serverId",
+				-1);
 			if (serverId != -1) {
 				db.updateServer(serverId, name, host, port, username, password);
 			} else {
@@ -64,16 +65,12 @@ public class ServerInfo extends Activity {
 			final DbAdapter db = new DbAdapter(this);
 			db.open();
 			final Cursor c = db.fetchServer(serverId);
-			nameEdit.setText(c.getString(c
-					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_NAME)));
-			hostEdit.setText(c.getString(c
-					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_HOST)));
-			portEdit.setText(Integer.toString(c.getInt(c
-					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT))));
-			usernameEdit.setText(c.getString(c
-					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME)));
-			passwordEdit.setText(c.getString(c
-					.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD)));
+			nameEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_NAME)));
+			hostEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_HOST)));
+			portEdit.setText(Integer.toString(c.getInt(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT))));
+			usernameEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME)));
+			passwordEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD)));
+			c.close();
 			db.close();
 		}
 

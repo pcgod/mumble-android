@@ -365,6 +365,11 @@ public class ChannelList extends ConnectedActivity {
 		}
 	}
 
+	@Override
+	public Object onRetainNonConfigurationInstance() {
+		return mService;
+	}
+
 	private void cleanDialogs() {
 		if (mChannelSelectDialog != null) {
 			mChannelSelectDialog.dismiss();
@@ -540,9 +545,13 @@ public class ChannelList extends ConnectedActivity {
 		speakerCheckBox.setEnabled(false);
 		speakerCheckBox.setVisibility(View.GONE);
 
-		// We don't know that we're connected. Synchronize controls which
-		// should hide necessary stuff.
-		isConnected = false;
+		final Object lastInstance = getLastNonConfigurationInstance();
+		isConnected = lastInstance == null ? false : true;
+
+		if(lastInstance != null) {
+			mService = (MumbleService) lastInstance;
+			updateUserList();
+		}
 		synchronizeControls();
 	}
 
