@@ -365,11 +365,6 @@ public class ChannelList extends ConnectedActivity {
 		}
 	}
 
-	@Override
-	public Object onRetainNonConfigurationInstance() {
-		return mService;
-	}
-
 	private void cleanDialogs() {
 		if (mChannelSelectDialog != null) {
 			mChannelSelectDialog.dismiss();
@@ -426,11 +421,7 @@ public class ChannelList extends ConnectedActivity {
 		}
 
 		updateUserList();
-
-		speakButton.setEnabled(true);
-		joinButton.setEnabled(true);
-		final String channelName = mService.getCurrentChannel().name;
-		channelNameText.setText(channelName);
+		synchronizeControls();
 	}
 
 	/**
@@ -484,12 +475,13 @@ public class ChannelList extends ConnectedActivity {
 			findViewById(R.id.connectionViewRoot).setVisibility(View.VISIBLE);
 			if (mService.getCurrentChannel().id == visibleChannel.id) {
 				speakButton.setVisibility(View.VISIBLE);
-				joinButton.setVisibility(View.GONE);
 				speakButton.setEnabled(mService.canSpeak());
 				speakButton.setChecked(mService.isRecording());
+				joinButton.setVisibility(View.GONE);
 			} else {
 				speakButton.setVisibility(View.GONE);
 				joinButton.setVisibility(View.VISIBLE);
+				joinButton.setEnabled(true);
 			}
 			channelNameText.setText(visibleChannel.name);
 		}
@@ -544,15 +536,6 @@ public class ChannelList extends ConnectedActivity {
 		// inputs isn't supported.
 		speakerCheckBox.setEnabled(false);
 		speakerCheckBox.setVisibility(View.GONE);
-
-		final Object lastInstance = getLastNonConfigurationInstance();
-		isConnected = lastInstance == null ? false : true;
-
-		if(lastInstance != null) {
-			mService = (MumbleService) lastInstance;
-			updateUserList();
-		}
-		synchronizeControls();
 	}
 
 	@Override
@@ -613,7 +596,5 @@ public class ChannelList extends ConnectedActivity {
 		default:
 			Assert.fail("Unknown connection state");
 		}
-
-		synchronizeControls();
 	}
 }
