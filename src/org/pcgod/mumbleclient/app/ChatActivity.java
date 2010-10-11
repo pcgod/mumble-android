@@ -5,7 +5,6 @@ import java.util.List;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.service.MumbleService;
 import org.pcgod.mumbleclient.service.model.Message;
-import org.pcgod.mumbleclient.service.model.Message.Direction;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -141,7 +140,7 @@ public class ChatActivity extends ConnectedActivity {
 				DateUtils.FORMAT_SHOW_TIME));
 		sb.append("]");
 
-		if (msg.direction == Direction.Sent) {
+		if (msg.direction == Message.DIRECTION_SENT) {
 			sb.append("To ");
 			sb.append(msg.channel.name);
 		} else {

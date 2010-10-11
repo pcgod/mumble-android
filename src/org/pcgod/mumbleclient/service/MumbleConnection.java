@@ -31,7 +31,6 @@ import org.pcgod.mumbleclient.service.MumbleConnectionHost.ConnectionState;
 import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.Message;
 import org.pcgod.mumbleclient.service.model.User;
-import org.pcgod.mumbleclient.service.model.Message.Direction;
 
 import android.util.Log;
 
@@ -218,7 +217,7 @@ public class MumbleConnection implements Runnable {
 		msg.timestamp = System.currentTimeMillis();
 		msg.message = message;
 		msg.channel = currentChannel;
-		msg.direction = Direction.Sent;
+		msg.direction = Message.DIRECTION_SENT;
 		connectionHost.messageSent(msg);
 	}
 
@@ -239,15 +238,14 @@ public class MumbleConnection implements Runnable {
 		}
 	}
 
-	public final void sendUdpTunnelMessage(final byte[] buffer, final int len)
+	public final void sendUdpTunnelMessage(final byte[] buffer, final int length)
 		throws IOException {
 		final short type = (short) MessageType.UDPTunnel.ordinal();
-		final int length = len;
 
 		synchronized (out) {
 			out.writeShort(type);
 			out.writeInt(length);
-			out.write(buffer, 0, len);
+			out.write(buffer, 0, length);
 		}
 	}
 
@@ -349,7 +347,7 @@ public class MumbleConnection implements Runnable {
 		msg.timestamp = System.currentTimeMillis();
 		msg.message = ts.getMessage();
 		msg.actor = u;
-		msg.direction = Direction.Received;
+		msg.direction = Message.DIRECTION_RECEIVED;
 		msg.channelIds = ts.getChannelIdCount();
 		msg.treeIds = ts.getTreeIdCount();
 		connectionHost.messageReceived(msg);
