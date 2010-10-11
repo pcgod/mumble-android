@@ -1,19 +1,18 @@
 package org.pcgod.mumbleclient.service;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 
-import org.pcgod.mumbleclient.Globals;
+import org.pcgod.mumbleclient.service.AudioUser.PacketReadyHandler;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
-import android.util.Log;
 
 /**
  * Audio output thread.
@@ -22,11 +21,24 @@ import android.util.Log;
  * @author pcgod, Rantanen
  */
 class AudioOutput implements Runnable {
+	private final PacketReadyHandler packetReadyHandler = new PacketReadyHandler() {
+		@Override
+		public void packetReady(final AudioUser user) {
+			synchronized (userPackets) {
+				if (!userPackets.containsKey(user.getUser())) {
+					userPackets.put(user.getUser(), user);
+					userPackets.notify();
+				}
+			}
+		}
+	};
+
 	private boolean shouldRun;
 	private final AudioTrack at;
 	private final int bufferSize;
 
-	private final Map<User, AudioUser> userPackets = new ConcurrentHashMap<User, AudioUser>();
+	final Map<User, AudioUser> userPackets = new HashMap<User, AudioUser>();
+	private final Map<User, AudioUser> users = new HashMap<User, AudioUser>();
 
 	public AudioOutput() {
 		int minBufferSize = AudioTrack.getMinBufferSize(
@@ -64,23 +76,19 @@ class AudioOutput implements Runnable {
 
 		AudioUser user;
 
-		// Get user and mark it as non-destroyable so we won't lose it after
-		// we have acquired it.
-		synchronized (userPackets) {
-			user = userPackets.get(u);
-			if (user == null) {
-				user = new AudioUser(u);
-				userPackets.put(u, user);
-			}
-			user.setDestroyable(false);
+		user = users.get(u);
+		if (user == null) {
+			user = new AudioUser(u);
+			users.put(u, user);
+			// Don't add the user to userPackets yet. The collection should
+			// have only users with ready frames. Since this method is
+			// called only from the TCP connection thread it will never
+			// create a new AudioUser while a previous one is still decoding.
 		}
 
-		user.addFrameToBuffer(pds, userPackets);
-
-		user.setDestroyable(true);
+		user.addFrameToBuffer(pds, packetReadyHandler);
 	}
 
-	@Override
 	public void run() {
 		android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
 		try {
@@ -101,19 +109,21 @@ class AudioOutput implements Runnable {
 	private void audioLoop() throws InterruptedException {
 		final float[] out = new float[MumbleConnection.FRAME_SIZE];
 		final short[] clipOut = new short[MumbleConnection.FRAME_SIZE];
-		final List<float[]> mix = new LinkedList<float[]>();
-		final List<Entry<User, AudioUser>> del = new LinkedList<Entry<User, AudioUser>>();
+		final List<AudioUser> mix = new LinkedList<AudioUser>();
 
 		at.play();
 		while (shouldRun) {
 			mix.clear();
-			del.clear();
-			for (final Entry<User, AudioUser> pair : userPackets.entrySet()) {
-				final float[] frame = pair.getValue().getFrame();
-				if (frame != null) {
-					mix.add(frame);
-				} else {
-					del.add(pair);
+
+			synchronized (userPackets) {
+				final Iterator<AudioUser> i = userPackets.values().iterator();
+				while (i.hasNext()) {
+					final AudioUser user = i.next();
+					if (user.hasFrame()) {
+						mix.add(user);
+					} else {
+						i.remove();
+					}
 				}
 			}
 
@@ -123,10 +133,11 @@ class AudioOutput implements Runnable {
 				Arrays.fill(out, 0);
 
 				// Sum the buffers.
-				for (final float[] userBuffer : mix) {
+				for (final AudioUser user : mix) {
 					for (int i = 0; i < out.length; i++) {
-						out[i] += userBuffer[i];
+						out[i] += user.lastFrame[i];
 					}
+					user.freeFrame(user.lastFrame);
 				}
 
 				// Clip buffer for real output.
@@ -137,29 +148,6 @@ class AudioOutput implements Runnable {
 
 				at.write(clipOut, 0, MumbleConnection.FRAME_SIZE);
 
-				// Don't spend time cleaning users at this point. Do so when
-				// there's a pause in the playback.
-				continue;
-			}
-
-			// Log.i(Globals.LOG_TAG, "Playback paused");
-
-			// If there were empty users see if they can be destroyed.
-			if (del.size() > 0) {
-				int removedUsers = 0;
-				synchronized (userPackets) {
-					for (final Entry<User, AudioUser> pair : del) {
-						if (pair.getValue().canDestroy()) {
-							userPackets.remove(pair.getKey());
-							removedUsers++;
-						}
-					}
-				}
-				if (removedUsers > 0) {
-					Log.i(Globals.LOG_TAG, String.format(
-						"AudioOutput: Removed %d users",
-						removedUsers));
-				}
 			}
 
 			// Wait for more input.

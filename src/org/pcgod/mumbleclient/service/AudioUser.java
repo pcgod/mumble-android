@@ -3,10 +3,11 @@ package org.pcgod.mumbleclient.service;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import junit.framework.Assert;
-
+import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.jni.Native;
 import org.pcgod.mumbleclient.service.model.User;
+
+import android.util.Log;
 
 /**
  * Thread safe buffer for audio data.
@@ -15,26 +16,32 @@ import org.pcgod.mumbleclient.service.model.User;
  * @author pcgod, Rantanen
  */
 class AudioUser {
+	public interface PacketReadyHandler {
+		public void packetReady(AudioUser user);
+	}
+
 	private final long celtMode;
 	private final long celtDecoder;
-	private final User user;
 	private final Queue<float[]> frames = new ConcurrentLinkedQueue<float[]>();
-	private boolean destroyable = true;
-	private final Object syncLock = new Object();
+	float[] freeFrame = new float[MumbleConnection.FRAME_SIZE];
+	float[] lastFrame;
+	private final Queue<float[]> freeFrames = new ConcurrentLinkedQueue<float[]>();
+	final byte[] data = new byte[128];
+	private final User user;
 
 	public AudioUser(final User user) {
 		this.user = user;
-
 		celtMode = Native.celt_mode_create(
 			MumbleConnection.SAMPLE_RATE,
 			MumbleConnection.FRAME_SIZE);
 		celtDecoder = Native.celt_decoder_create(celtMode, 1);
+
+		Log.i(Globals.LOG_TAG, "AudioUser created");
 	}
 
 	public boolean addFrameToBuffer(
 		final PacketDataStream pds,
-		final Object monitor) {
-		Assert.assertFalse(destroyable);
+		final PacketReadyHandler readyHandler) {
 
 		final int packetHeader = pds.next();
 
@@ -53,7 +60,6 @@ class AudioUser {
 		/* long session = */pds.readLong();
 		/* long sequence = */pds.readLong();
 
-		final byte[] data = new byte[128];
 		int dataHeader;
 		do {
 			dataHeader = pds.next();
@@ -61,42 +67,47 @@ class AudioUser {
 			if (dataLength > 0) {
 				pds.dataBlock(data, dataLength);
 
-				final float[] out = new float[MumbleConnection.FRAME_SIZE];
+				final float[] out = acquireFrame();
 				Native.celt_decode_float(celtDecoder, data, dataLength, out);
-
 				frames.add(out);
 
-				synchronized (monitor) {
-					monitor.notify();
-				}
+				readyHandler.packetReady(this);
 			}
 		} while ((dataHeader & 0x80) > 0 && pds.isValid());
 
 		return true;
 	}
 
-	public boolean canDestroy() {
-		synchronized (syncLock) {
-			return destroyable && frames.isEmpty();
+	public void freeFrame(final float[] frame) {
+		synchronized (freeFrames) {
+			freeFrames.add(frame);
 		}
 	}
 
-	public float[] getFrame() {
-		return frames.poll();
+	public User getUser() {
+		return this.user;
 	}
 
 	/**
-	 * Alter the destroyable state of the AudioUser.
-	 * Non-destroyable AudioUser will never return null from getFrame. Exposing
-	 * this mechanism as public interface allows the AudioUser owner to perform
-	 * synchronization involving the destroyable state.
+	 * Checks if this user has frames and sets lastFrame.
 	 *
-	 * @param destroyable
+	 * @return
 	 */
-	public void setDestroyable(final boolean destroyable) {
-		synchronized (syncLock) {
-			this.destroyable = destroyable;
+	public boolean hasFrame() {
+		final float[] frame = frames.poll();
+		lastFrame = frame;
+		return (lastFrame != null);
+	}
+
+	private float[] acquireFrame() {
+		float[] frame = freeFrames.poll();
+
+		if (frame == null) {
+			frame = freeFrame;
+			freeFrame = new float[MumbleConnection.FRAME_SIZE];
 		}
+
+		return frame;
 	}
 
 	@Override
