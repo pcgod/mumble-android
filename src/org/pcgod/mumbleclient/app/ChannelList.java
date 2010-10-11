@@ -521,6 +521,11 @@ public class ChannelList extends ConnectedActivity {
 		// inputs isn't supported.
 		speakerCheckBox.setEnabled(false);
 		speakerCheckBox.setVisibility(View.GONE);
+
+		// We don't know that we're connected. Synchronize controls which
+		// should hide necessary stuff.
+		isConnected = false;
+		synchronizeControls();
 	}
 
 	@Override
