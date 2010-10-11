@@ -4,13 +4,12 @@
 	android:orientation="vertical"
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent">
+	<TextView
+		android:text="@string/noServers"
+		android:layout_width="fill_parent"
+		android:id="@+id/android:empty" android:layout_height="fill_parent" android:gravity="center" android:textSize="30sp" android:textColor="#444444"/>
 	<ListView
 		android:id="@+id/android:list"
 		android:layout_height="fill_parent"
 		android:layout_width="fill_parent" />
-	<TextView
-		android:text="@string/noServers"
-		android:layout_height="wrap_content"
-		android:layout_width="fill_parent"
-		android:id="@+id/android:empty" />
 </LinearLayout>
