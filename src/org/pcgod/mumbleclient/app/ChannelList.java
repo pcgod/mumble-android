@@ -142,9 +142,11 @@ public class ChannelList extends ConnectedActivity {
 				// The method will make sure that the connection is signaled
 				// only once so calling is safe even if it has already been
 				// called successfully.
+				visibleChannel = mService.getCurrentChannel();
 				onConnected();
 
 				synchronizeControls();
+				updateUserList();
 				return;
 			}
 
