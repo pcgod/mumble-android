@@ -199,7 +199,7 @@ public class MumbleConnection implements Runnable {
 		} catch (final KeyManagementException e) {
 			e.printStackTrace();
 		} catch (final UnknownHostException e) {
-			e.printStackTrace();
+			errorString = String.format("Host \"%s\" unknown", host);
 		} catch (final IOException e) {
 			e.printStackTrace();
 		} catch (final InterruptedException e) {
@@ -412,7 +412,9 @@ public class MumbleConnection implements Runnable {
 			break;
 		case Reject:
 			final Reject reject = Reject.parseFrom(buffer);
-			errorString = reject.getReason();
+			errorString = String.format(
+				"Connection rejected: %s",
+				reject.getReason());
 			break;
 		case ServerSync:
 			final ServerSync ss = ServerSync.parseFrom(buffer);

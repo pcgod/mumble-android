@@ -65,8 +65,8 @@ public class MumbleService extends Service {
 	private Thread mClientThread;
 	private Thread mRecordThread;
 
-	private Notification mNotification;
-	private boolean mHasConnections;
+	Notification mNotification;
+	boolean mHasConnections;
 
 	/**
 	 * Connection host for MumbleConnection.
@@ -279,12 +279,12 @@ public class MumbleService extends Service {
 	};
 
 	private final LocalBinder mBinder = new LocalBinder();
-	private final Handler handler = new Handler();
+	final Handler handler = new Handler();
 
-	private ConnectionState state;
-	private final List<Message> messages = new LinkedList<Message>();
-	private final List<Channel> channels = new ArrayList<Channel>();
-	private final List<User> users = new ArrayList<User>();
+	ConnectionState state;
+	final List<Message> messages = new LinkedList<Message>();
+	final List<Channel> channels = new ArrayList<Channel>();
+	final List<User> users = new ArrayList<User>();
 
 	private static final Class[] mStartForegroundSignature = new Class[] {
 			int.class, Notification.class };
@@ -292,11 +292,9 @@ public class MumbleService extends Service {
 	private static final Class[] mStopForegroundSignature = new Class[] { boolean.class };
 
 	private Method mStartForeground;
-
 	private Method mStopForeground;
 
 	private final Object[] mStartForegroundArgs = new Object[2];
-
 	private final Object[] mStopForegroundArgs = new Object[1];
 
 	public boolean canSpeak() {
@@ -339,6 +337,9 @@ public class MumbleService extends Service {
 	}
 
 	public String getError() {
+		if (mClient == null) {
+			return null;
+		}
 		return mClient.getError();
 	}
 

@@ -244,7 +244,7 @@ public class ChannelList extends ConnectedActivity {
 	private static final int MENU_CHAT = Menu.FIRST;
 
 	private boolean isConnected = false;
-	private Channel visibleChannel;
+	Channel visibleChannel;
 	private final List<User> channelUsers = new ArrayList<User>();
 
 	private TextView channelNameText;
@@ -257,7 +257,7 @@ public class ChannelList extends ConnectedActivity {
 
 	private ChannelBroadcastReceiver bcReceiver;
 	private AlertDialog mChannelSelectDialog;
-	private List<Channel> selectableChannels;
+	List<Channel> selectableChannels;
 	private ProgressDialog mProgressDialog;
 	private AlertDialog mDisconnectDialog;
 
@@ -451,11 +451,12 @@ public class ChannelList extends ConnectedActivity {
 
 	private void onDisconnected() {
 		cleanDialogs();
+		// TODO: this doesn't work for unknown host errors
 		final String error = mService.getError();
 		if (error != null) {
 			Toast.makeText(
 				this,
-				String.format("Connection rejected: %1s", error),
+				error,
 				Toast.LENGTH_SHORT).show();
 		}
 		finish();
