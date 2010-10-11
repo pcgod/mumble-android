@@ -338,6 +338,10 @@ public class MumbleService extends Service {
 		return mClient.currentUser;
 	}
 
+	public String getError() {
+		return mClient.getError();
+	}
+
 	public List<Message> getMessageList() {
 		return Collections.unmodifiableList(messages);
 	}

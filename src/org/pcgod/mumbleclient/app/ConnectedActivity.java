@@ -19,8 +19,9 @@ import android.util.Log;
  */
 public class ConnectedActivity extends Activity {
 	ServiceConnection mServiceConn = new ServiceConnection() {
-		public void onServiceConnected(final ComponentName className,
-				final IBinder binder) {
+		public void onServiceConnected(
+			final ComponentName className,
+			final IBinder binder) {
 			mService = ((MumbleService.LocalBinder) binder).getService();
 			Log.i("Mumble", "mService set");
 			onServiceBound();

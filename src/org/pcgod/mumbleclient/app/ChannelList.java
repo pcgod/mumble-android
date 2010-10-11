@@ -36,6 +36,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 /**
@@ -119,7 +120,9 @@ public class ChannelList extends ConnectedActivity {
 			// it was later changed to onResume for some reason.
 			//
 			// TODO: Figure out the correct solution.
-			if (mService == null) return;
+			if (mService == null) {
+				return;
+			}
 
 			// First process intents that do NOT require active connection.
 			if (action.equals(MumbleService.INTENT_CONNECTION_STATE_CHANGED)) {
@@ -132,7 +135,9 @@ public class ChannelList extends ConnectedActivity {
 			// If the connection is NOT active at this point, skip everything.
 			// This means the connection WAS active but it was disconnected
 			// before the intents were processed.
-			if (!mService.isConnected()) return;
+			if (!mService.isConnected()) {
+				return;
+			}
 
 			if (action.equals(MumbleService.INTENT_CURRENT_CHANNEL_CHANGED)) {
 				// Current channel being set is one of the requirements this
@@ -218,11 +223,12 @@ public class ChannelList extends ConnectedActivity {
 		}
 
 		@Override
-		public final View getView(final int position, View v,
-				final ViewGroup parent) {
+		public final View getView(
+			final int position,
+			View v,
+			final ViewGroup parent) {
 			if (v == null) {
-				final LayoutInflater inflater = (LayoutInflater) ChannelList.this
-						.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+				final LayoutInflater inflater = (LayoutInflater) ChannelList.this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 				v = inflater.inflate(android.R.layout.simple_list_item_1, null);
 			}
 			final User u = getItem(position);
@@ -233,7 +239,6 @@ public class ChannelList extends ConnectedActivity {
 	}
 
 	public static final String JOIN_CHANNEL = "join_channel";
-
 	public static final String SAVED_STATE_VISIBLE_CHANNEL = "visible_channel";
 
 	private static final int MENU_CHAT = Menu.FIRST;
@@ -277,17 +282,22 @@ public class ChannelList extends ConnectedActivity {
 			while (i.hasNext()) {
 				final Channel c = i.next();
 				if (c.id == currentChannelId) {
-					channelNames[step] = String.format("%s (C, %d)", c.name,
-							c.userCount);
+					channelNames[step] = String.format(
+						"%s (C, %d)",
+						c.name,
+						c.userCount);
 				} else {
-					channelNames[step] = String.format("%s (%d)", c.name,
-							c.userCount);
+					channelNames[step] = String.format(
+						"%s (%d)",
+						c.name,
+						c.userCount);
 				}
 				step++;
 			}
 
-			new AlertDialog.Builder(ChannelList.this).setCancelable(true)
-					.setItems(channelNames, channelListClickEvent).show();
+			new AlertDialog.Builder(ChannelList.this).setCancelable(true).setItems(
+				channelNames,
+				channelListClickEvent).show();
 		}
 	};
 
@@ -320,7 +330,7 @@ public class ChannelList extends ConnectedActivity {
 	@Override
 	public final boolean onCreateOptionsMenu(final Menu menu) {
 		menu.add(0, MENU_CHAT, 0, "Chat").setIcon(
-				android.R.drawable.ic_btn_speak_now);
+			android.R.drawable.ic_btn_speak_now);
 		return true;
 	}
 
@@ -342,8 +352,9 @@ public class ChannelList extends ConnectedActivity {
 	}
 
 	@Override
-	public final boolean onMenuItemSelected(final int featureId,
-			final MenuItem item) {
+	public final boolean onMenuItemSelected(
+		final int featureId,
+		final MenuItem item) {
 		switch (item.getItemId()) {
 		case MENU_CHAT:
 			final Intent i = new Intent(this, ChatActivity.class);
@@ -372,25 +383,6 @@ public class ChannelList extends ConnectedActivity {
 	}
 
 	/**
-	 * Handles activity initialization when the Service is connecting.
-	 */
-	private void onConnecting() {
-		if (mProgressDialog == null) {
-			mProgressDialog = ProgressDialog.show(ChannelList.this,
-					getString(R.string.connectionProgressTitle),
-					getString(R.string.connectionProgressConnectingMessage),
-					true, true, new OnCancelListener() {
-						@Override
-						public void onCancel(DialogInterface dialog) {
-							mService.disconnect();
-							mProgressDialog
-									.setMessage(getString(R.string.connectionProgressDisconnectingMessage));
-						}
-					});
-		}
-	}
-
-	/**
 	 * Handles activity initialization when the Service has connected.
 	 *
 	 * Should be called when there is a reason to believe that the connection
@@ -408,9 +400,8 @@ public class ChannelList extends ConnectedActivity {
 	private void onConnected() {
 		if (isConnected || mService.getCurrentChannel() == null) {
 			if (mProgressDialog != null &&
-					mService.getConnectionState() == ConnectionState.Connected) {
-				mProgressDialog
-						.setMessage(getString(R.string.connectionProgressSynchronizingMessage));
+				mService.getConnectionState() == ConnectionState.Connected) {
+				mProgressDialog.setMessage(getString(R.string.connectionProgressSynchronizingMessage));
 			}
 			return;
 		}
@@ -437,8 +428,36 @@ public class ChannelList extends ConnectedActivity {
 		channelNameText.setText(channelName);
 	}
 
+	/**
+	 * Handles activity initialization when the Service is connecting.
+	 */
+	private void onConnecting() {
+		if (mProgressDialog == null) {
+			mProgressDialog = ProgressDialog.show(
+				ChannelList.this,
+				getString(R.string.connectionProgressTitle),
+				getString(R.string.connectionProgressConnectingMessage),
+				true,
+				true,
+				new OnCancelListener() {
+					@Override
+					public void onCancel(final DialogInterface dialog) {
+						mService.disconnect();
+						mProgressDialog.setMessage(getString(R.string.connectionProgressDisconnectingMessage));
+					}
+				});
+		}
+	}
+
 	private void onDisconnected() {
 		cleanDialogs();
+		final String error = mService.getError();
+		if (error != null) {
+			Toast.makeText(
+				this,
+				String.format("Connection rejected: %1s", error),
+				Toast.LENGTH_SHORT).show();
+		}
 		finish();
 	}
 
@@ -481,8 +500,7 @@ public class ChannelList extends ConnectedActivity {
 				}
 			}
 
-			((UserAdapter) channelUsersList.getAdapter())
-					.notifyDataSetChanged();
+			((UserAdapter) channelUsersList.getAdapter()).notifyDataSetChanged();
 		}
 
 		final boolean showList = (channelUsers.size() > 0);
@@ -497,8 +515,7 @@ public class ChannelList extends ConnectedActivity {
 		setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
 
 		if (savedInstanceState != null) {
-			visibleChannel = (Channel) savedInstanceState
-					.getSerializable(SAVED_STATE_VISIBLE_CHANNEL);
+			visibleChannel = (Channel) savedInstanceState.getSerializable(SAVED_STATE_VISIBLE_CHANNEL);
 		}
 
 		// Get the UI views

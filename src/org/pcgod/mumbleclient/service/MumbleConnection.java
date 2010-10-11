@@ -20,6 +20,7 @@ import net.sf.mumble.MumbleProto.ChannelRemove;
 import net.sf.mumble.MumbleProto.ChannelState;
 import net.sf.mumble.MumbleProto.CodecVersion;
 import net.sf.mumble.MumbleProto.CryptSetup;
+import net.sf.mumble.MumbleProto.Reject;
 import net.sf.mumble.MumbleProto.ServerSync;
 import net.sf.mumble.MumbleProto.TextMessage;
 import net.sf.mumble.MumbleProto.UserRemove;
@@ -92,6 +93,7 @@ public class MumbleConnection implements Runnable {
 	private Thread readingThread;
 	private final Object stateLock = new Object();
 	private final CryptState cryptState = new CryptState();
+	private String errorString;
 
 	/**
 	 * Constructor for new connection thread.
@@ -134,6 +136,12 @@ public class MumbleConnection implements Runnable {
 			connectionHost.setConnectionState(ConnectionState.Disconnecting);
 			stateLock.notifyAll();
 		}
+	}
+
+	public String getError() {
+		final String error = errorString;
+		errorString = null;
+		return error;
 	}
 
 	public final boolean isConnectionAlive() {
@@ -401,6 +409,10 @@ public class MumbleConnection implements Runnable {
 				connectionHost.currentUserUpdated();
 			}
 
+			break;
+		case Reject:
+			final Reject reject = Reject.parseFrom(buffer);
+			errorString = reject.getReason();
 			break;
 		case ServerSync:
 			final ServerSync ss = ServerSync.parseFrom(buffer);
