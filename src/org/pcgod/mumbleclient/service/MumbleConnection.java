@@ -484,6 +484,7 @@ public class MumbleConnection implements Runnable {
 					if (us.getSession() == currentUser.session) {
 						currentChannel = channel;
 						currentUpdated = true;
+						connectionHost.currentChannelChanged();
 					}
 					connectionHost.channelUpdated(channel);
 				}

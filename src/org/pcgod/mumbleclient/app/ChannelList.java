@@ -613,5 +613,7 @@ public class ChannelList extends ConnectedActivity {
 		default:
 			Assert.fail("Unknown connection state");
 		}
+
+		synchronizeControls();
 	}
 }
