@@ -1,93 +1,61 @@
 package org.pcgod.mumbleclient.service;
 
-import java.nio.ByteBuffer;
-import java.nio.ShortBuffer;
+import java.util.Arrays;
 
 public class PacketDataStream {
-	private final ByteBuffer data;
-	private int overshoot;
+	private byte[] data;
 	private boolean ok;
+	private int offset;
+	private int capacity;
 
 	public PacketDataStream(final byte[] d) {
-		data = ByteBuffer.wrap(d);
-		ok = true;
-	}
-
-	public PacketDataStream(final ByteBuffer d) {
-		data = d;
-		ok = true;
+		setBuffer(d);
 	}
 
 	public final void append(final byte[] d) {
 		final int len = d.length;
 		if (left() >= len) {
-			data.put(d);
+			System.arraycopy(d, 0, data, offset, len);
+			offset += len;
 		} else {
 			final int l = left();
-			data.put(null, 0, l);
-			overshoot += len - l;
-			ok = false;
-		}
-	}
-
-	public void append(final ByteBuffer tmp) {
-		final int len = tmp.limit();
-		if (left() >= len) {
-			for (int i = 0; i < len; ++i) {
-				data.put(tmp.get(i));
-			}
-		} else {
-			final int l = left();
-			data.put(null, 0, l);
-			overshoot += len - l;
+			Arrays.fill(data, offset, offset + l, (byte) 0);
+			offset += l;
 			ok = false;
 		}
 	}
 
 	public final void append(final long v) {
-		if (data.position() < data.capacity()) {
-			data.put((byte) v);
+		if (offset < data.length) {
+			data[offset] = (byte) v;
+			++offset;
 		} else {
-			ok = false;
-			overshoot++;
-		}
-	}
-
-	public final void append(final short[] d) {
-		final int len = d.length;
-		if (left() >= len) {
-			for (int i = 0; i < len; ++i) {
-				data.put((byte) d[i]);
-			}
-		} else {
-			final int l = left();
-			data.put(null, 0, l);
-			overshoot += len - l;
-			ok = false;
-		}
-	}
-
-	public void append(final ShortBuffer tmp) {
-		final int len = tmp.limit();
-		if (left() >= len) {
-			for (int i = 0; i < len; ++i) {
-				data.put((byte) tmp.get(i));
-			}
-		} else {
-			final int l = left();
-			data.put(null, 0, l);
-			overshoot += len - l;
 			ok = false;
 		}
 	}
 
 	public final int capacity() {
-		return data.capacity();
+		return data.length;
 	}
 
 	public final boolean dataBlock(final byte[] buffer, final int len) {
 		if (len <= left()) {
-			data.get(buffer, 0, len);
+			System.arraycopy(data, offset, buffer, 0, len);
+			offset += len;
+			return true;
+		} else {
+			ok = false;
+			return false;
+		}
+	}
+
+	public boolean dataBlock(
+		final byte[] buffer,
+		final int startOffset,
+		final int len) {
+		if (len <= left()) {
+			System.arraycopy(data, offset, buffer, startOffset, len);
+			offset += len;
 			return true;
 		} else {
 			ok = false;
@@ -100,13 +68,13 @@ public class PacketDataStream {
 	}
 
 	public final int left() {
-		return data.remaining();
+		return capacity - offset;
 	}
 
 	public final int next() {
-		if (data.position() < data.capacity()) {
+		if (offset < capacity) {
 			// convert to unsigned...
-			return data.get() & 0xFF;
+			return data[offset++] & 0xFF;
 		} else {
 			ok = false;
 			return 0;
@@ -125,7 +93,8 @@ public class PacketDataStream {
 		}
 
 		final long i = next() | next() << 8 | next() << 16 | next() << 24 |
-				next() << 32 | next() << 40 | next() << 48 | next() << 56;
+					   next() << 32 | next() << 40 | next() << 48 |
+					   next() << 56;
 		return i;
 	}
 
@@ -155,7 +124,7 @@ public class PacketDataStream {
 				break;
 			case 0xF4:
 				i = next() << 56 | next() << 48 | next() << 40 | next() << 32 |
-						next() << 24 | next() << 16 | next() << 8 | next();
+					next() << 24 | next() << 16 | next() << 8 | next();
 				break;
 			case 0xF8:
 				i = readLong();
@@ -179,16 +148,23 @@ public class PacketDataStream {
 	}
 
 	public final void rewind() {
-		data.rewind();
+		offset = 0;
+	}
+
+	public void setBuffer(final byte[] d) {
+		data = d;
+		ok = true;
+		offset = 0;
+		capacity = d.length;
 	}
 
 	public final int size() {
-		return data.position();
+		return offset;
 	}
 
 	public final void skip(final int len) {
 		if (left() >= len) {
-			data.position(data.position() + len);
+			offset += len;
 		} else {
 			ok = false;
 		}

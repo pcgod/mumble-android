@@ -86,7 +86,6 @@ public class MumbleService extends Service {
 	 * MumbleService handler.
 	 */
 	private final MumbleConnectionHost connectionHost = new MumbleConnectionHost() {
-
 		@Override
 		public void channelAdded(final Channel channel) {
 			handler.post(new Runnable() {
@@ -187,23 +186,32 @@ public class MumbleService extends Service {
 			b.putSerializable(EXTRA_CONNECTION_STATE, state);
 			sendBroadcast(INTENT_CONNECTION_STATE_CHANGED);
 
-			Log.i(Globals.LOG_TAG,
-					"MumbleService: Connection state changed to " +
-							state.toString());
+			Log.i(
+				Globals.LOG_TAG,
+				"MumbleService: Connection state changed to " +
+					state.toString());
 
 			// Handle foreground stuff
 			if (state == ConnectionState.Connected) {
-				mNotification = new Notification(R.drawable.icon,
-						"Mumble connected", System.currentTimeMillis());
+				mNotification = new Notification(
+					R.drawable.icon,
+					"Mumble connected",
+					System.currentTimeMillis());
 
-				final Intent channelListIntent = new Intent(MumbleService.this,
-						ChannelList.class);
-				channelListIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-						.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-				mNotification.setLatestEventInfo(MumbleService.this, "Mumble",
-						"Mumble is connected to a server", PendingIntent
-								.getActivity(MumbleService.this, 0,
-										channelListIntent, 0));
+				final Intent channelListIntent = new Intent(
+					MumbleService.this,
+					ChannelList.class);
+				channelListIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP).addFlags(
+					Intent.FLAG_ACTIVITY_NEW_TASK);
+				mNotification.setLatestEventInfo(
+					MumbleService.this,
+					"Mumble",
+					"Mumble is connected to a server",
+					PendingIntent.getActivity(
+						MumbleService.this,
+						0,
+						channelListIntent,
+						0));
 				startForegroundCompat(1, mNotification);
 			} else if (state == ConnectionState.Disconnected) {
 				if (mNotification != null) {
@@ -219,9 +227,9 @@ public class MumbleService extends Service {
 			// If the connection was disconnected and there are no bound
 			// connections to this service, finish it.
 			if (state == ConnectionState.Disconnected && !mHasConnections) {
-				Log
-						.i(Globals.LOG_TAG,
-								"MumbleService: Service disconnected while there are no connections up.");
+				Log.i(
+					Globals.LOG_TAG,
+					"MumbleService: Service disconnected while there are no connections up.");
 				stopSelf();
 			}
 		}
@@ -308,7 +316,7 @@ public class MumbleService extends Service {
 	public int getCodec() {
 		if (mClient.codec == MumbleConnection.CODEC_NOCODEC) {
 			throw new IllegalStateException(
-					"Called getCodec on a connection with unsupported codec");
+				"Called getCodec on a connection with unsupported codec");
 		}
 
 		return mClient.codec;
@@ -361,8 +369,8 @@ public class MumbleService extends Service {
 		final String password = intent.getStringExtra(EXTRA_PASSWORD);
 
 		if (mClient != null &&
-				mClient.isSameServer(host, port, username, password) &&
-				isConnected()) {
+			mClient.isSameServer(host, port, username, password) &&
+			isConnected()) {
 			return START_NOT_STICKY;
 		}
 
@@ -370,8 +378,12 @@ public class MumbleService extends Service {
 			mClientThread.interrupt();
 		}
 
-		mClient = new MumbleConnection(connectionHost, host, port, username,
-				password);
+		mClient = new MumbleConnection(
+			connectionHost,
+			host,
+			port,
+			username,
+			password);
 		mClientThread = new Thread(mClient, "net");
 		mClientThread.start();
 		return START_NOT_STICKY;
@@ -404,10 +416,12 @@ public class MumbleService extends Service {
 		super.onCreate();
 
 		try {
-			mStartForeground = getClass().getMethod("startForeground",
-					mStartForegroundSignature);
-			mStopForeground = getClass().getMethod("stopForeground",
-					mStopForegroundSignature);
+			mStartForeground = getClass().getMethod(
+				"startForeground",
+				mStartForegroundSignature);
+			mStopForeground = getClass().getMethod(
+				"stopForeground",
+				mStopForegroundSignature);
 		} catch (final NoSuchMethodException e) {
 			// Running on an older platform.
 			mStartForeground = mStopForeground = null;
@@ -433,8 +447,10 @@ public class MumbleService extends Service {
 	}
 
 	@Override
-	public int onStartCommand(final Intent intent, final int flags,
-			final int startId) {
+	public int onStartCommand(
+		final Intent intent,
+		final int flags,
+		final int startId) {
 		return handleCommand(intent);
 	}
 
@@ -446,16 +462,13 @@ public class MumbleService extends Service {
 
 		if (state == ConnectionState.Disconnected) {
 			stopSelf();
-			Log
-					.i(Globals.LOG_TAG,
-							"MumbleService: No clients bound and connection is not alive -> Stopping");
+			Log.i(
+				Globals.LOG_TAG,
+				"MumbleService: No clients bound and connection is not alive -> Stopping");
 		}
 
 		return false;
 	}
-
-	// -----------------------------------------------------------------------
-	// StartForeground API Wrapper
 
 	public void sendChannelTextMessage(final String message) {
 		assertConnected();
@@ -463,10 +476,11 @@ public class MumbleService extends Service {
 		mClient.sendChannelTextMessage(message);
 	}
 
-	public void sendUdpTunnelMessage(final byte[] buffer) throws IOException {
+	public void sendUdpTunnelMessage(final byte[] buffer, final int length)
+		throws IOException {
 		assertConnected();
 
-		mClient.sendUdpTunnelMessage(buffer);
+		mClient.sendUdpTunnelMessage(buffer, length);
 	}
 
 	public void setRecording(final boolean state) {
@@ -530,7 +544,8 @@ public class MumbleService extends Service {
 		// Fall back on the old API.
 		setForeground(true);
 		((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(
-				id, notification);
+			id,
+			notification);
 	}
 
 	/**
@@ -555,8 +570,7 @@ public class MumbleService extends Service {
 
 		// Fall back on the old API.  Note to cancel BEFORE changing the
 		// foreground state, since we could be killed at that point.
-		((NotificationManager) getSystemService(NOTIFICATION_SERVICE))
-				.cancel(id);
+		((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(id);
 		setForeground(false);
 	}
 }

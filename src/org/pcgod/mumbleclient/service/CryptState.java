@@ -208,8 +208,10 @@ public class CryptState {
 		}
 
 		final SecretKeySpec cryptKey = new SecretKeySpec(rkey, "AES");
-		encryptIv = Arrays.copyOf(eiv, eiv.length);
-		decryptIv = Arrays.copyOf(div, div.length);
+		encryptIv = new byte[eiv.length];
+		System.arraycopy(eiv, 0, encryptIv, 0, AES_BLOCK_SIZE);
+		decryptIv = new byte[div.length];
+		System.arraycopy(div, 0, decryptIv, 0, AES_BLOCK_SIZE);
 
 		try {
 			encryptCipher.init(Cipher.ENCRYPT_MODE, cryptKey);

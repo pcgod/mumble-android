@@ -19,6 +19,7 @@ import net.sf.mumble.MumbleProto.Authenticate;
 import net.sf.mumble.MumbleProto.ChannelRemove;
 import net.sf.mumble.MumbleProto.ChannelState;
 import net.sf.mumble.MumbleProto.CodecVersion;
+import net.sf.mumble.MumbleProto.CryptSetup;
 import net.sf.mumble.MumbleProto.ServerSync;
 import net.sf.mumble.MumbleProto.TextMessage;
 import net.sf.mumble.MumbleProto.UserRemove;
@@ -91,6 +92,7 @@ public class MumbleConnection implements Runnable {
 	private Thread audioOutputThread;
 	private Thread readingThread;
 	private final Object stateLock = new Object();
+	private final CryptState cryptState = new CryptState();
 
 	/**
 	 * Constructor for new connection thread.
@@ -163,11 +165,9 @@ public class MumbleConnection implements Runnable {
 
 			synchronized (stateLock) {
 				final SSLContext ctx_ = SSLContext.getInstance("TLS");
-				ctx_
-						.init(
-								null,
-								new TrustManager[] { new LocalSSLTrustManager() },
-								null);
+				ctx_.init(null,
+						  new TrustManager[] { new LocalSSLTrustManager() },
+						  null);
 				final SSLSocketFactory factory = ctx_.getSocketFactory();
 				socket_ = (SSLSocket) factory.createSocket(host, port);
 				socket_.setUseClientMode(true);
@@ -239,15 +239,15 @@ public class MumbleConnection implements Runnable {
 		}
 	}
 
-	public final void sendUdpTunnelMessage(final byte[] buffer)
-			throws IOException {
+	public final void sendUdpTunnelMessage(final byte[] buffer, final int len)
+		throws IOException {
 		final short type = (short) MessageType.UDPTunnel.ordinal();
-		final int length = buffer.length;
+		final int length = len;
 
 		synchronized (out) {
 			out.writeShort(type);
 			out.writeInt(length);
-			out.write(buffer);
+			out.write(buffer, 0, len);
 		}
 	}
 
@@ -317,8 +317,7 @@ public class MumbleConnection implements Runnable {
 					Log.e(Globals.LOG_TAG, ex.toString());
 				} finally {
 					synchronized (stateLock) {
-						connectionHost
-								.setConnectionState(ConnectionState.Disconnecting);
+						connectionHost.setConnectionState(ConnectionState.Disconnecting);
 						disconnecting = true;
 
 						// The thread is dying so null it. This prevents the waiting loop from
@@ -388,7 +387,7 @@ public class MumbleConnection implements Runnable {
 			// ignore
 			break;
 		case CodecVersion:
-			boolean oldCanSpeak = canSpeak;
+			final boolean oldCanSpeak = canSpeak;
 			final CodecVersion codecVersion = CodecVersion.parseFrom(buffer);
 			codec = CODEC_NOCODEC;
 			if (codecVersion.hasAlpha() &&
@@ -522,7 +521,12 @@ public class MumbleConnection implements Runnable {
 			handleTextMessage(TextMessage.parseFrom(buffer));
 			break;
 		case CryptSetup:
-			// TODO: Implementation. See git history for unfinished example.
+			final CryptSetup cryptsetup = CryptSetup.parseFrom(buffer);
+
+			cryptState.SetKeys(
+				cryptsetup.getKey().toByteArray(),
+				cryptsetup.getClientNonce().toByteArray(),
+				cryptsetup.getServerNonce().toByteArray());
 			break;
 		default:
 			Log.i(Globals.LOG_TAG, "unhandled message type " + t);
