@@ -77,6 +77,7 @@ public class MumbleConnection implements Runnable {
 	public boolean canSpeak = true;
 	public int codec = CODEC_NOCODEC;
 	private final MumbleConnectionHost connectionHost;
+	private final AudioOutputHost audioHost;
 
 	private DataInputStream in;
 	private DataOutputStream out;
@@ -113,10 +114,15 @@ public class MumbleConnection implements Runnable {
 	 * @param username_       Username
 	 * @param password_       Server password
 	 */
-	public MumbleConnection(final MumbleConnectionHost connectionHost_,
-			final String host_, final int port_, final String username_,
-			final String password_) {
+	public MumbleConnection(
+		final MumbleConnectionHost connectionHost_,
+		final AudioOutputHost audioHost_,
+		final String host_,
+		final int port_,
+		final String username_,
+		final String password_) {
 		connectionHost = connectionHost_;
+		audioHost = audioHost_;
 		host = host_;
 		port = port_;
 		username = username_;
@@ -434,7 +440,7 @@ public class MumbleConnection implements Runnable {
 			pingThread.start();
 			Log.i(Globals.LOG_TAG, ">>> " + t);
 
-			ao = new AudioOutput();
+			ao = new AudioOutput(audioHost);
 			audioOutputThread = new Thread(ao, "audio output");
 			audioOutputThread.start();
 

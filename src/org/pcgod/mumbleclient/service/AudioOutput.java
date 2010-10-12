@@ -26,6 +26,9 @@ class AudioOutput implements Runnable {
 		public void packetReady(final AudioUser user) {
 			synchronized (userPackets) {
 				if (!userPackets.containsKey(user.getUser())) {
+					host.setTalkState(
+						user.getUser(),
+						AudioOutputHost.STATE_TALKING);
 					userPackets.put(user.getUser(), user);
 					userPackets.notify();
 				}
@@ -40,7 +43,11 @@ class AudioOutput implements Runnable {
 	final Map<User, AudioUser> userPackets = new HashMap<User, AudioUser>();
 	private final Map<User, AudioUser> users = new HashMap<User, AudioUser>();
 
-	public AudioOutput() {
+	private final AudioOutputHost host;
+
+	public AudioOutput(final AudioOutputHost host) {
+		this.host = host;
+
 		int minBufferSize = AudioTrack.getMinBufferSize(
 			MumbleConnection.SAMPLE_RATE,
 			AudioFormat.CHANNEL_CONFIGURATION_MONO,
@@ -123,6 +130,9 @@ class AudioOutput implements Runnable {
 						mix.add(user);
 					} else {
 						i.remove();
+						host.setTalkState(
+							user.getUser(),
+							AudioOutputHost.STATE_PASSIVE);
 					}
 				}
 			}
@@ -146,7 +156,6 @@ class AudioOutput implements Runnable {
 				}
 
 				at.write(clipOut, 0, MumbleConnection.FRAME_SIZE);
-
 			}
 
 			// Wait for more input.

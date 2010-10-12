@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
+import org.pcgod.mumbleclient.service.AudioOutputHost;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.content.Context;
@@ -17,6 +18,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.CheckBox;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -245,23 +247,7 @@ public class UserListAdapter extends BaseAdapter {
 
 		final TextView name = (TextView) view.findViewById(R.id.userRowName);
 		final TextView status = (TextView) view.findViewById(R.id.userRowStatus);
-
-		Log.i(Globals.LOG_TAG, String.format("Refreshing view: %h", view));
-		Log.i(Globals.LOG_TAG, String.format(
-			"Using view: %s, %s",
-			name.getText(),
-			status.getText()));
-		Log.i(Globals.LOG_TAG, String.format(
-			"Updating user: %s, %b, %b (%h)",
-			user.name,
-			user.muted,
-			user.deafened,
-			user));
-
-		Log.i(Globals.LOG_TAG, String.format(
-			"Adapting view: '%s' -> '%s'",
-			name.getText(),
-			user.name));
+		final CheckBox state = (CheckBox) view.findViewById(R.id.userRowTalkState);
 
 		name.setText(user.name);
 
@@ -271,6 +257,14 @@ public class UserListAdapter extends BaseAdapter {
 			status.setText((user.muted && user.deafened) ? "M+D"
 				: user.muted ? "M" : "D");
 		}
+
+		state.setChecked(user.talkingState == AudioOutputHost.STATE_TALKING);
+		Log.i(Globals.LOG_TAG, String.format(
+			"Updated user %s: %b, %b, %d",
+			user.name,
+			user.muted,
+			user.deafened,
+			user.talkingState));
 
 		view.invalidate();
 	}

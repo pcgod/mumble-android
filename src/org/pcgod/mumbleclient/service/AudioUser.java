@@ -184,15 +184,14 @@ class AudioUser {
 				Native.jitter_buffer_update_delay(jitterBuffer, null, null);
 			}
 
-			if (missedFrames > 20) {
-				return false;
-			}
-
 		} else {
 			jbp = normalBuffer.poll();
 			if (jbp != null) {
 				data = jbp.data;
 				dataLength = jbp.len;
+				missedFrames = 0;
+			} else {
+				missedFrames++;
 			}
 		}
 
@@ -207,7 +206,8 @@ class AudioUser {
 				Native.jitter_buffer_tick(jitterBuffer);
 			}
 		}
-		return (useJitterBuffer || data != null);
+
+		return (missedFrames < 10);
 	}
 
 	@Override

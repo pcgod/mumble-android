@@ -5,18 +5,26 @@
 	android:layout_height="wrap_content"
 	android:layout_width="fill_parent">
 
+	<CheckBox
+		android:layout_height="wrap_content"
+		android:layout_width="wrap_content"
+		android:layout_alignParentLeft="true"
+		android:layout_marginTop="5dip"
+		android:focusable="false"
+		android:clickable="false"
+		android:id="@+id/userRowTalkState"></CheckBox>
 	<TextView
 		android:layout_toLeftOf="@+id/userRowStatus"
 		android:layout_height="wrap_content"
-		android:layout_weight="1"
-		android:layout_alignParentLeft="true"
 		android:text="[Name]"
 		android:id="@+id/userRowName"
 		android:ellipsize="end"
 		android:layout_width="wrap_content"
 		android:lines="1"
 		android:singleLine="true"
-		android:textSize="25sp" />
+		android:textSize="25sp"
+		android:layout_centerVertical="true"
+		android:layout_toRightOf="@+id/userRowTalkState" />
 	<!--
 		singleLine is deprecated but it is the only way to get ellipsize work
 		it seems. 'inputType text, maxLines 1' didn't work. It's a known issue

@@ -415,6 +415,7 @@ public class ChannelList extends ConnectedActivity {
 			setChannel(mService.getCurrentChannel());
 		} else {
 			synchronizeControls();
+			usersAdapter.notifyDataSetChanged();
 		}
 
 		usersAdapter.setUsers(mService.getUserList());
@@ -566,10 +567,15 @@ public class ChannelList extends ConnectedActivity {
 			onConnecting();
 			break;
 		case Connected:
-			// We might have resumed right after the connection was established
-			// in which case the connection is incomplete. Try setting up the
-			// connection anyway as onConnected takes care of the proper checks.
-			onConnected();
+			// If we aren't connected yet try marking us connected.
+			if (!isConnected) {
+				onConnected();
+			} else {
+				// If we are connected at this point it means we resumed the
+				// activity after having paused it. The underlying data structures
+				// might have been changed during pause so refresh them.
+				usersAdapter.setUsers(mService.getUserList());
+			}
 			break;
 		case Disconnected:
 		case Disconnecting:
