@@ -5,16 +5,17 @@
 	<application android:icon="@drawable/icon" android:label="@string/app_name">
 		<activity android:label="@string/app_name" android:name=".app.ServerList">
 			<intent-filter>
-				<action android:name="android.intent.action.MAIN"></action>
-				<category android:name="android.intent.category.LAUNCHER"></category>
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
 		</activity>
-		<activity android:name=".app.ServerInfo"></activity>
-		<activity android:name=".app.ChannelList" android:launchMode="singleTask"></activity>
-		<activity android:name=".app.ChatActivity"></activity>
-		<service android:enabled="true" android:name=".service.MumbleService"></service>
+		<activity android:name=".app.ServerInfo" />
+		<activity android:name=".app.ChannelList" android:launchMode="singleTask" />
+		<activity android:name=".app.ChatActivity" />
+		<service android:enabled="true" android:name=".service.MumbleService" />
 	</application>
 	<uses-sdk android:targetSdkVersion="8" android:minSdkVersion="3" />
-	<uses-permission android:name="android.permission.RECORD_AUDIO"></uses-permission>
-	<uses-permission android:name="android.permission.INTERNET"></uses-permission>
+	<uses-permission android:name="android.permission.RECORD_AUDIO" />
+	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-feature android:name="android.hardware.microphone" />
 </manifest>
