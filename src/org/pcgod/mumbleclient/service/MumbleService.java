@@ -261,7 +261,7 @@ public class MumbleService extends Service {
 
 							final Bundle b = new Bundle();
 							b.putSerializable(EXTRA_USER, user);
-							sendBroadcast(INTENT_USER_REMOVED);
+							sendBroadcast(INTENT_USER_REMOVED, b);
 
 							return;
 						}

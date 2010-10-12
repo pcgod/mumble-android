@@ -540,6 +540,8 @@ public class ChannelList extends ConnectedActivity {
 		final IntentFilter ifilter = new IntentFilter();
 		ifilter.addAction(MumbleService.INTENT_CHANNEL_LIST_UPDATE);
 		ifilter.addAction(MumbleService.INTENT_USER_UPDATE);
+		ifilter.addAction(MumbleService.INTENT_USER_ADDED);
+		ifilter.addAction(MumbleService.INTENT_USER_REMOVED);
 		ifilter.addAction(MumbleService.INTENT_CONNECTION_STATE_CHANGED);
 		ifilter.addAction(MumbleService.INTENT_CURRENT_CHANNEL_CHANGED);
 		ifilter.addAction(MumbleService.INTENT_CURRENT_USER_UPDATED);
