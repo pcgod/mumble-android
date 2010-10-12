@@ -475,49 +475,71 @@ public class MumbleConnection implements Runnable {
 		case UserState:
 			final UserState us = UserState.parseFrom(buffer);
 			user = findUser(us.getSession());
-			if (user != null) {
-				boolean currentUpdated = false;
 
-				if (us.hasChannelId()) {
-					channel = channels.get(us.getChannelId());
-					user.setChannel(channel);
-					if (us.getSession() == currentUser.session) {
-						currentChannel = channel;
-						currentUpdated = true;
-						connectionHost.currentChannelChanged();
-					}
-					connectionHost.channelUpdated(channel);
-				}
+			boolean added = false;
+			boolean currentUserUpdated = false;
+			boolean channelUpdated = false;
 
-				if (us.getSession() == currentUser.session) {
-					if (us.hasMute() || us.hasSuppress()) {
-						if (us.hasMute()) {
-							canSpeak = (codec != CODEC_NOCODEC) &&
-									!us.getMute();
-						}
-						if (us.hasSuppress()) {
-							canSpeak = (codec != CODEC_NOCODEC) &&
-									!us.getSuppress();
-						}
-					}
-					currentUpdated = true;
-				}
-
-				connectionHost.userUpdated(user);
-				if (currentUpdated) {
-					connectionHost.currentUserUpdated();
-				}
-				break;
+			if (user == null) {
+				user = new User();
+				user.session = us.getSession();
+				users.put(user.session, user);
+				added = true;
 			}
-			// New user
-			user = new User();
-			user.session = us.getSession();
-			user.name = us.getName();
-			user.setChannel(channels.get(us.getChannelId()));
-			users.put(user.session, user);
 
-			connectionHost.userAdded(user);
-			connectionHost.channelUpdated(user.getChannel());
+			if (us.hasMute()) {
+				user.muted = us.getMute();
+			}
+
+			if (us.hasDeaf()) {
+				user.deafened = us.getDeaf();
+				user.muted |= user.deafened;
+			}
+
+			if (us.hasName()) {
+				user.name = us.getName();
+			}
+
+			if (added || us.hasChannelId()) {
+				user.setChannel(channels.get(us.getChannelId()));
+				channelUpdated = true;
+			}
+
+			// If this is the current user, do extra updates on local state.
+			if (currentUser != null && us.getSession() == currentUser.session) {
+				if (us.hasMute() || us.hasSuppress()) {
+					// TODO: Check the logic
+					// Currently Mute+Suppress true -> Either of them false results
+					// in canSpeak = true
+					if (us.hasMute()) {
+						canSpeak = (codec != CODEC_NOCODEC) && !us.getMute();
+					}
+					if (us.hasSuppress()) {
+						canSpeak = (codec != CODEC_NOCODEC) &&
+								   !us.getSuppress();
+					}
+				}
+
+				currentUserUpdated = true;
+			}
+
+			if (channelUpdated) {
+				connectionHost.channelUpdated(user.getChannel());
+			}
+
+			if (added) {
+				connectionHost.userAdded(user);
+			} else {
+				connectionHost.userUpdated(user);
+			}
+
+			if (currentUserUpdated) {
+				connectionHost.currentUserUpdated();
+			}
+			if (currentUserUpdated && channelUpdated) {
+				currentChannel = user.getChannel();
+				connectionHost.currentChannelChanged();
+			}
 			break;
 		case UserRemove:
 			final UserRemove ur = UserRemove.parseFrom(buffer);

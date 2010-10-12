@@ -49,7 +49,9 @@ public class MumbleService extends Service {
 	public static final String INTENT_CHANNEL_LIST_UPDATE = "mumbleclient.intent.CHANNEL_LIST_UPDATE";
 	public static final String INTENT_CURRENT_CHANNEL_CHANGED = "mumbleclient.intent.CURRENT_CHANNEL_CHANGED";
 	public static final String INTENT_CURRENT_USER_UPDATED = "mumbleclient.intent.CURRENT_USER_UPDATED";
-	public static final String INTENT_USER_LIST_UPDATE = "mumbleclient.intent.USER_LIST_UPDATE";
+	public static final String INTENT_USER_ADDED = "mumbleclient.intent.USER_ADDED";
+	public static final String INTENT_USER_REMOVED = "mumbleclient.intent.USER_REMOVED";
+	public static final String INTENT_USER_UPDATE = "mumbleclient.intent.USER_UPDATE";
 	public static final String INTENT_CHAT_TEXT_UPDATE = "mumbleclient.intent.CHAT_TEXT_UPDATE";
 
 	public static final String INTENT_CONNECTION_STATE_CHANGED = "mumbleclient.intent.CONNECTION_STATE_CHANGED";
@@ -60,6 +62,7 @@ public class MumbleService extends Service {
 	public static final String EXTRA_PORT = "mumbleclient.extra.PORT";
 	public static final String EXTRA_USERNAME = "mumbleclient.extra.USERNAME";
 	public static final String EXTRA_PASSWORD = "mumbleclient.extra.PASSWORD";
+	public static final String EXTRA_USER = "mumbleclient.extra.USER";
 
 	private MumbleConnection mClient;
 	private Thread mClientThread;
@@ -240,7 +243,9 @@ public class MumbleService extends Service {
 				@Override
 				public void run() {
 					users.add(user);
-					sendBroadcast(INTENT_USER_LIST_UPDATE);
+					final Bundle b = new Bundle();
+					b.putSerializable(EXTRA_USER, user);
+					sendBroadcast(INTENT_USER_ADDED, b);
 				}
 			});
 		}
@@ -252,11 +257,17 @@ public class MumbleService extends Service {
 				public void run() {
 					for (int i = 0; i < users.size(); i++) {
 						if (users.get(i).session == userId) {
-							users.remove(i);
-							break;
+							final User user = users.remove(i);
+
+							final Bundle b = new Bundle();
+							b.putSerializable(EXTRA_USER, user);
+							sendBroadcast(INTENT_USER_REMOVED);
+
+							return;
 						}
 					}
-					sendBroadcast(INTENT_USER_LIST_UPDATE);
+
+					Assert.fail("Non-existant user was removed");
 				}
 			});
 		}
@@ -269,10 +280,15 @@ public class MumbleService extends Service {
 					for (int i = 0; i < users.size(); i++) {
 						if (users.get(i).session == user.session) {
 							users.set(i, user);
-							break;
+
+							final Bundle b = new Bundle();
+							b.putSerializable(EXTRA_USER, user);
+							sendBroadcast(INTENT_USER_UPDATE, b);
+
+							return;
 						}
 					}
-					sendBroadcast(INTENT_USER_LIST_UPDATE);
+					Assert.fail("Non-existant user was updated");
 				}
 			});
 		}

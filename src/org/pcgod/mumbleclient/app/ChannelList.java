@@ -25,13 +25,10 @@ import android.media.AudioManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.View.OnClickListener;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.ListView;
@@ -147,11 +144,10 @@ public class ChannelList extends ConnectedActivity {
 				// The method will make sure that the connection is signaled
 				// only once so calling is safe even if it has already been
 				// called successfully.
-				visibleChannel = mService.getCurrentChannel();
+				setChannel(mService.getCurrentChannel());
+
 				onConnected();
 
-				synchronizeControls();
-				updateUserList();
 				return;
 			}
 
@@ -176,8 +172,18 @@ public class ChannelList extends ConnectedActivity {
 				return;
 			}
 
-			if (action.equals(MumbleService.INTENT_USER_LIST_UPDATE)) {
-				updateUserList();
+			if (action.equals(MumbleService.INTENT_USER_UPDATE) ||
+				action.equals(MumbleService.INTENT_USER_ADDED)) {
+
+				final User updatedUser = (User) i.getSerializableExtra(MumbleService.EXTRA_USER);
+				usersAdapter.refreshUser(updatedUser);
+
+				return;
+			}
+
+			if (action.equals(MumbleService.INTENT_USER_REMOVED)) {
+				final User removedUser = (User) i.getSerializableExtra(MumbleService.EXTRA_USER);
+				usersAdapter.removeUser(removedUser.session);
 				return;
 			}
 
@@ -217,26 +223,15 @@ public class ChannelList extends ConnectedActivity {
 		}
 	}
 
-	private class UserAdapter extends ArrayAdapter<User> {
-		public UserAdapter(final Context context, final List<User> users) {
-			super(context, android.R.layout.simple_list_item_1, users);
-		}
+	private final Runnable usersChangedCallback = new Runnable() {
 
 		@Override
-		public final View getView(
-			final int position,
-			View v,
-			final ViewGroup parent) {
-			if (v == null) {
-				final LayoutInflater inflater = (LayoutInflater) ChannelList.this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-				v = inflater.inflate(android.R.layout.simple_list_item_1, null);
-			}
-			final User u = getItem(position);
-			final TextView tv = (TextView) v.findViewById(android.R.id.text1);
-			tv.setText(u.name);
-			return tv;
+		public void run() {
+			final boolean hasUsers = usersAdapter.getCount() > 0;
+			noUsersText.setVisibility(hasUsers ? View.GONE : View.VISIBLE);
+			channelUsersList.setVisibility(hasUsers ? View.VISIBLE : View.GONE);
 		}
-	}
+	};
 
 	public static final String JOIN_CHANNEL = "join_channel";
 	public static final String SAVED_STATE_VISIBLE_CHANNEL = "visible_channel";
@@ -245,11 +240,11 @@ public class ChannelList extends ConnectedActivity {
 
 	private boolean isConnected = false;
 	Channel visibleChannel;
-	private final List<User> channelUsers = new ArrayList<User>();
 
 	private TextView channelNameText;
 	private Button browseButton;
 	private ListView channelUsersList;
+	private UserListAdapter usersAdapter;
 	private TextView noUsersText;
 	private ToggleButton speakButton;
 	private Button joinButton;
@@ -408,20 +403,21 @@ public class ChannelList extends ConnectedActivity {
 
 		isConnected = true;
 
-		// If we don't have visible channel selected, default to the
-		// current channel.
-		if (visibleChannel == null) {
-			visibleChannel = mService.getCurrentChannel();
-		}
-
 		// We are now connected! \o/
 		if (mProgressDialog != null) {
 			mProgressDialog.dismiss();
 			mProgressDialog = null;
 		}
 
-		updateUserList();
-		synchronizeControls();
+		// If we don't have visible channel selected, default to the current channel.
+		// Setting channel also synchronizes the UI so we don't need to do it manually.
+		if (visibleChannel == null) {
+			setChannel(mService.getCurrentChannel());
+		} else {
+			synchronizeControls();
+		}
+
+		usersAdapter.setUsers(mService.getUserList());
 	}
 
 	/**
@@ -443,6 +439,9 @@ public class ChannelList extends ConnectedActivity {
 					}
 				});
 		}
+
+		// Make sure rest of the UI is in connecting state.
+		synchronizeControls();
 	}
 
 	private void onDisconnected() {
@@ -450,10 +449,7 @@ public class ChannelList extends ConnectedActivity {
 		// TODO: this doesn't work for unknown host errors
 		final String error = mService.getError();
 		if (error != null) {
-			Toast.makeText(
-				this,
-				error,
-				Toast.LENGTH_SHORT).show();
+			Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
 		}
 		finish();
 	}
@@ -461,8 +457,9 @@ public class ChannelList extends ConnectedActivity {
 	private void setChannel(final Channel channel) {
 		visibleChannel = channel;
 
+		final int channelId = channel.id;
+		usersAdapter.setVisibleChannel(channelId);
 		synchronizeControls();
-		updateUserList();
 	}
 
 	private void synchronizeControls() {
@@ -487,34 +484,11 @@ public class ChannelList extends ConnectedActivity {
 		}
 	}
 
-	private void updateUserList() {
-		channelUsers.clear();
-
-		if (isConnected) {
-			final List<User> allUsers = mService.getUserList();
-			for (final User u : allUsers) {
-				if (u.getChannel().id == visibleChannel.id) {
-					channelUsers.add(u);
-				}
-			}
-
-			((UserAdapter) channelUsersList.getAdapter()).notifyDataSetChanged();
-		}
-
-		final boolean showList = (channelUsers.size() > 0);
-		channelUsersList.setVisibility(showList ? View.VISIBLE : View.GONE);
-		noUsersText.setVisibility(showList ? View.GONE : View.VISIBLE);
-	}
-
 	@Override
 	protected final void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.channel_list);
 		setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
-
-		if (savedInstanceState != null) {
-			visibleChannel = (Channel) savedInstanceState.getSerializable(SAVED_STATE_VISIBLE_CHANNEL);
-		}
 
 		// Get the UI views
 		channelNameText = (TextView) findViewById(R.id.channelName);
@@ -530,12 +504,20 @@ public class ChannelList extends ConnectedActivity {
 		joinButton.setOnClickListener(joinButtonClickEvent);
 		speakButton.setOnClickListener(speakButtonClickEvent);
 
-		channelUsersList.setAdapter(new UserAdapter(this, channelUsers));
+		usersAdapter = new UserListAdapter(
+			this,
+			channelUsersList,
+			usersChangedCallback);
+		channelUsersList.setAdapter(usersAdapter);
 
 		// Disable speaker check box for now since switching between audio
 		// inputs isn't supported.
 		speakerCheckBox.setEnabled(false);
 		speakerCheckBox.setVisibility(View.GONE);
+
+		if (savedInstanceState != null) {
+			setChannel((Channel) savedInstanceState.getSerializable(SAVED_STATE_VISIBLE_CHANNEL));
+		}
 	}
 
 	@Override
@@ -556,7 +538,7 @@ public class ChannelList extends ConnectedActivity {
 
 		final IntentFilter ifilter = new IntentFilter();
 		ifilter.addAction(MumbleService.INTENT_CHANNEL_LIST_UPDATE);
-		ifilter.addAction(MumbleService.INTENT_USER_LIST_UPDATE);
+		ifilter.addAction(MumbleService.INTENT_USER_UPDATE);
 		ifilter.addAction(MumbleService.INTENT_CONNECTION_STATE_CHANGED);
 		ifilter.addAction(MumbleService.INTENT_CURRENT_CHANNEL_CHANGED);
 		ifilter.addAction(MumbleService.INTENT_CURRENT_USER_UPDATED);

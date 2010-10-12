@@ -18,6 +18,9 @@ public class User implements Serializable {
 	public int talkingState;
 	public boolean isCurrent;
 
+	public boolean muted;
+	public boolean deafened;
+
 	private Channel channel;
 
 	@Override

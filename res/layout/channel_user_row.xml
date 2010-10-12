@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:id="@+id/RelativeLayout01"
+	android:layout_height="wrap_content"
+	android:layout_width="fill_parent">
+
+	<TextView
+		android:layout_toLeftOf="@+id/userRowStatus"
+		android:layout_height="wrap_content"
+		android:layout_weight="1"
+		android:layout_alignParentLeft="true"
+		android:text="[Name]"
+		android:id="@+id/userRowName"
+		android:ellipsize="end"
+		android:layout_width="wrap_content"
+		android:lines="1"
+		android:singleLine="true"
+		android:textSize="25sp" />
+	<!--
+		singleLine is deprecated but it is the only way to get ellipsize work
+		it seems. 'inputType text, maxLines 1' didn't work. It's a known issue
+		that Google has been unable to reproduce in 1½ years
+		http://code.google.com/p/android/issues/detail?id=882 Will see what
+		happens first, they remove support for singleLine or they manage to
+		reproduce the error. :p
+	-->
+
+	<TextView
+		android:id="@+id/userRowStatus"
+		android:gravity="center"
+		android:layout_alignParentRight="true"
+		android:layout_height="wrap_content"
+		android:layout_centerVertical="true"
+		android:text="[Status]"
+		android:layout_width="100dp" />
+</RelativeLayout>
