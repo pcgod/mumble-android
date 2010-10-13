@@ -267,7 +267,7 @@ public class ServerList extends ConnectedListActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		registerForContextMenu(getListView());
-		setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
+		setVolumeControlStream(AudioManager.STREAM_MUSIC);
 
 		dbAdapter = new DbAdapter(this);
 		dbAdapter.open();
