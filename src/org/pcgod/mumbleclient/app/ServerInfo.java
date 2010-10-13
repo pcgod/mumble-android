@@ -53,6 +53,9 @@ public class ServerInfo extends Activity {
 	protected final void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.server_add);
+		
+		final Button addButton = (Button) findViewById(R.id.serverAdd);
+		addButton.setOnClickListener(addButtonListener);
 
 		final long serverId = this.getIntent().getLongExtra("serverId", -1);
 		if (serverId != -1) {
@@ -70,11 +73,9 @@ public class ServerInfo extends Activity {
 			portEdit.setText(Integer.toString(c.getInt(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT))));
 			usernameEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME)));
 			passwordEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD)));
+			addButton.setText(R.string.serverChange);
 			c.close();
 			db.close();
 		}
-
-		final Button addButton = (Button) findViewById(R.id.serverAdd);
-		addButton.setOnClickListener(addButtonListener);
 	}
 }

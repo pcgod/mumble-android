@@ -7,6 +7,7 @@
 	<string name="noChannels">Channel list empty</string>
 	<string name="noUsers">User list empty</string>
 	<string name="serverAdd">Add Server</string>
+	<string name="serverChange">Change Server</string>
 	<string name="serverPassword">Password</string>
 	<string name="serverUsername">Username</string>
 	<string name="serverPort">Port</string>
