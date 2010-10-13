@@ -1,4 +1,4 @@
-package org.pcgod.mumbleclient.service;
+package org.pcgod.mumbleclient.service.audio;
 
 import org.pcgod.mumbleclient.service.model.User;
 

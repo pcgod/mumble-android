@@ -9,7 +9,7 @@ import java.util.Map;
 
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
-import org.pcgod.mumbleclient.service.AudioOutputHost;
+import org.pcgod.mumbleclient.service.audio.AudioOutputHost;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.content.Context;

@@ -1,10 +1,12 @@
-package org.pcgod.mumbleclient.service;
+package org.pcgod.mumbleclient.service.audio;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.jni.Native;
+import org.pcgod.mumbleclient.service.MumbleConnection;
+import org.pcgod.mumbleclient.service.PacketDataStream;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.util.Log;
@@ -15,7 +17,7 @@ import android.util.Log;
  *
  * @author pcgod, Rantanen
  */
-class AudioUser {
+public class AudioUser {
 	public interface PacketReadyHandler {
 		public void packetReady(AudioUser user);
 	}
@@ -62,16 +64,6 @@ class AudioUser {
 		}
 
 		Log.i(Globals.LOG_TAG, "AudioUser created");
-	}
-
-	private byte[] acquireDataArray() {
-		byte[] data = dataArrayPool.poll();
-
-		if (data == null) {
-			data = new byte[128];
-		}
-
-		return data;
 	}
 
 	public boolean addFrameToBuffer(
@@ -143,7 +135,7 @@ class AudioUser {
 		return true;
 	}
 
-	public void freeDataArray(byte[] data) {
+	public void freeDataArray(final byte[] data) {
 		dataArrayPool.add(data);
 	}
 
@@ -208,6 +200,16 @@ class AudioUser {
 		}
 
 		return (missedFrames < 10);
+	}
+
+	private byte[] acquireDataArray() {
+		byte[] data = dataArrayPool.poll();
+
+		if (data == null) {
+			data = new byte[128];
+		}
+
+		return data;
 	}
 
 	@Override

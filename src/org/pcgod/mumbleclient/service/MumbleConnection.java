@@ -29,6 +29,8 @@ import net.sf.mumble.MumbleProto.Version;
 
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.service.MumbleConnectionHost.ConnectionState;
+import org.pcgod.mumbleclient.service.audio.AudioOutput;
+import org.pcgod.mumbleclient.service.audio.AudioOutputHost;
 import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.Message;
 import org.pcgod.mumbleclient.service.model.User;

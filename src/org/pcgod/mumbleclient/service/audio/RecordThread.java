@@ -1,4 +1,4 @@
-package org.pcgod.mumbleclient.app;
+package org.pcgod.mumbleclient.service.audio;
 
 import java.io.IOException;
 import java.util.LinkedList;

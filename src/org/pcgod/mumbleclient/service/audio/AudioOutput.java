@@ -1,4 +1,4 @@
-package org.pcgod.mumbleclient.service;
+package org.pcgod.mumbleclient.service.audio;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,7 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.pcgod.mumbleclient.Globals;
-import org.pcgod.mumbleclient.service.AudioUser.PacketReadyHandler;
+import org.pcgod.mumbleclient.service.MumbleConnection;
+import org.pcgod.mumbleclient.service.PacketDataStream;
+import org.pcgod.mumbleclient.service.audio.AudioUser.PacketReadyHandler;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.media.AudioFormat;
@@ -22,7 +24,7 @@ import android.util.Log;
  *
  * @author pcgod, Rantanen
  */
-class AudioOutput implements Runnable {
+public class AudioOutput implements Runnable {
 	private final PacketReadyHandler packetReadyHandler = new PacketReadyHandler() {
 		@Override
 		public void packetReady(final AudioUser user) {
