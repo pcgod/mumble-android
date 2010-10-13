@@ -369,24 +369,6 @@ public class MumbleConnection implements Runnable {
 		connectionHost.messageReceived(msg);
 	}
 
-	@SuppressWarnings("unused")
-	private void printChanneList() {
-		Log.i(Globals.LOG_TAG, "--- begin channel list ---");
-		for (final Channel c : channels.values()) {
-			Log.i(Globals.LOG_TAG, c.toString());
-		}
-		Log.i(Globals.LOG_TAG, "--- end channel list ---");
-	}
-
-	@SuppressWarnings("unused")
-	private void printUserList() {
-		Log.i(Globals.LOG_TAG, "--- begin user list ---");
-		for (final User u : users.values()) {
-			Log.i(Globals.LOG_TAG, u.toString());
-		}
-		Log.i(Globals.LOG_TAG, "--- end user list ---");
-	}
-
 	private void processMsg(final MessageType t, final byte[] buffer)
 			throws IOException {
 
