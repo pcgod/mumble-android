@@ -564,10 +564,13 @@ public class MumbleConnection implements Runnable {
 		case CryptSetup:
 			final CryptSetup cryptsetup = CryptSetup.parseFrom(buffer);
 
-			cryptState.SetKeys(
-				cryptsetup.getKey().toByteArray(),
-				cryptsetup.getClientNonce().toByteArray(),
-				cryptsetup.getServerNonce().toByteArray());
+			if (cryptsetup.hasKey() && cryptsetup.hasClientNonce() &&
+				cryptsetup.hasServerNonce()) {
+				cryptState.SetKeys(
+					cryptsetup.getKey().toByteArray(),
+					cryptsetup.getClientNonce().toByteArray(),
+					cryptsetup.getServerNonce().toByteArray());
+			}
 			break;
 		default:
 			Log.i(Globals.LOG_TAG, "unhandled message type " + t);

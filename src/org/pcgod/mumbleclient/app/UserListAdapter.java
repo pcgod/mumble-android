@@ -105,7 +105,6 @@ public class UserListAdapter extends BaseAdapter {
 		v.setTag(u.session);
 
 		refreshElements(v, u);
-
 		return v;
 	}
 
@@ -163,13 +162,11 @@ public class UserListAdapter extends BaseAdapter {
 			// If the new would be inserted next to the old one, replace the old
 			// as it should be removed anyway.
 			if (oldLocation == newInsertion || oldLocation == newInsertion + 1) {
-
 				setVisibleUser(oldLocation, user);
 
 				// Since we just replaced a user we can update view without
 				// full refresh.
 				refreshUserAtPosition(oldLocation, user);
-
 			} else {
 				removeVisibleUser(oldLocation);
 
