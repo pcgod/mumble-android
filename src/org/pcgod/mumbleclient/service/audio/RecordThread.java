@@ -168,7 +168,7 @@ public class RecordThread implements Runnable {
 				}
 
 				try {
-					mService.sendUdpTunnelMessage(outputBuffer, pds.size());
+					mService.sendUdpMessage(outputBuffer, pds.size());
 				} catch (final IOException e) {
 					e.printStackTrace();
 					running = false;
