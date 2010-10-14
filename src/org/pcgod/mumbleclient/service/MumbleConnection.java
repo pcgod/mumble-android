@@ -137,6 +137,8 @@ public class MumbleConnection implements Runnable {
 	 *
 	 * @param connectionHost_
 	 *            Host interface for this Connection
+	 * @param audioHost_
+	 *            Host interface for underlying AudioOutputs.
 	 * @param host_
 	 *            Mumble server host address
 	 * @param port_
@@ -145,6 +147,9 @@ public class MumbleConnection implements Runnable {
 	 *            Username
 	 * @param password_
 	 *            Server password
+	 * @param audioSettings_
+	 *            Settings for the AudioOutput wrapped in a class so
+	 *            MumbleConnection doesn't need to know what it has to pass on.
 	 */
 	public MumbleConnection(
 		final MumbleConnectionHost connectionHost_,
@@ -324,7 +329,7 @@ public class MumbleConnection implements Runnable {
 				usingUdp = true;
 			}
 
-			final byte[] encryptedBuffer = cryptState.Encrypt(buffer, length);
+			final byte[] encryptedBuffer = cryptState.encrypt(buffer, length);
 			final DatagramPacket outPacket = new DatagramPacket(
 				encryptedBuffer,
 				encryptedBuffer.length);
@@ -433,7 +438,7 @@ public class MumbleConnection implements Runnable {
 			protected void process() throws IOException {
 				udpSocket.receive(packet);
 
-				final byte[] buffer = cryptState.Decrypt(
+				final byte[] buffer = cryptState.decrypt(
 					packet.getData(),
 					packet.getLength());
 
@@ -539,7 +544,7 @@ public class MumbleConnection implements Runnable {
 
 			pingThread = new Thread(new PingThread(this), "Ping");
 			pingThread.start();
-			Log.i(Globals.LOG_TAG, ">>> " + t);
+			Log.d(Globals.LOG_TAG, ">>> " + t);
 
 			ao = new AudioOutput(audioSettings, audioHost);
 			audioOutputThread = new Thread(ao, "audio output");
@@ -669,10 +674,24 @@ public class MumbleConnection implements Runnable {
 
 			if (cryptsetup.hasKey() && cryptsetup.hasClientNonce() &&
 				cryptsetup.hasServerNonce()) {
-				cryptState.SetKeys(
+
+				// Full key setup
+				cryptState.setKeys(
 					cryptsetup.getKey().toByteArray(),
 					cryptsetup.getClientNonce().toByteArray(),
 					cryptsetup.getServerNonce().toByteArray());
+			} else if (cryptsetup.hasServerNonce()) {
+				// Server syncing its nonce to us.
+				Log.d(Globals.LOG_TAG, "MumbleConnection: Server sending nonce");
+				cryptState.setServerNonce(cryptsetup.getServerNonce().toByteArray());
+			} else {
+				// Server wants our nonce.
+				Log.d(
+					Globals.LOG_TAG,
+					"MumbleConnection: Server requesting nonce");
+				final CryptSetup.Builder nonceBuilder = CryptSetup.newBuilder();
+				nonceBuilder.setClientNonce(cryptState.getClientNonce());
+				sendMessage(MessageType.CryptSetup, nonceBuilder);
 			}
 			break;
 		default:
