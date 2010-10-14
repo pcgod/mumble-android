@@ -13,8 +13,10 @@ import junit.framework.Assert;
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.app.ChannelList;
+import org.pcgod.mumbleclient.app.Preferences;
 import org.pcgod.mumbleclient.service.MumbleConnectionHost.ConnectionState;
 import org.pcgod.mumbleclient.service.audio.AudioOutputHost;
+import org.pcgod.mumbleclient.service.audio.AudioOutputSettings;
 import org.pcgod.mumbleclient.service.audio.RecordThread;
 import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.Message;
@@ -25,10 +27,13 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.media.AudioManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 /**
@@ -415,13 +420,28 @@ public class MumbleService extends Service {
 			mClientThread.interrupt();
 		}
 
+		final AudioOutputSettings audioSettings = new AudioOutputSettings();
+
+		final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+		audioSettings.useJitter = preferences.getString(
+			Preferences.PREF_JITTER,
+			Preferences.ARRAY_JITTER_NONE).equals(
+			Preferences.ARRAY_JITTER_SPEEX);
+
+		audioSettings.stream = preferences.getString(
+			Preferences.PREF_STREAM,
+			Preferences.ARRAY_STREAM_MUSIC).equals(
+			Preferences.ARRAY_STREAM_MUSIC) ? AudioManager.STREAM_MUSIC
+			: AudioManager.STREAM_VOICE_CALL;
+
 		mClient = new MumbleConnection(
 			connectionHost,
 			audioHost,
 			host,
 			port,
 			username,
-			password);
+			password,
+			audioSettings);
 		mClientThread = new Thread(mClient, "net");
 		mClientThread.start();
 		return START_NOT_STICKY;

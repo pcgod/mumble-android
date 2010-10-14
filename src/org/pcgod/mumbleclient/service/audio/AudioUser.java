@@ -22,7 +22,7 @@ public class AudioUser {
 		public void packetReady(AudioUser user);
 	}
 
-	private final boolean useJitterBuffer = false;
+	private final boolean useJitterBuffer;
 
 	private final Object jbLock;
 	private final long jitterBuffer;
@@ -37,8 +37,10 @@ public class AudioUser {
 
 	private int missedFrames = 0;
 
-	public AudioUser(final User user) {
+	public AudioUser(final User user, final boolean useJitterBuffer) {
 		this.user = user;
+		this.useJitterBuffer = useJitterBuffer;
+
 		celtMode = Native.celt_mode_create(
 			MumbleConnection.SAMPLE_RATE,
 			MumbleConnection.FRAME_SIZE);
@@ -90,7 +92,7 @@ public class AudioUser {
 		int dataHeader;
 		int frameCount = 0;
 
-		byte[] data;
+		byte[] data = null;
 		// Jitter buffer can use one data array to pass all the packets to the buffer.
 		if (useJitterBuffer) {
 			data = acquireDataArray();

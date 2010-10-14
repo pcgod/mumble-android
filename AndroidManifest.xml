@@ -9,6 +9,7 @@
 				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
 		</activity>
+		<activity android:name=".app.Preferences" />
 		<activity android:name=".app.ServerInfo" />
 		<activity android:name=".app.ChannelList" android:launchMode="singleTask" />
 		<activity android:name=".app.ChatActivity" />

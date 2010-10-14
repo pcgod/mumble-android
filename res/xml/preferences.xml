@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PreferenceScreen
+	xmlns:android="http://schemas.android.com/apk/res/android">
+	<PreferenceCategory
+		android:title="Audio">
+		<ListPreference
+			android:title="Audio Stream"
+			android:summary="Affects the primary audio output device and the volume control."
+			android:key="stream"
+			android:defaultValue="music"
+			android:entries="@array/streamNames"
+			android:entryValues="@array/streamValues" />
+		<ListPreference
+			android:title="Buffering"
+			android:summary="The scheme used when trying to reduce audio jittering."
+			android:key="buffering"
+			android:defaultValue="none"
+			android:entries="@array/bufferNames"
+			android:entryValues="@array/bufferValues" />
+	</PreferenceCategory>
+</PreferenceScreen>

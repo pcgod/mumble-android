@@ -106,6 +106,7 @@ public class ServerList extends ConnectedListActivity {
 	private static final int MENU_DELETE_SERVER = Menu.FIRST + 2;
 	private static final int MENU_EXIT = Menu.FIRST + 3;
 	private static final int MENU_CONNECT_SERVER = Menu.FIRST + 4;
+	private static final int MENU_PREFERENCES = Menu.FIRST + 5;
 
 	@Override
 	public final boolean onContextItemSelected(final MenuItem item) {
@@ -158,6 +159,8 @@ public class ServerList extends ConnectedListActivity {
 		super.onCreateOptionsMenu(menu);
 		menu.add(0, MENU_ADD_SERVER, 0, "Add Server").setIcon(
 			android.R.drawable.ic_menu_add);
+		menu.add(0, MENU_PREFERENCES, 0, "Preferences").setIcon(
+			android.R.drawable.ic_menu_preferences);
 		menu.add(0, MENU_EXIT, 0, "Exit").setIcon(
 			android.R.drawable.ic_menu_close_clear_cancel);
 		return true;
@@ -170,6 +173,10 @@ public class ServerList extends ConnectedListActivity {
 		switch (item.getItemId()) {
 		case MENU_ADD_SERVER:
 			addServer();
+			return true;
+		case MENU_PREFERENCES:
+			final Intent prefs = new Intent(this, Preferences.class);
+			startActivity(prefs);
 			return true;
 		case MENU_EXIT:
 			finish();

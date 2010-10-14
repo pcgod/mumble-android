@@ -14,7 +14,6 @@ import org.pcgod.mumbleclient.service.audio.AudioUser.PacketReadyHandler;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.media.AudioFormat;
-import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.util.Log;
 
@@ -40,7 +39,9 @@ public class AudioOutput implements Runnable {
 		}
 	};
 
-	private final static int standbyTreshold = 2000;
+	private final static int standbyTreshold = 5000;
+
+	private final AudioOutputSettings settings;
 
 	private boolean shouldRun;
 	private final AudioTrack at;
@@ -58,7 +59,8 @@ public class AudioOutput implements Runnable {
 
 	private final AudioOutputHost host;
 
-	public AudioOutput(final AudioOutputHost host) {
+	public AudioOutput(AudioOutputSettings settings, AudioOutputHost host) {
+		this.settings = settings;
 		this.host = host;
 
 		minBufferSize = AudioTrack.getMinBufferSize(
@@ -76,7 +78,7 @@ public class AudioOutput implements Runnable {
 		bufferSize = frameCount * MumbleConnection.FRAME_SIZE;
 
 		at = new AudioTrack(
-			AudioManager.STREAM_MUSIC,
+			settings.stream,
 			MumbleConnection.SAMPLE_RATE,
 			AudioFormat.CHANNEL_CONFIGURATION_MONO,
 			AudioFormat.ENCODING_PCM_16BIT,
@@ -98,7 +100,7 @@ public class AudioOutput implements Runnable {
 
 		user = users.get(u);
 		if (user == null) {
-			user = new AudioUser(u);
+			user = new AudioUser(u, settings.useJitter);
 			users.put(u, user);
 			// Don't add the user to userPackets yet. The collection should
 			// have only users with ready frames. Since this method is
