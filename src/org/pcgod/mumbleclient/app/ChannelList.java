@@ -9,7 +9,6 @@ import junit.framework.Assert;
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.service.MumbleService;
-import org.pcgod.mumbleclient.service.MumbleConnectionHost.ConnectionState;
 import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.User;
 
@@ -62,31 +61,9 @@ import android.widget.ToggleButton;
  * List should exit immediately.
  * </dl>
  *
- * Once the MumbleService has established connection it will signal Connection
- * state change. However this doesn't mean that the connection has been properly
- * established from the view's perspective. After the connection has been
- * established the server has to synchronize the channels and users still.
- *
- * The service state is valid for this view only after the channels and the
- * current user has been synchronized by the server. After these tasks are done
- * the view can resolve the joined channel that it can use as the default
- * channel.
- *
- * In practice this means that the onConnected method must be attempted in the
- * following cases:
- * <dl>
- * <dt>onServiceBound
- * <dd>If the service is already in connected state AND the current channel is
- * set, it is safe to call onConnected. In this case the currently visible
- * channel should have been restored from previously saved state. If such
- * doesn't exist, use currently connected channel as default value.
- *
- * <dt>CurrentChannelUpdated
- * <dd>Once INTENT_CONNECTION_STATE_CHANGED broadcast is received, the
- * connection state is still incomplete. CurrentChannelUpdated means that the
- * channels have been updated and the channel of the current user is known. This
- * can be used as the default value for currently visible channel.
- * </dl>
+ * NOTE: Service enters 'Connected' state when it has received and processed
+ * server sync message. This means that at this point the service should be
+ * fully initialized.
  *
  * And just so the state wouldn't be too easy the connection can be cancelled.
  * Disconnecting the service is practically synchronous operation. Intents
@@ -137,17 +114,7 @@ public class ChannelList extends ConnectedActivity {
 			}
 
 			if (action.equals(MumbleService.INTENT_CURRENT_CHANNEL_CHANGED)) {
-				// Current channel being set is one of the requirements this
-				// view has for considering the connection complete. For this
-				// reason call onConnected.
-				//
-				// The method will make sure that the connection is signaled
-				// only once so calling is safe even if it has already been
-				// called successfully.
 				setChannel(mService.getCurrentChannel());
-
-				onConnected();
-
 				return;
 			}
 
@@ -204,6 +171,10 @@ public class ChannelList extends ConnectedActivity {
 				Log.i(Globals.LOG_TAG, "ChannelList: Connecting");
 				onConnecting();
 				break;
+			case Synchronizing:
+				Log.i(Globals.LOG_TAG, "ChannelList: Synchronizing");
+				onSynchronizing();
+				break;
 			case Connected:
 				Log.i(Globals.LOG_TAG, "ChannelList: Connected");
 
@@ -238,7 +209,6 @@ public class ChannelList extends ConnectedActivity {
 
 	private static final int MENU_CHAT = Menu.FIRST;
 
-	private boolean isConnected = false;
 	Channel visibleChannel;
 
 	private TextView channelNameText;
@@ -393,16 +363,6 @@ public class ChannelList extends ConnectedActivity {
 	 * is executed only once so calling it several times doesn't cause problems.
 	 */
 	private void onConnected() {
-		if (isConnected || mService.getCurrentChannel() == null) {
-			if (mProgressDialog != null &&
-				mService.getConnectionState() == ConnectionState.Connected) {
-				mProgressDialog.setMessage(getString(R.string.connectionProgressSynchronizingMessage));
-			}
-			return;
-		}
-
-		isConnected = true;
-
 		// We are now connected! \o/
 		if (mProgressDialog != null) {
 			mProgressDialog.dismiss();
@@ -411,6 +371,10 @@ public class ChannelList extends ConnectedActivity {
 
 		// If we don't have visible channel selected, default to the current channel.
 		// Setting channel also synchronizes the UI so we don't need to do it manually.
+		//
+		// TODO: Resync channel if current channel was visible on pause.
+		// Currently if the user is moved to another channel while this activity
+		// is paused the channel isn't updated when the activity resumes.
 		if (visibleChannel == null) {
 			setChannel(mService.getCurrentChannel());
 		} else {
@@ -425,23 +389,7 @@ public class ChannelList extends ConnectedActivity {
 	 * Handles activity initialization when the Service is connecting.
 	 */
 	private void onConnecting() {
-		if (mProgressDialog == null) {
-			mProgressDialog = ProgressDialog.show(
-				ChannelList.this,
-				getString(R.string.connectionProgressTitle),
-				getString(R.string.connectionProgressConnectingMessage),
-				true,
-				true,
-				new OnCancelListener() {
-					@Override
-					public void onCancel(final DialogInterface dialog) {
-						mService.disconnect();
-						mProgressDialog.setMessage(getString(R.string.connectionProgressDisconnectingMessage));
-					}
-				});
-		}
-
-		// Make sure rest of the UI is in connecting state.
+		showProgressDialog(R.string.connectionProgressSynchronizingMessage);
 		synchronizeControls();
 	}
 
@@ -455,6 +403,11 @@ public class ChannelList extends ConnectedActivity {
 		finish();
 	}
 
+	private void onSynchronizing() {
+		showProgressDialog(R.string.connectionProgressSynchronizingMessage);
+		synchronizeControls();
+	}
+
 	private void setChannel(final Channel channel) {
 		visibleChannel = channel;
 
@@ -463,12 +416,31 @@ public class ChannelList extends ConnectedActivity {
 		synchronizeControls();
 	}
 
+	private void showProgressDialog(final int message) {
+		if (mProgressDialog == null) {
+			mProgressDialog = ProgressDialog.show(
+				ChannelList.this,
+				getString(R.string.connectionProgressTitle),
+				getString(message),
+				true,
+				true,
+				new OnCancelListener() {
+					@Override
+					public void onCancel(final DialogInterface dialog) {
+						mService.disconnect();
+						mProgressDialog.setMessage(getString(R.string.connectionProgressDisconnectingMessage));
+					}
+				});
+		} else {
+			mProgressDialog.setMessage(getString(message));
+		}
+	}
+
 	private void synchronizeControls() {
-		if (!isConnected) {
+		if (mService == null || !mService.isConnected()) {
 			findViewById(R.id.connectionViewRoot).setVisibility(View.GONE);
 			speakButton.setEnabled(false);
 			joinButton.setEnabled(false);
-			channelNameText.setText("(Not connected)");
 		} else {
 			findViewById(R.id.connectionViewRoot).setVisibility(View.VISIBLE);
 			if (mService.getCurrentChannel().id == visibleChannel.id) {
@@ -517,7 +489,13 @@ public class ChannelList extends ConnectedActivity {
 		speakerCheckBox.setVisibility(View.GONE);
 
 		if (savedInstanceState != null) {
-			setChannel((Channel) savedInstanceState.getSerializable(SAVED_STATE_VISIBLE_CHANNEL));
+			final Channel channel = (Channel) savedInstanceState.getSerializable(SAVED_STATE_VISIBLE_CHANNEL);
+
+			// Channel might be null if we for example caused screen rotation
+			// while still connecting.
+			if (channel != null) {
+				setChannel(channel);
+			}
 		}
 	}
 
@@ -568,16 +546,11 @@ public class ChannelList extends ConnectedActivity {
 		case Connecting:
 			onConnecting();
 			break;
+		case Synchronizing:
+			onSynchronizing();
+			break;
 		case Connected:
-			// If we aren't connected yet try marking us connected.
-			if (!isConnected) {
-				onConnected();
-			} else {
-				// If we are connected at this point it means we resumed the
-				// activity after having paused it. The underlying data structures
-				// might have been changed during pause so refresh them.
-				usersAdapter.setUsers(mService.getUserList());
-			}
+			onConnected();
 			break;
 		case Disconnected:
 		case Disconnecting:

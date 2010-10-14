@@ -6,7 +6,7 @@ import org.pcgod.mumbleclient.service.model.User;
 
 public interface MumbleConnectionHost {
 	public enum ConnectionState {
-		Disconnected, Connecting, Connected, Disconnecting
+		Disconnected, Connecting, Synchronizing, Connected, Disconnecting
 	}
 
 	public void channelAdded(Channel channel);

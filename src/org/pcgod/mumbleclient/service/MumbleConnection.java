@@ -225,6 +225,10 @@ public class MumbleConnection implements Runnable {
 			udpSocket = new DatagramSocket();
 			udpSocket.connect(Inet4Address.getByName(host), port);
 
+			synchronized (stateLock) {
+				connectionHost.setConnectionState(ConnectionState.Synchronizing);
+			}
+
 			handleProtocol(tcpSocket, udpSocket);
 
 			// Clean connection state that might have been initialized.
@@ -234,7 +238,14 @@ public class MumbleConnection implements Runnable {
 				audioOutputThread.join();
 			}
 
-			tcpSocket.close();
+			// FIXME: These throw exceptions for some reason.
+			// Even with the checks in place
+			if (tcpSocket.isConnected()) {
+				tcpSocket.close();
+			}
+			if (udpSocket.isConnected()) {
+				udpSocket.close();
+			}
 		} catch (final NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		} catch (final KeyManagementException e) {
@@ -373,7 +384,8 @@ public class MumbleConnection implements Runnable {
 
 			@Override
 			public boolean isRunning() {
-				return tcpSocket.isConnected() && !disconnecting;
+				return tcpSocket.isConnected() && !disconnecting &&
+					   super.isRunning();
 			}
 
 			@Override
@@ -400,7 +412,8 @@ public class MumbleConnection implements Runnable {
 
 			@Override
 			public boolean isRunning() {
-				return udpSocket.isConnected() && !disconnecting;
+				return udpSocket.isConnected() && !disconnecting &&
+					   super.isRunning();
 			}
 
 			@Override
@@ -425,8 +438,8 @@ public class MumbleConnection implements Runnable {
 			}
 		};
 
-		tcpReaderThread = new Thread(tcpReader);
-		udpReaderThread = new Thread(udpReader);
+		tcpReaderThread = new Thread(tcpReader, "TCP Reader");
+		udpReaderThread = new Thread(udpReader, "UDP Reader");
 
 		tcpReaderThread.start();
 		udpReaderThread.start();
@@ -436,6 +449,8 @@ public class MumbleConnection implements Runnable {
 				   udpReaderThread.isAlive() && udpReader.isRunning()) {
 				stateLock.wait();
 			}
+
+			// connectionHost.setConnectionState(ConnectionState.Disconnecting);
 
 			// Interrupt both threads in case only one of them was closed.
 			tcpReaderThread.interrupt();
