@@ -6,6 +6,16 @@
 	android:layout_width="fill_parent">
 	<TextView
 		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:id="@+id/chatRecieverLabel"
+		android:text="@string/chatRecieverLabel" />
+	<Spinner
+		android:id="@+id/chatReciever"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:prompt="@string/chatRecieverPrompt" />
+	<TextView
+		android:layout_width="fill_parent"
 		android:id="@+id/chatText"
 		android:scrollbars="vertical"
 		android:layout_weight="1"
@@ -15,12 +25,7 @@
 		android:layout_height="wrap_content"
 		android:layout_width="fill_parent">
 		<EditText
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:visibility="invisible"
-			android:id="@+id/chatTargetEdit"></EditText>
-		<EditText
-			android:layout_height="wrap_content"
+			android:layout_height="fill_parent"
 			android:id="@+id/chatTextEdit"
 			android:imeOptions="actionSend"
 			android:layout_width="wrap_content"
@@ -28,7 +33,7 @@
 			android:hint="@string/chat_message"></EditText>
 		<Button
 			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
+			android:layout_height="fill_parent"
 			android:id="@+id/send_button"
 			android:text="@string/sendText"></Button>
 	</LinearLayout>

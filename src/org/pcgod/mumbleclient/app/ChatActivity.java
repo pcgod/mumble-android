@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.service.MumbleService;
+import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.Message;
 
 import android.content.BroadcastReceiver;
@@ -19,11 +20,32 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.TextView.OnEditorActionListener;
 
 public class ChatActivity extends ConnectedActivity {
+	private class ChannelItem {
+		private final Channel channel;
+
+		public ChannelItem(final Channel channel) {
+			this.channel = channel;
+		}
+
+		public Channel getChannel() {
+			return this.channel;
+		}
+
+		@Override
+		public String toString() {
+			return this.channel.name;
+		}
+	}
+
 	private class ChatBroadcastReceiver extends BroadcastReceiver {
 		@Override
 		public final void onReceive(final Context ctx, final Intent i) {
@@ -33,8 +55,11 @@ public class ChatActivity extends ConnectedActivity {
 		}
 	}
 
-	TextView chatText;
-	EditText chatTextEdit;
+	private TextView chatText;
+	private EditText chatTextEdit;
+	private Spinner reciever;
+	private ArrayAdapter<ChannelItem> recieverAdapter;
+	private Channel recieverChannel;
 
 	private static final int MENU_CLEAR = Menu.FIRST;
 
@@ -99,6 +124,29 @@ public class ChatActivity extends ConnectedActivity {
 		chatTextEdit = (EditText) findViewById(R.id.chatTextEdit);
 		chatTextEdit.setOnEditorActionListener(chatTextEditActionEvent);
 		findViewById(R.id.send_button).setOnClickListener(sendOnClickEvent);
+		this.recieverAdapter = new ArrayAdapter<ChannelItem>(
+			this,
+			android.R.layout.simple_spinner_item);
+		this.recieverAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		this.reciever = (Spinner) findViewById(R.id.chatReciever);
+		this.reciever.setAdapter(this.recieverAdapter);
+		this.reciever.setOnItemSelectedListener(new OnItemSelectedListener() {
+			@Override
+			public void onItemSelected(
+				final AdapterView<?> parent,
+				final View view,
+				final int pos,
+				final long id) {
+				// Ugly but not avoidable :(
+				ChatActivity.this.recieverChannel = ((ChannelItem) parent.getItemAtPosition(pos)).getChannel();
+			}
+
+			@Override
+			public void onNothingSelected(final AdapterView<?> arg0) {
+				/* Nothing to do here */
+			}
+		});
+
 		updateText();
 	}
 
@@ -128,9 +176,22 @@ public class ChatActivity extends ConnectedActivity {
 		}
 
 		final IntentFilter ifilter = new IntentFilter(
-				MumbleService.INTENT_CHAT_TEXT_UPDATE);
+			MumbleService.INTENT_CHAT_TEXT_UPDATE);
 		bcReceiver = new ChatBroadcastReceiver();
 		registerReceiver(bcReceiver, ifilter);
+
+		this.recieverChannel = mService.getCurrentChannel();
+		this.recieverAdapter.clear();
+
+		//TODO: Don't list not accessible files.
+		int idx = 0;
+		for (final Channel channel : this.mService.getChannelList()) {
+			this.recieverAdapter.add(new ChannelItem(channel));
+			if (channel == this.recieverChannel) {
+				this.reciever.setSelection(idx);
+			}
+			idx++;
+		}
 	}
 
 	void addMessage(final Message msg) {
@@ -164,7 +225,9 @@ public class ChatActivity extends ConnectedActivity {
 	}
 
 	void sendMessage(final TextView v) {
-		mService.sendChannelTextMessage(v.getText().toString());
+		mService.sendChannelTextMessage(
+			v.getText().toString(),
+			this.recieverChannel);
 		v.setText("");
 	}
 

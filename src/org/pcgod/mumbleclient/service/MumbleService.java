@@ -517,10 +517,15 @@ public class MumbleService extends Service {
 		return false;
 	}
 
+	@Deprecated
 	public void sendChannelTextMessage(final String message) {
+		this.sendChannelTextMessage(message, this.getCurrentChannel());
+	}
+
+	public void sendChannelTextMessage(final String message, final Channel channel) {
 		assertConnected();
 
-		mClient.sendChannelTextMessage(message);
+		mClient.sendChannelTextMessage(message, channel);
 	}
 
 	public void sendUdpMessage(final byte[] buffer, final int length)

@@ -17,6 +17,8 @@
 	<string name="app_name">Mumble</string>
 	<string name="server_deleted">Server deleted</string>
 	<string name="chat_message">Chat message</string>
+	<string name="chatRecieverLabel">Reciever</string>
+	<string name="chatRecieverPrompt">Select the reciever</string>
 	<string name="connectionProgressTitle">Establishing Connection</string>
 	<string name="connectionProgressConnectingMessage">Connecting to Mumble</string>
 	<string name="connectionProgressSynchronizingMessage">Synchronizing data with Mumble</string>
