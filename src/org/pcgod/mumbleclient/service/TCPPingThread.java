@@ -4,11 +4,11 @@ import java.io.IOException;
 
 import net.sf.mumble.MumbleProto.Ping;
 
-class PingThread implements Runnable {
+class TCPPingThread implements Runnable {
 	private boolean running = true;
 	private final MumbleConnection mc;
 
-	public PingThread(final MumbleConnection mc_) {
+	public TCPPingThread(final MumbleConnection mc_) {
 		this.mc = mc_;
 	}
 
@@ -31,3 +31,4 @@ class PingThread implements Runnable {
 	}
 
 }
+

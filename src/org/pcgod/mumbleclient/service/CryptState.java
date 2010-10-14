@@ -50,16 +50,16 @@ public class CryptState {
 	private int late;
 	private int lost;
 
-	public byte[] Decrypt(final byte[] source) {
-		if (source.length < 4) {
+	public byte[] Decrypt(final byte[] source, final int length) {
+		if (length < 4) {
 			return null;
 		}
 
-		final int plain_length = source.length - 4;
+		final int plain_length = length - 4;
 		final byte[] dst = new byte[plain_length];
 
 		final byte[] saveiv = new byte[AES_BLOCK_SIZE];
-		final byte ivbyte = source[0];
+		final short ivbyte = (short) (source[0] & 0xFF);
 		boolean restore = false;
 		final byte[] tag = new byte[AES_BLOCK_SIZE];
 
@@ -70,10 +70,10 @@ public class CryptState {
 
 		if (((decryptIv[0] + 1) & 0xFF) == ivbyte) {
 			// In order as expected.
-			if (ivbyte > decryptIv[0]) {
-				decryptIv[0] = ivbyte;
-			} else if (ivbyte < decryptIv[0]) {
-				decryptIv[0] = ivbyte;
+			if (ivbyte > (decryptIv[0] & 0xFF)) {
+				decryptIv[0] = (byte) ivbyte;
+			} else if (ivbyte < (decryptIv[0] & 0xFF)) {
+				decryptIv[0] = (byte) ivbyte;
 				for (int i = 1; i < AES_BLOCK_SIZE; i++) {
 					if ((++decryptIv[i]) != 0) {
 						break;
@@ -84,38 +84,39 @@ public class CryptState {
 			}
 		} else {
 			// This is either out of order or a repeat.
-			int diff = ivbyte - decryptIv[0];
+			int diff = ivbyte - (decryptIv[0] & 0xFF);
 			if (diff > 128) {
 				diff = diff - 256;
 			} else if (diff < -128) {
 				diff = diff + 256;
 			}
 
-			if ((ivbyte < decryptIv[0]) && (diff > -30) && (diff < 0)) {
+			if ((ivbyte < (decryptIv[0] & 0xFF)) && (diff > -30) && (diff < 0)) {
 				// Late packet, but no wraparound.
 				late = 1;
 				lost = -1;
-				decryptIv[0] = ivbyte;
+				decryptIv[0] = (byte) ivbyte;
 				restore = true;
-			} else if ((ivbyte > decryptIv[0]) && (diff > -30) && (diff < 0)) {
+			} else if ((ivbyte > (decryptIv[0] & 0xFF)) && (diff > -30) &&
+					   (diff < 0)) {
 				// Last was 0x02, here comes 0xff from last round
 				late = 1;
 				lost = -1;
-				decryptIv[0] = ivbyte;
+				decryptIv[0] = (byte) ivbyte;
 				for (int i = 1; i < AES_BLOCK_SIZE; i++) {
 					if ((decryptIv[i]--) != 0) {
 						break;
 					}
 				}
 				restore = true;
-			} else if ((ivbyte > decryptIv[0]) && (diff > 0)) {
+			} else if ((ivbyte > (decryptIv[0] & 0xFF)) && (diff > 0)) {
 				// Lost a few packets, but beyond that we're good.
 				lost = ivbyte - decryptIv[0] - 1;
-				decryptIv[0] = ivbyte;
-			} else if ((ivbyte < decryptIv[0]) && (diff > 0)) {
+				decryptIv[0] = (byte) ivbyte;
+			} else if ((ivbyte < (decryptIv[0] & 0xFF)) && (diff > 0)) {
 				// Lost a few packets, and wrapped around
-				lost = 256 - decryptIv[0] + ivbyte - 1;
-				decryptIv[0] = ivbyte;
+				lost = 256 - (decryptIv[0] & 0xFF) + ivbyte - 1;
+				decryptIv[0] = (byte) ivbyte;
 				for (int i = 1; i < AES_BLOCK_SIZE; i++) {
 					if ((++decryptIv[i]) != 0) {
 						break;
@@ -125,7 +126,7 @@ public class CryptState {
 				return null;
 			}
 
-			if (decryptHistory[decryptIv[0]] == decryptIv[1]) {
+			if (decryptHistory[decryptIv[0] & 0xFF] == encryptIv[0]) {
 				System.arraycopy(saveiv, 0, decryptIv, 0, AES_BLOCK_SIZE);
 				return null;
 			}
@@ -147,7 +148,7 @@ public class CryptState {
 			System.arraycopy(saveiv, 0, decryptIv, 0, AES_BLOCK_SIZE);
 			return null;
 		}
-		decryptHistory[decryptIv[0]] = decryptIv[1];
+		decryptHistory[decryptIv[0] & 0xFF] = decryptIv[1];
 
 		if (restore) {
 			System.arraycopy(saveiv, 0, decryptIv, 0, AES_BLOCK_SIZE);
@@ -160,7 +161,7 @@ public class CryptState {
 		return dst;
 	}
 
-	public byte[] Encrypt(final byte[] source) {
+	public byte[] Encrypt(final byte[] source, final int length) {
 		final byte[] tag = new byte[AES_BLOCK_SIZE];
 
 		// First, increase our IV.
@@ -170,9 +171,9 @@ public class CryptState {
 			}
 		}
 
-		final byte[] dst = new byte[source.length + 4];
+		final byte[] dst = new byte[length + 4];
 		try {
-			OcbEncrypt(source, dst, encryptIv, tag);
+			OcbEncrypt(source, length, dst, encryptIv, tag);
 		} catch (final IllegalBlockSizeException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -181,7 +182,7 @@ public class CryptState {
 			e.printStackTrace();
 		}
 
-		System.arraycopy(dst, 0, dst, 4, source.length);
+		System.arraycopy(dst, 0, dst, 4, length);
 		dst[0] = encryptIv[0];
 		dst[1] = tag[0];
 		dst[2] = tag[1];
@@ -278,6 +279,7 @@ public class CryptState {
 
 	private void OcbEncrypt(
 		final byte[] plain,
+		final int plain_length,
 		final byte[] encrypted,
 		final byte[] nonce,
 		final byte[] tag) throws IllegalBlockSizeException, BadPaddingException {
@@ -287,7 +289,7 @@ public class CryptState {
 		final byte[] delta = encryptCipher.doFinal(nonce);
 
 		int offset = 0;
-		int len = plain.length;
+		int len = plain_length;
 		while (len > AES_BLOCK_SIZE) {
 			final byte[] buffer = new byte[AES_BLOCK_SIZE];
 			S2(delta);
