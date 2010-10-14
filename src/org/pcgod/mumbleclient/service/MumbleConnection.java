@@ -655,7 +655,14 @@ public class MumbleConnection implements Runnable {
 	private void processUdpPacket(final byte[] buffer, final int length) {
 		final int type = buffer[0] >> 5 & 0x7;
 		if (type == UDPMESSAGETYPE_UDPPING) {
-			final long timestamp = (long) buffer[1] << 24 + (long) buffer[2] << 16 + (long) buffer[3] << 8 + (long) buffer[4];
+			final long timestamp = ((long) (buffer[1] & 0xFF) << 56) |
+								   ((long) (buffer[2] & 0xFF) << 48) |
+								   ((long) (buffer[3] & 0xFF) << 40) |
+								   ((long) (buffer[4] & 0xFF) << 32) |
+								   ((long) (buffer[5] & 0xFF) << 24) |
+								   ((long) (buffer[6] & 0xFF) << 16) |
+								   ((long) (buffer[7] & 0xFF) << 8) |
+								   ((buffer[8] & 0xFF));
 
 			if (lastUdpPing < timestamp) {
 				lastUdpPing = timestamp;
