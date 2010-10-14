@@ -8,6 +8,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.ShortBufferException;
 import javax.crypto.spec.SecretKeySpec;
 
 public class CryptState {
@@ -142,6 +143,9 @@ public class CryptState {
 		} catch (final BadPaddingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (final ShortBufferException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
 		if (tag[0] != source[1] || tag[1] != source[2] || tag[2] != source[3]) {
@@ -178,6 +182,9 @@ public class CryptState {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (final BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (final ShortBufferException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -229,9 +236,10 @@ public class CryptState {
 		final byte[] encrypted,
 		final byte[] plain,
 		final byte[] nonce,
-		final byte[] tag) throws IllegalBlockSizeException, BadPaddingException {
+		final byte[] tag) throws IllegalBlockSizeException,
+		BadPaddingException, ShortBufferException {
 		final byte[] checksum = new byte[AES_BLOCK_SIZE];
-		byte[] tmp = new byte[AES_BLOCK_SIZE];
+		final byte[] tmp = new byte[AES_BLOCK_SIZE];
 
 		final byte[] delta = encryptCipher.doFinal(nonce);
 
@@ -243,7 +251,7 @@ public class CryptState {
 			System.arraycopy(encrypted, offset, buffer, 0, AES_BLOCK_SIZE);
 
 			XOR(tmp, delta, buffer);
-			tmp = decryptCipher.doFinal(tmp);
+			decryptCipher.doFinal(tmp, 0, AES_BLOCK_SIZE, tmp);
 
 			XOR(buffer, delta, tmp);
 			System.arraycopy(buffer, 0, plain, offset, AES_BLOCK_SIZE);
@@ -273,8 +281,7 @@ public class CryptState {
 		S3(delta);
 		XOR(tmp, delta, checksum);
 
-		final byte[] tmp_tag = encryptCipher.doFinal(tmp);
-		System.arraycopy(tmp_tag, 0, tag, 0, AES_BLOCK_SIZE);
+		encryptCipher.doFinal(tmp, 0, AES_BLOCK_SIZE, tag);
 	}
 
 	private void OcbEncrypt(
@@ -282,9 +289,10 @@ public class CryptState {
 		final int plain_length,
 		final byte[] encrypted,
 		final byte[] nonce,
-		final byte[] tag) throws IllegalBlockSizeException, BadPaddingException {
+		final byte[] tag) throws IllegalBlockSizeException,
+		BadPaddingException, ShortBufferException {
 		final byte[] checksum = new byte[AES_BLOCK_SIZE];
-		byte[] tmp = new byte[AES_BLOCK_SIZE];
+		final byte[] tmp = new byte[AES_BLOCK_SIZE];
 
 		final byte[] delta = encryptCipher.doFinal(nonce);
 
@@ -297,7 +305,7 @@ public class CryptState {
 			XOR(checksum, checksum, buffer);
 			XOR(tmp, delta, buffer);
 
-			tmp = encryptCipher.doFinal(tmp);
+			encryptCipher.doFinal(tmp, 0, AES_BLOCK_SIZE, tmp);
 
 			XOR(buffer, delta, tmp);
 			System.arraycopy(buffer, 0, encrypted, offset, AES_BLOCK_SIZE);
@@ -324,7 +332,6 @@ public class CryptState {
 		S3(delta);
 		XOR(tmp, delta, checksum);
 
-		final byte[] tmp_tag = encryptCipher.doFinal(tmp);
-		System.arraycopy(tmp_tag, 0, tag, 0, AES_BLOCK_SIZE);
+		encryptCipher.doFinal(tmp, 0, AES_BLOCK_SIZE, tag);
 	}
 }
