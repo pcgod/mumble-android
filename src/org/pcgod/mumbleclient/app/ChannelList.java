@@ -8,6 +8,7 @@ import junit.framework.Assert;
 
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
+import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.service.MumbleService;
 import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.User;
@@ -20,7 +21,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.DialogInterface.OnCancelListener;
-import android.media.AudioManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -225,6 +225,8 @@ public class ChannelList extends ConnectedActivity {
 	List<Channel> selectableChannels;
 	private ProgressDialog mProgressDialog;
 	private AlertDialog mDisconnectDialog;
+
+	private Settings settings;
 
 	public final OnClickListener browseButtonClickEvent = new OnClickListener() {
 		@Override
@@ -461,7 +463,9 @@ public class ChannelList extends ConnectedActivity {
 	protected final void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.channel_list);
-		setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
+
+		settings = new Settings(this);
+		setVolumeControlStream(settings.getAudioStream());
 
 		// Get the UI views
 		channelNameText = (TextView) findViewById(R.id.channelName);
