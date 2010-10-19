@@ -25,7 +25,6 @@ public class RecordThread implements Runnable {
 	private static int frameSize;
 	private static int recordingSampleRate;
 	private static final int TARGET_SAMPLE_RATE = MumbleConnection.SAMPLE_RATE;
-	private final AudioRecord ar;
 	private final short[] buffer;
 	private int bufferSize;
 	private final long celtEncoder;
@@ -60,13 +59,6 @@ public class RecordThread implements Runnable {
 
 		frameSize = recordingSampleRate / 100;
 
-		ar = new AudioRecord(
-			MediaRecorder.AudioSource.MIC,
-			recordingSampleRate,
-			AudioFormat.CHANNEL_CONFIGURATION_MONO,
-			AudioFormat.ENCODING_PCM_16BIT,
-			64 * 1024);
-
 		buffer = new short[frameSize];
 		celtMode = Native.celt_mode_create(
 			MumbleConnection.SAMPLE_RATE,
@@ -92,91 +84,107 @@ public class RecordThread implements Runnable {
 		}
 	}
 
-	public final boolean initialized() {
-		return ar.getState() == AudioRecord.STATE_INITIALIZED;
-	}
-
 	@Override
 	public final void run() {
-		if (!initialized()) {
-			return;
-		}
 
 		boolean running = true;
 		android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
 
-		ar.startRecording();
-		while (running && !Thread.interrupted()) {
-			final int read = ar.read(buffer, 0, frameSize);
+		AudioRecord ar = null;
+		try {
+			ar = new AudioRecord(
+				MediaRecorder.AudioSource.MIC,
+				recordingSampleRate,
+				AudioFormat.CHANNEL_CONFIGURATION_MONO,
+				AudioFormat.ENCODING_PCM_16BIT,
+				64 * 1024);
 
-			if (read == AudioRecord.ERROR_BAD_VALUE ||
-				read == AudioRecord.ERROR_INVALID_OPERATION) {
-				throw new RuntimeException("" + read);
+			if (ar.getState() != AudioRecord.STATE_INITIALIZED) {
+				return;
 			}
 
-			short[] out;
-			if (speexResamplerState != 0) {
-				out = resampleBuffer;
-				final int[] in_len = new int[] { buffer.length };
-				final int[] out_len = new int[] { out.length };
-				Native.speex_resampler_process_int(
-					speexResamplerState,
-					0,
-					buffer,
-					in_len,
-					out,
-					out_len);
-			} else {
-				out = buffer;
-			}
+			ar.startRecording();
+			while (running && !Thread.interrupted()) {
+				final int read = ar.read(buffer, 0, frameSize);
 
-			final int compressedSize = Math.min(AUDIO_QUALITY / (100 * 8), 127);
-			final byte[] compressed = new byte[compressedSize];
-			synchronized (Native.class) {
-				Native.celt_encode(celtEncoder, out, compressed, compressedSize);
-			}
-			outputQueue.add(compressed);
+				if (read == AudioRecord.ERROR_BAD_VALUE ||
+					read == AudioRecord.ERROR_INVALID_OPERATION) {
+					throw new RuntimeException("" + read);
+				}
 
-			if (outputQueue.size() < framesPerPacket) {
-				continue;
-			}
+				short[] out;
+				if (speexResamplerState != 0) {
+					out = resampleBuffer;
+					final int[] in_len = new int[] { buffer.length };
+					final int[] out_len = new int[] { out.length };
+					Native.speex_resampler_process_int(
+						speexResamplerState,
+						0,
+						buffer,
+						in_len,
+						out,
+						out_len);
+				} else {
+					out = buffer;
+				}
 
-			final byte[] outputBuffer = new byte[1024];
-			final PacketDataStream pds = new PacketDataStream(outputBuffer);
-			while (!outputQueue.isEmpty()) {
-				int flags = 0;
-				flags |= mService.getCodec() << 5;
-				outputBuffer[0] = (byte) flags;
+				final int compressedSize = Math.min(
+					AUDIO_QUALITY / (100 * 8),
+					127);
+				final byte[] compressed = new byte[compressedSize];
+				synchronized (Native.class) {
+					Native.celt_encode(
+						celtEncoder,
+						out,
+						compressed,
+						compressedSize);
+				}
+				outputQueue.add(compressed);
 
-				pds.rewind();
-				// skip flags
-				pds.next();
-				seq += framesPerPacket;
-				pds.writeLong(seq);
-				for (int i = 0; i < framesPerPacket; ++i) {
-					final byte[] tmp = outputQueue.poll();
-					if (tmp == null) {
+				if (outputQueue.size() < framesPerPacket) {
+					continue;
+				}
+
+				final byte[] outputBuffer = new byte[1024];
+				final PacketDataStream pds = new PacketDataStream(outputBuffer);
+				while (!outputQueue.isEmpty()) {
+					int flags = 0;
+					flags |= mService.getCodec() << 5;
+					outputBuffer[0] = (byte) flags;
+
+					pds.rewind();
+					// skip flags
+					pds.next();
+					seq += framesPerPacket;
+					pds.writeLong(seq);
+					for (int i = 0; i < framesPerPacket; ++i) {
+						final byte[] tmp = outputQueue.poll();
+						if (tmp == null) {
+							break;
+						}
+						int head = (short) tmp.length;
+						if (i < framesPerPacket - 1) {
+							head |= 0x80;
+						}
+
+						pds.append(head);
+						pds.append(tmp);
+					}
+
+					try {
+						mService.sendUdpMessage(outputBuffer, pds.size());
+					} catch (final IOException e) {
+						e.printStackTrace();
+						running = false;
 						break;
 					}
-					int head = (short) tmp.length;
-					if (i < framesPerPacket - 1) {
-						head |= 0x80;
-					}
-
-					pds.append(head);
-					pds.append(tmp);
-				}
-
-				try {
-					mService.sendUdpMessage(outputBuffer, pds.size());
-				} catch (final IOException e) {
-					e.printStackTrace();
-					running = false;
-					break;
 				}
 			}
+		} finally {
+			if (ar != null) {
+				ar.release();
+			}
 		}
-		ar.stop();
 	}
 
 	@Override
