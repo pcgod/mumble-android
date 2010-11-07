@@ -19,8 +19,8 @@ public class ServerInfo extends Activity {
 			final EditText usernameEdit = (EditText) findViewById(R.id.serverUsernameEdit);
 			final EditText passwordEdit = (EditText) findViewById(R.id.serverPasswordEdit);
 
-			final String name = (nameEdit).getText().toString();
-			final String host = (hostEdit).getText().toString();
+			final String name = (nameEdit).getText().toString().trim();
+			final String host = (hostEdit).getText().toString().trim();
 
 			int port;
 			try {
@@ -29,7 +29,7 @@ public class ServerInfo extends Activity {
 				port = 64738;
 			}
 
-			final String username = (usernameEdit).getText().toString();
+			final String username = (usernameEdit).getText().toString().trim();
 			final String password = (passwordEdit).getText().toString();
 
 			final DbAdapter db = new DbAdapter(v.getContext());
