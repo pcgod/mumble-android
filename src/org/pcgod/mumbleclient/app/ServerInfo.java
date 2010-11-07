@@ -53,7 +53,7 @@ public class ServerInfo extends Activity {
 	protected final void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.server_add);
-		
+
 		final Button addButton = (Button) findViewById(R.id.serverAdd);
 		addButton.setOnClickListener(addButtonListener);
 

@@ -12,6 +12,7 @@ import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.service.BaseServiceObserver;
 import org.pcgod.mumbleclient.service.IServiceObserver;
 import org.pcgod.mumbleclient.service.MumbleService;
+import org.pcgod.mumbleclient.service.model.AccessToken;
 import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.User;
 
@@ -147,6 +148,7 @@ public class ChannelList extends ConnectedActivity {
 	public static final String SAVED_STATE_VISIBLE_CHANNEL = "visible_channel";
 
 	private static final int MENU_CHAT = Menu.FIRST;
+	private static final int MENU_ACCESS_TOKENS = Menu.FIRST + 1;
 
 	Channel visibleChannel;
 
@@ -236,6 +238,8 @@ public class ChannelList extends ConnectedActivity {
 	public final boolean onCreateOptionsMenu(final Menu menu) {
 		menu.add(0, MENU_CHAT, 0, "Chat").setIcon(
 			android.R.drawable.ic_btn_speak_now);
+		menu.add(0, MENU_ACCESS_TOKENS, 0, "Access Tokens").setIcon(
+			android.R.drawable.ic_lock_lock);
 		return true;
 	}
 
@@ -264,6 +268,10 @@ public class ChannelList extends ConnectedActivity {
 		case MENU_CHAT:
 			final Intent i = new Intent(this, ChatActivity.class);
 			startActivity(i);
+			return true;
+		case MENU_ACCESS_TOKENS:
+			final Intent tokensIntent = new Intent(this, AccessTokens.class);
+			startActivity(tokensIntent);
 			return true;
 		default:
 			return super.onMenuItemSelected(featureId, item);
@@ -307,6 +315,21 @@ public class ChannelList extends ConnectedActivity {
 		if (mProgressDialog != null) {
 			mProgressDialog.dismiss();
 			mProgressDialog = null;
+		}
+
+		// FIXME: merge this with the first authenticate message
+		// Tell the access tokens to the server
+		final DbAdapter db = new DbAdapter(this);
+		db.open();
+		try {
+			final AccessToken[] tokens = db.fetchAccessTokenByServerId(this.mService.getServerId());
+			final String[] strTokens = new String[tokens.length];
+			for (int i = 0; i < strTokens.length; i++) {
+				strTokens[i] = tokens[i].value;
+			}
+			this.mService.authenticate(strTokens);
+		} finally {
+			db.close();
 		}
 
 		// If we don't have visible channel selected, default to the current channel.

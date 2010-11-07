@@ -241,7 +241,7 @@ public class ServerList extends ConnectedListActivity {
 		final AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setMessage("Are you sure you want to delete this server?").setCancelable(
 			false).setPositiveButton(
-			"Yes",
+			android.R.string.yes,
 			new DialogInterface.OnClickListener() {
 				public void onClick(final DialogInterface dialog, final int id) {
 					if (serverToDeleteId > 0) {
@@ -254,11 +254,13 @@ public class ServerList extends ConnectedListActivity {
 							Toast.LENGTH_SHORT).show();
 					}
 				}
-			}).setNegativeButton("No", new DialogInterface.OnClickListener() {
-			public void onClick(final DialogInterface dialog, final int id) {
-				dialog.cancel();
-			}
-		});
+			}).setNegativeButton(
+			android.R.string.no,
+			new DialogInterface.OnClickListener() {
+				public void onClick(final DialogInterface dialog, final int id) {
+					dialog.cancel();
+				}
+			});
 
 		return builder.create();
 	}
@@ -324,6 +326,7 @@ public class ServerList extends ConnectedListActivity {
 		connectionIntent.putExtra(MumbleService.EXTRA_PORT, port);
 		connectionIntent.putExtra(MumbleService.EXTRA_USERNAME, username);
 		connectionIntent.putExtra(MumbleService.EXTRA_PASSWORD, password);
+		connectionIntent.putExtra(MumbleService.EXTRA_ID, id);
 		startService(connectionIntent);
 	}
 

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import junit.framework.Assert;
+import net.sf.mumble.MumbleProto.Authenticate;
 import net.sf.mumble.MumbleProto.ChannelRemove;
 import net.sf.mumble.MumbleProto.ChannelState;
 import net.sf.mumble.MumbleProto.CodecVersion;
@@ -88,6 +89,14 @@ public class MumbleProtocol {
 		this.ctx = ctx;
 
 		this.host.setSynchronized(false);
+	}
+
+	public final void authenticate(final String[] tokens) {
+		final Authenticate.Builder auth = Authenticate.newBuilder();
+		for (final String string : tokens) {
+			auth.addTokens(string);
+		}
+		conn.sendTcpMessage(MessageType.Authenticate, auth);
 	}
 
 	public final void joinChannel(final int channelId) {
