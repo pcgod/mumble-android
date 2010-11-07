@@ -72,7 +72,6 @@ public class MumbleService extends Service {
 	private Thread mRecordThread;
 
 	Notification mNotification;
-	boolean mHasConnections;
 
 	/**
 	 * Connection host for MumbleConnection.
@@ -228,15 +227,6 @@ public class MumbleService extends Service {
 				// Clear the user and channel collections.
 				users.clear();
 				channels.clear();
-			}
-
-			// If the connection was disconnected and there are no bound
-			// connections to this service, finish it.
-			if (state == ConnectionState.Disconnected && !mHasConnections) {
-				Log.i(
-					Globals.LOG_TAG,
-					"MumbleService: Service disconnected while there are no connections up.");
-				stopSelf();
 			}
 		}
 
@@ -431,8 +421,10 @@ public class MumbleService extends Service {
 			username,
 			password,
 			audioSettings);
+
 		mClientThread = new Thread(mClient, "net");
 		mClientThread.start();
+
 		return START_NOT_STICKY;
 	}
 
@@ -452,8 +444,6 @@ public class MumbleService extends Service {
 
 	@Override
 	public IBinder onBind(final Intent intent) {
-		mHasConnections = true;
-
 		Log.i(Globals.LOG_TAG, "MumbleService: Bound");
 		return mBinder;
 	}
@@ -499,22 +489,6 @@ public class MumbleService extends Service {
 		final int flags,
 		final int startId) {
 		return handleCommand(intent);
-	}
-
-	@Override
-	public boolean onUnbind(final Intent intent) {
-		mHasConnections = false;
-
-		Log.i(Globals.LOG_TAG, "MumbleService: Unbound");
-
-		if (state == ConnectionState.Disconnected) {
-			stopSelf();
-			Log.i(
-				Globals.LOG_TAG,
-				"MumbleService: No clients bound and connection is not alive -> Stopping");
-		}
-
-		return false;
 	}
 
 	@Deprecated
