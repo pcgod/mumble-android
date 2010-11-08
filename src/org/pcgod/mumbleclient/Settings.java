@@ -14,10 +14,17 @@ public class Settings {
 	public static final String ARRAY_JITTER_NONE = "none";
 	public static final String ARRAY_JITTER_SPEEX = "speex";
 
+	public static final String PREF_QUALITY = "quality";
+	private static final int DEFAULT_QUALITY = 60000;
+
 	private final SharedPreferences preferences;
 
 	public Settings(final Context ctx) {
 		preferences = PreferenceManager.getDefaultSharedPreferences(ctx);
+	}
+
+	public int getAudioQuality() {
+		return preferences.getInt(Settings.PREF_QUALITY, DEFAULT_QUALITY);
 	}
 
 	public int getAudioStream() {

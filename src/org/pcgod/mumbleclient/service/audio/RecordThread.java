@@ -3,6 +3,7 @@ package org.pcgod.mumbleclient.service.audio;
 import java.io.IOException;
 import java.util.LinkedList;
 
+import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.jni.Native;
 import org.pcgod.mumbleclient.jni.celtConstants;
 import org.pcgod.mumbleclient.service.MumbleConnection;
@@ -21,7 +22,7 @@ import android.util.Log;
  *
  */
 public class RecordThread implements Runnable {
-	private static final int AUDIO_QUALITY = 60000;
+	private final int audioQuality;
 	private static int frameSize;
 	private static int recordingSampleRate;
 	private static final int TARGET_SAMPLE_RATE = MumbleConnection.SAMPLE_RATE;
@@ -38,6 +39,7 @@ public class RecordThread implements Runnable {
 
 	public RecordThread(final MumbleService service) {
 		mService = service;
+		audioQuality = new Settings(mService.getApplicationContext()).getAudioQuality();
 
 		for (final int s : new int[] { 48000, 44100, 22050, 11025, 8000 }) {
 			bufferSize = AudioRecord.getMinBufferSize(
@@ -71,7 +73,7 @@ public class RecordThread implements Runnable {
 		Native.celt_encoder_ctl(
 			celtEncoder,
 			celtConstants.CELT_SET_VBR_RATE_REQUEST,
-			AUDIO_QUALITY);
+			audioQuality);
 
 		if (recordingSampleRate != TARGET_SAMPLE_RATE) {
 			speexResamplerState = Native.speex_resampler_init(
@@ -86,7 +88,6 @@ public class RecordThread implements Runnable {
 
 	@Override
 	public final void run() {
-
 		boolean running = true;
 		android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
 
@@ -129,7 +130,7 @@ public class RecordThread implements Runnable {
 				}
 
 				final int compressedSize = Math.min(
-					AUDIO_QUALITY / (100 * 8),
+					audioQuality / (100 * 8),
 					127);
 				final byte[] compressed = new byte[compressedSize];
 				synchronized (Native.class) {

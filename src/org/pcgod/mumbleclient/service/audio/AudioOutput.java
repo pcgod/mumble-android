@@ -8,11 +8,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.pcgod.mumbleclient.Globals;
+import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.service.MumbleConnection;
 import org.pcgod.mumbleclient.service.PacketDataStream;
 import org.pcgod.mumbleclient.service.audio.AudioUser.PacketReadyHandler;
 import org.pcgod.mumbleclient.service.model.User;
 
+import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
 import android.util.Log;
@@ -40,8 +42,7 @@ public class AudioOutput implements Runnable {
 	};
 
 	private final static int standbyTreshold = 5000;
-
-	private final AudioOutputSettings settings;
+	private final Settings settings;
 
 	private boolean shouldRun;
 	private final AudioTrack at;
@@ -59,8 +60,8 @@ public class AudioOutput implements Runnable {
 
 	private final AudioOutputHost host;
 
-	public AudioOutput(AudioOutputSettings settings, AudioOutputHost host) {
-		this.settings = settings;
+	public AudioOutput(final Context ctx, final AudioOutputHost host) {
+		this.settings = new Settings(ctx);
 		this.host = host;
 
 		minBufferSize = AudioTrack.getMinBufferSize(
@@ -78,7 +79,7 @@ public class AudioOutput implements Runnable {
 		bufferSize = frameCount * MumbleConnection.FRAME_SIZE;
 
 		at = new AudioTrack(
-			settings.stream,
+			settings.getAudioStream(),
 			MumbleConnection.SAMPLE_RATE,
 			AudioFormat.CHANNEL_CONFIGURATION_MONO,
 			AudioFormat.ENCODING_PCM_16BIT,
@@ -95,12 +96,9 @@ public class AudioOutput implements Runnable {
 		final User u,
 		final PacketDataStream pds,
 		final int flags) {
-
-		AudioUser user;
-
-		user = users.get(u);
+		AudioUser user = users.get(u);
 		if (user == null) {
-			user = new AudioUser(u, settings.useJitter);
+			user = new AudioUser(u, settings.isJitterBuffer());
 			users.put(u, user);
 			// Don't add the user to userPackets yet. The collection should
 			// have only users with ready frames. Since this method is

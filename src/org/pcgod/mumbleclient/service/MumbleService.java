@@ -12,11 +12,9 @@ import junit.framework.Assert;
 
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
-import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.app.ChannelList;
 import org.pcgod.mumbleclient.service.MumbleConnectionHost.ConnectionState;
 import org.pcgod.mumbleclient.service.audio.AudioOutputHost;
-import org.pcgod.mumbleclient.service.audio.AudioOutputSettings;
 import org.pcgod.mumbleclient.service.audio.RecordThread;
 import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.Message;
@@ -407,12 +405,6 @@ public class MumbleService extends Service {
 			mClientThread.interrupt();
 		}
 
-		final AudioOutputSettings audioSettings = new AudioOutputSettings();
-
-		final Settings settings = new Settings(this);
-		audioSettings.useJitter = settings.isJitterBuffer();
-		audioSettings.stream = settings.getAudioStream();
-
 		mClient = new MumbleConnection(
 			connectionHost,
 			audioHost,
@@ -420,7 +412,7 @@ public class MumbleService extends Service {
 			port,
 			username,
 			password,
-			audioSettings);
+			this.getApplicationContext());
 
 		mClientThread = new Thread(mClient, "net");
 		mClientThread.start();

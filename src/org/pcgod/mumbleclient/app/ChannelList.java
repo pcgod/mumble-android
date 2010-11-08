@@ -195,7 +195,6 @@ public class ChannelList extends ConnectedActivity {
 	}
 
 	private final Runnable usersChangedCallback = new Runnable() {
-
 		@Override
 		public void run() {
 			final boolean hasUsers = usersAdapter.getCount() > 0;

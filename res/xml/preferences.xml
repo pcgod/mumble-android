@@ -17,5 +17,9 @@
 			android:defaultValue="none"
 			android:entries="@array/bufferNames"
 			android:entryValues="@array/bufferValues" />
+		<EditTextPreference
+			android:title="Audio quality"
+			android:defaultValue="60000"
+			android:key="quality" />
 	</PreferenceCategory>
 </PreferenceScreen>
