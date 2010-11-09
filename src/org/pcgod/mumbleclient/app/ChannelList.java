@@ -100,7 +100,7 @@ public class ChannelList extends ConnectedActivity {
 
 			// First process intents that do NOT require active connection.
 			if (action.equals(MumbleService.INTENT_CONNECTION_STATE_CHANGED)) {
-				onConnectionStateChanged();
+				onConnectionStateUpdated();
 				return;
 			}
 
@@ -165,33 +165,6 @@ public class ChannelList extends ConnectedActivity {
 			Assert.fail("Unknown intent broadcast");
 		}
 
-		private final void onConnectionStateChanged() {
-			switch (mService.getConnectionState()) {
-			case Connecting:
-				Log.i(Globals.LOG_TAG, "ChannelList: Connecting");
-				onConnecting();
-				break;
-			case Synchronizing:
-				Log.i(Globals.LOG_TAG, "ChannelList: Synchronizing");
-				onSynchronizing();
-				break;
-			case Connected:
-				Log.i(Globals.LOG_TAG, "ChannelList: Connected");
-
-				// The service might have been fast enough to properly connect
-				// before the broadcast was resolved. Try calling onConnected
-				// just in case.
-				onConnected();
-				break;
-			case Disconnected:
-			case Disconnecting:
-				Log.i(Globals.LOG_TAG, "ChannelList: Disconnected");
-				onDisconnected();
-				break;
-			default:
-				Assert.fail("Unknown connection state");
-			}
-		}
 	}
 
 	private final Runnable usersChangedCallback = new Runnable() {
@@ -394,6 +367,30 @@ public class ChannelList extends ConnectedActivity {
 		synchronizeControls();
 	}
 
+	private final void onConnectionStateUpdated() {
+		switch (mService.getConnectionState()) {
+		case Connecting:
+			Log.i(Globals.LOG_TAG, "ChannelList: Connecting");
+			onConnecting();
+			break;
+		case Synchronizing:
+			Log.i(Globals.LOG_TAG, "ChannelList: Synchronizing");
+			onSynchronizing();
+			break;
+		case Connected:
+			Log.i(Globals.LOG_TAG, "ChannelList: Connected");
+			onConnected();
+			break;
+		case Disconnected:
+		case Disconnecting:
+			Log.i(Globals.LOG_TAG, "ChannelList: Disconnected");
+			onDisconnected();
+			break;
+		default:
+			Assert.fail("Unknown connection state");
+		}
+	}
+
 	private void onDisconnected() {
 		cleanDialogs();
 		// TODO: this doesn't work for unknown host errors
@@ -545,22 +542,6 @@ public class ChannelList extends ConnectedActivity {
 	 */
 	@Override
 	protected final void onServiceBound() {
-		switch (mService.getConnectionState()) {
-		case Connecting:
-			onConnecting();
-			break;
-		case Synchronizing:
-			onSynchronizing();
-			break;
-		case Connected:
-			onConnected();
-			break;
-		case Disconnected:
-		case Disconnecting:
-			onDisconnected();
-			break;
-		default:
-			Assert.fail("Unknown connection state");
-		}
+		onConnectionStateUpdated();
 	}
 }
