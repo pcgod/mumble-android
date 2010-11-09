@@ -15,7 +15,7 @@ public class Settings {
 	public static final String ARRAY_JITTER_SPEEX = "speex";
 
 	public static final String PREF_QUALITY = "quality";
-	private static final int DEFAULT_QUALITY = 60000;
+	private static final String DEFAULT_QUALITY = "60000";
 
 	private final SharedPreferences preferences;
 
@@ -24,7 +24,7 @@ public class Settings {
 	}
 
 	public int getAudioQuality() {
-		return preferences.getInt(Settings.PREF_QUALITY, DEFAULT_QUALITY);
+		return Integer.parseInt(preferences.getString(Settings.PREF_QUALITY, DEFAULT_QUALITY));
 	}
 
 	public int getAudioStream() {

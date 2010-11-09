@@ -20,6 +20,7 @@
 		<EditTextPreference
 			android:title="Audio quality"
 			android:defaultValue="60000"
-			android:key="quality" />
+			android:key="quality"
+			android:inputType="number" />
 	</PreferenceCategory>
 </PreferenceScreen>
