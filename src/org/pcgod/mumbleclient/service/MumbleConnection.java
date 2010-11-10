@@ -314,10 +314,16 @@ public class MumbleConnection implements Runnable {
 		final short type = (short) t.ordinal();
 		final int length = m.getSerializedSize();
 
-		synchronized (out) {
-			out.writeShort(type);
-			out.writeInt(length);
-			m.writeTo(out);
+		synchronized (stateLock) {
+			if (disconnecting) {
+				return;
+			}
+
+			synchronized (out) {
+				out.writeShort(type);
+				out.writeInt(length);
+				m.writeTo(out);
+			}
 		}
 
 		if (t != MessageType.Ping) {
@@ -349,7 +355,13 @@ public class MumbleConnection implements Runnable {
 			outPacket.setAddress(Inet4Address.getByName(host));
 			outPacket.setPort(port);
 
-			udpOut.send(outPacket);
+			synchronized (stateLock) {
+				if (disconnecting) {
+					return;
+				}
+
+				udpOut.send(outPacket);
+			}
 		} else {
 			if (usingUdp) {
 				Log.i(Globals.LOG_TAG, "MumbleConnection: UDP disabled");
@@ -358,10 +370,16 @@ public class MumbleConnection implements Runnable {
 
 			final short type = (short) MessageType.UDPTunnel.ordinal();
 
-			synchronized (out) {
-				out.writeShort(type);
-				out.writeInt(length);
-				out.write(buffer, 0, length);
+			synchronized (stateLock) {
+				if (disconnecting) {
+					return;
+				}
+
+				synchronized (out) {
+					out.writeShort(type);
+					out.writeInt(length);
+					out.write(buffer, 0, length);
+				}
 			}
 		}
 	}
@@ -462,7 +480,6 @@ public class MumbleConnection implements Runnable {
 				// Serialize the message processing by performing it inside
 				// the stateLock.
 				synchronized (stateLock) {
-//					Log.i(Globals.LOG_TAG, "MumbleConnection: Received UDP");
 					processUdpPacket(buffer, buffer.length);
 				}
 			}
@@ -480,7 +497,8 @@ public class MumbleConnection implements Runnable {
 				stateLock.wait();
 			}
 
-			// connectionHost.setConnectionState(ConnectionState.Disconnecting);
+			disconnecting = true;
+			connectionHost.setConnectionState(ConnectionState.Disconnecting);
 
 			// Interrupt both threads in case only one of them was closed.
 			tcpReaderThread.interrupt();

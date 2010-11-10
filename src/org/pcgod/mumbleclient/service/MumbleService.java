@@ -324,6 +324,7 @@ public class MumbleService extends Service {
 	}
 
 	public void disconnect() {
+		this.setRecording(false);
 		mClient.disconnect();
 	}
 
@@ -491,8 +492,6 @@ public class MumbleService extends Service {
 
 	public void sendUdpMessage(final byte[] buffer, final int length)
 		throws IOException {
-		assertConnected();
-
 		mClient.sendUdpMessage(buffer, length, false);
 	}
 
