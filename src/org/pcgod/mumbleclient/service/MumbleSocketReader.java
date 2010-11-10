@@ -44,7 +44,7 @@ public abstract class MumbleSocketReader implements Runnable {
 				process();
 			}
 		} catch (final IOException ex) {
-			Log.e(Globals.LOG_TAG, ex.toString());
+			Log.e(Globals.LOG_TAG, "Error reading socket", ex);
 		} finally {
 			running = false;
 			synchronized (monitor) {

@@ -483,11 +483,6 @@ public class MumbleService extends Service {
 		return handleCommand(intent);
 	}
 
-	@Deprecated
-	public void sendChannelTextMessage(final String message) {
-		this.sendChannelTextMessage(message, this.getCurrentChannel());
-	}
-
 	public void sendChannelTextMessage(final String message, final Channel channel) {
 		assertConnected();
 
