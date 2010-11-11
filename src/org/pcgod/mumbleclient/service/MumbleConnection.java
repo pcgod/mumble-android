@@ -394,6 +394,14 @@ public class MumbleConnection implements Runnable {
 
 		if (pingThread != null) {
 			pingThread.interrupt();
+			try {
+				pingThread.join();
+			} catch (final InterruptedException e) {
+				Log.e(
+					Globals.LOG_TAG,
+					"Interrupted while waiting for ping thread to end",
+					e);
+			}
 		}
 
 		// FIXME: These throw exceptions for some reason.
