@@ -7,7 +7,7 @@ import java.net.ConnectException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.Inet4Address;
-import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -102,9 +102,10 @@ public class MumbleConnection implements Runnable {
 	private final AudioOutputHost audioHost;
 	private final Context ctx;
 
+	private SSLSocket tcpSocket;
 	private DataInputStream in;
 	private DataOutputStream out;
-	private DatagramSocket udpOut;
+	private DatagramSocket udpSocket;
 	private long lastUdpPing;
 	boolean usingUdp = false;
 
@@ -193,7 +194,7 @@ public class MumbleConnection implements Runnable {
 	}
 
 	public final boolean isConnectionAlive() {
-		return !disconnecting;
+		return !disconnecting && !connectionDead();
 	}
 
 	public final boolean isSameServer(
@@ -218,72 +219,64 @@ public class MumbleConnection implements Runnable {
 
 	@Override
 	public final void run() {
+		boolean connected = false;
 		try {
-			SSLSocket tcpSocket;
-			DatagramSocket udpSocket;
+			try {
+				Log.i(Globals.LOG_TAG, String.format(
+					"Connecting to host \"%s\", port %s",
+					host,
+					port));
 
-			Log.i(Globals.LOG_TAG, String.format("Connecting to host \"%s\", port %s", host, port));
-			final SSLContext ctx_ = SSLContext.getInstance("TLS");
-			ctx_.init(
-				null,
-				new TrustManager[] { new LocalSSLTrustManager() },
-				null);
-			final SSLSocketFactory factory = ctx_.getSocketFactory();
-			tcpSocket = (SSLSocket) factory.createSocket(host, port);
-			tcpSocket.setUseClientMode(true);
-			tcpSocket.setEnabledProtocols(new String[] { "TLSv1" });
-			tcpSocket.startHandshake();
+				connectTcp();
+				connectUdp();
+				connected = true;
+			} catch (final UnknownHostException e) {
+				errorString = String.format("Host \"%s\" unknown", host);
+				Log.e(Globals.LOG_TAG, errorString, e);
+			} catch (final ConnectException e) {
+				errorString = "The host refused connection";
+				Log.e(Globals.LOG_TAG, errorString, e);
+			} catch (final KeyManagementException e) {
+				Log.e(Globals.LOG_TAG, String.format(
+					"Could not connect to Mumble server \"%s:%s\"",
+					host,
+					port), e);
+			} catch (final NoSuchAlgorithmException e) {
+				Log.e(Globals.LOG_TAG, String.format(
+					"Could not connect to Mumble server \"%s:%s\"",
+					host,
+					port), e);
+			} catch (final IOException e) {
+				Log.e(Globals.LOG_TAG, String.format(
+					"Could not connect to Mumble server \"%s:%s\"",
+					host,
+					port), e);
+			}
 
-			Log.i(Globals.LOG_TAG, "TCP/SSL socket opened");
-
-			udpSocket = new DatagramSocket();
-			udpSocket.connect(Inet4Address.getByName(host), port);
-
-			Log.i(Globals.LOG_TAG, "UDP Socket opened");
+			// If we couldn't finish connecting, return.
+			if (!connected) {
+				return;
+			}
 
 			synchronized (stateLock) {
 				connectionHost.setConnectionState(ConnectionState.Synchronizing);
 			}
 
-			handleProtocol(tcpSocket, udpSocket);
-
-			// Clean connection state that might have been initialized.
-			// Do this before closing the socket as the threads could use it.
-			if (ao != null) {
-				ao.stop();
-				audioOutputThread.join();
+			try {
+				handleProtocol();
+			} catch (final IOException e) {
+				errorString = String.format("Connection lost", host);
+				Log.e(Globals.LOG_TAG, errorString, e);
+			} catch (final InterruptedException e) {
+				errorString = String.format("Connection lost", host);
+				Log.e(Globals.LOG_TAG, errorString, e);
 			}
+		} finally {
+			cleanConnection();
 
-			if (pingThread != null) {
-				pingThread.interrupt();
+			synchronized (stateLock) {
+				connectionHost.setConnectionState(ConnectionState.Disconnected);
 			}
-
-			// FIXME: These throw exceptions for some reason.
-			// Even with the checks in place
-			if (tcpSocket.isConnected()) {
-				tcpSocket.close();
-			}
-			if (udpSocket.isConnected()) {
-				udpSocket.close();
-			}
-		} catch (final NoSuchAlgorithmException e) {
-			Log.e(Globals.LOG_TAG, String.format("Could not connect to Mumble server \"%s:%s\"", host, port), e);
-		} catch (final KeyManagementException e) {
-			Log.e(Globals.LOG_TAG, String.format("Could not connect to Mumble server \"%s:%s\"", host, port), e);
-		} catch (final UnknownHostException e) {
-			errorString = String.format("Host \"%s\" unknown", host);
-			Log.e(Globals.LOG_TAG, errorString, e);
-		} catch (final ConnectException e) {
-			errorString = "The host refused connection";
-			Log.e(Globals.LOG_TAG, errorString, e);
-		} catch (final IOException e) {
-			Log.e(Globals.LOG_TAG, String.format("Could not connect to Mumble server \"%s:%s\"", host, port), e);
-		} catch (final InterruptedException e) {
-			Log.e(Globals.LOG_TAG, String.format("Could not connect to Mumble server \"%s:%s\"", host, port), e);
-		}
-
-		synchronized (stateLock) {
-			connectionHost.setConnectionState(ConnectionState.Disconnected);
 		}
 	}
 
@@ -360,7 +353,7 @@ public class MumbleConnection implements Runnable {
 					return;
 				}
 
-				udpOut.send(outPacket);
+				udpSocket.send(outPacket);
 			}
 		} else {
 			if (usingUdp) {
@@ -384,6 +377,76 @@ public class MumbleConnection implements Runnable {
 		}
 	}
 
+	private void cleanConnection() {
+		// Clean connection state that might have been initialized.
+		// Do this before closing the socket as the threads could use it.
+		if (ao != null) {
+			ao.stop();
+			try {
+				audioOutputThread.join();
+			} catch (final InterruptedException e) {
+				Log.e(
+					Globals.LOG_TAG,
+					"Interrupted while waiting for audio thread to end",
+					e);
+			}
+		}
+
+		if (pingThread != null) {
+			pingThread.interrupt();
+		}
+
+		// FIXME: These throw exceptions for some reason.
+		// Even with the checks in place
+		if (tcpSocket.isConnected()) {
+			try {
+				tcpSocket.close();
+			} catch (final IOException e) {
+				Log.e(
+					Globals.LOG_TAG,
+					"IO error while closing the tcp socket",
+					e);
+			}
+		}
+		if (udpSocket.isConnected()) {
+			udpSocket.close();
+		}
+	}
+
+	private boolean connectionDead() {
+		// If either of the sockets is closed, play dead.
+		if (tcpSocket.isClosed() || udpSocket.isClosed()) {
+			return true;
+		}
+
+		// If the TCP connection has been lost, play dead.
+		if (!tcpSocket.isConnected()) {
+			return true;
+		}
+
+		return false;
+	}
+
+	private void connectTcp() throws NoSuchAlgorithmException,
+		KeyManagementException, IOException, UnknownHostException {
+		final SSLContext ctx_ = SSLContext.getInstance("TLS");
+		ctx_.init(null, new TrustManager[] { new LocalSSLTrustManager() }, null);
+		final SSLSocketFactory factory = ctx_.getSocketFactory();
+		tcpSocket = (SSLSocket) factory.createSocket(host, port);
+		tcpSocket.setUseClientMode(true);
+		tcpSocket.setEnabledProtocols(new String[] { "TLSv1" });
+		tcpSocket.startHandshake();
+
+		Log.i(Globals.LOG_TAG, "TCP/SSL socket opened");
+	}
+
+	private void connectUdp() throws SocketException, UnknownHostException {
+		udpSocket = new DatagramSocket();
+		udpSocket.connect(Inet4Address.getByName(host), port);
+
+		Log.i(Globals.LOG_TAG, "UDP Socket opened");
+	}
+
 	private Channel findChannel(final int id) {
 		return channels.get(id);
 	}
@@ -392,10 +455,7 @@ public class MumbleConnection implements Runnable {
 		return users.get(session_);
 	}
 
-	private void handleProtocol(
-		final Socket tcpSocket,
-		final DatagramSocket udpSocket) throws IOException,
-		InterruptedException {
+	private void handleProtocol() throws IOException, InterruptedException {
 		synchronized (stateLock) {
 			if (disconnecting) {
 				return;
@@ -404,7 +464,6 @@ public class MumbleConnection implements Runnable {
 
 		out = new DataOutputStream(tcpSocket.getOutputStream());
 		in = new DataInputStream(tcpSocket.getInputStream());
-		udpOut = udpSocket;
 
 		final Version.Builder v = Version.newBuilder();
 		v.setVersion(protocolVersion);
