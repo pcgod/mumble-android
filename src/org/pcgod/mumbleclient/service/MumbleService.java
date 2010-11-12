@@ -39,7 +39,7 @@ import android.util.Log;
  */
 public class MumbleService extends Service {
 	public enum ConnectionState {
-		Disconnected, Connecting, Synchronizing, Connected, Disconnecting
+		Disconnected, Connecting, Synchronizing, Connected
 	}
 
 	public class LocalBinder extends Binder {
@@ -285,8 +285,7 @@ public class MumbleService extends Service {
 								channelListIntent,
 								0));
 						startForegroundCompat(1, mNotification);
-					} else if (state == MumbleConnectionHost.STATE_DISCONNECTED ||
-							   state == MumbleConnectionHost.STATE_DISCONNECTING) {
+					} else if (state == MumbleConnectionHost.STATE_DISCONNECTED) {
 						if (mProtocol != null) {
 							mProtocol.stop();
 						}
@@ -581,9 +580,6 @@ public class MumbleService extends Service {
 		case MumbleConnectionHost.STATE_CONNECTED:
 			serviceState = synced ? ConnectionState.Connected
 				: ConnectionState.Synchronizing;
-			break;
-		case MumbleConnectionHost.STATE_DISCONNECTING:
-			serviceState = ConnectionState.Disconnecting;
 			break;
 		case MumbleConnectionHost.STATE_DISCONNECTED:
 			serviceState = ConnectionState.Disconnected;

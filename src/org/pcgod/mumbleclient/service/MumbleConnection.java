@@ -477,7 +477,7 @@ public class MumbleConnection implements Runnable {
 			}
 
 			disconnecting = true;
-			connectionHost.setConnectionState(MumbleConnectionHost.STATE_DISCONNECTING);
+			connectionHost.setConnectionState(MumbleConnectionHost.STATE_DISCONNECTED);
 
 			// Interrupt both threads in case only one of them was closed.
 			tcpReaderThread.interrupt();

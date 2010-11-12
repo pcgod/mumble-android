@@ -229,7 +229,6 @@ public class ServerList extends ConnectedListActivity {
 			startActivityForResult(i, ACTIVITY_CHANNEL_LIST);
 			return true;
 		case Disconnected:
-		case Disconnecting:
 			// TODO: Error message checks.
 			// This can be reached if the user leaves ServerList after clicking
 			// server but before the connection intent reaches the service.

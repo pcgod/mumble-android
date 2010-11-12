@@ -373,7 +373,6 @@ public class ChannelList extends ConnectedActivity {
 			onConnected();
 			break;
 		case Disconnected:
-		case Disconnecting:
 			Log.i(Globals.LOG_TAG, "ChannelList: Disconnected");
 			onDisconnected();
 			break;
