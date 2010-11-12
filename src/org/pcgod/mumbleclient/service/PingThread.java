@@ -11,7 +11,7 @@ class PingThread implements Runnable {
 		this.mc = mc_;
 
 		// Type: Ping
-		udpBuffer[0] = MumbleConnection.UDPMESSAGETYPE_UDPPING << 5;
+		udpBuffer[0] = MumbleProtocol.UDPMESSAGETYPE_UDPPING << 5;
 	}
 
 	@Override
@@ -23,7 +23,7 @@ class PingThread implements Runnable {
 				// TCP
 				final Ping.Builder p = Ping.newBuilder();
 				p.setTimestamp(timestamp);
-				mc.sendMessage(MumbleConnection.MessageType.Ping, p);
+				mc.sendMessage(MumbleProtocol.MessageType.Ping, p);
 
 				// UDP
 				udpBuffer[1] = (byte) ((timestamp >> 56) & 0xFF);

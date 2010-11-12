@@ -12,7 +12,6 @@ import junit.framework.Assert;
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.app.ChannelList;
-import org.pcgod.mumbleclient.service.MumbleConnectionHost.ConnectionState;
 import org.pcgod.mumbleclient.service.audio.AudioOutputHost;
 import org.pcgod.mumbleclient.service.audio.RecordThread;
 import org.pcgod.mumbleclient.service.model.Channel;
@@ -39,6 +38,10 @@ import android.util.Log;
  * @author Rantanen
  */
 public class MumbleService extends Service {
+	public enum ConnectionState {
+		Disconnected, Connecting, Synchronizing, Connected, Disconnecting
+	}
+
 	public class LocalBinder extends Binder {
 		public MumbleService getService() {
 			return MumbleService.this;
@@ -65,6 +68,7 @@ public class MumbleService extends Service {
 	public static final String EXTRA_USER = "mumbleclient.extra.USER";
 
 	private MumbleConnection mClient;
+	private MumbleProtocol mProtocol;
 	private Thread mClientThread;
 	private Thread mRecordThread;
 
@@ -87,7 +91,7 @@ public class MumbleService extends Service {
 	 * reason even events like the CURRENT_USER_UPDATED are posted to the
 	 * MumbleService handler.
 	 */
-	private final MumbleConnectionHost connectionHost = new MumbleConnectionHost() {
+	private final MumbleProtocolHost protocolHost = new MumbleProtocolHost() {
 		@Override
 		public void channelAdded(final Channel channel) {
 			handler.post(new Runnable() {
@@ -168,71 +172,23 @@ public class MumbleService extends Service {
 			sendBroadcast(INTENT_CHAT_TEXT_UPDATE, b);
 		}
 
-		public void setConnectionState(final ConnectionState state) {
-			// TODO: Synchronize this with the main application thread!
-			// This state is being set from the Connection thread which means
-			// it might be changed in the middle of a call from the Activities.
-			//
-			// This might result in assertion failures or worse even if the
-			// activities check that the Service is connected before requesting
-			// user lists for example in case the MumbleConnection decided to
-			// update the state between the isConnected check and the actual
-			// call.
-
-			if (MumbleService.this.state == state) {
-				return;
-			}
-
-			MumbleService.this.state = state;
-			final Bundle b = new Bundle();
-			b.putSerializable(EXTRA_CONNECTION_STATE, state);
-			sendBroadcast(INTENT_CONNECTION_STATE_CHANGED);
-
-			Log.i(
-				Globals.LOG_TAG,
-				"MumbleService: Connection state changed to " +
-					state.toString());
-
-			// Handle foreground stuff
-			if (state == ConnectionState.Connected) {
-				mNotification = new Notification(
-					R.drawable.icon,
-					"Mumble connected",
-					System.currentTimeMillis());
-
-				final Intent channelListIntent = new Intent(
-					MumbleService.this,
-					ChannelList.class);
-				channelListIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP).addFlags(
-					Intent.FLAG_ACTIVITY_NEW_TASK);
-				mNotification.setLatestEventInfo(
-					MumbleService.this,
-					"Mumble",
-					"Mumble is connected to a server",
-					PendingIntent.getActivity(
-						MumbleService.this,
-						0,
-						channelListIntent,
-						0));
-				startForegroundCompat(1, mNotification);
-			} else if (state == ConnectionState.Disconnected) {
-				if (mNotification != null) {
-					stopForegroundCompat(1);
-					mNotification = null;
-				}
-
-				// Clear the user and channel collections.
-				users.clear();
-				channels.clear();
-			}
-		}
-
 		@Override
 		public void setError(final String error) {
 			handler.post(new Runnable() {
 				@Override
 				public void run() {
 					errorString = error;
+				}
+			});
+		}
+
+		@Override
+		public void setSynchronized(final boolean synced) {
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					MumbleService.this.synced = synced;
+					broadcastState();
 				}
 			});
 		}
@@ -292,6 +248,73 @@ public class MumbleService extends Service {
 				}
 			});
 		}
+
+	};
+
+	private final MumbleConnectionHost connectionHost = new MumbleConnectionHost() {
+		public void setConnectionState(final int state) {
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					if (MumbleService.this.state == state) {
+						return;
+					}
+
+					MumbleService.this.state = state;
+
+					// Handle foreground stuff
+					if (state == MumbleConnectionHost.STATE_CONNECTED) {
+						mNotification = new Notification(
+							R.drawable.icon,
+							"Mumble connected",
+							System.currentTimeMillis());
+
+						final Intent channelListIntent = new Intent(
+							MumbleService.this,
+							ChannelList.class);
+						channelListIntent.addFlags(
+							Intent.FLAG_ACTIVITY_CLEAR_TOP).addFlags(
+							Intent.FLAG_ACTIVITY_NEW_TASK);
+						mNotification.setLatestEventInfo(
+							MumbleService.this,
+							"Mumble",
+							"Mumble is connected to a server",
+							PendingIntent.getActivity(
+								MumbleService.this,
+								0,
+								channelListIntent,
+								0));
+						startForegroundCompat(1, mNotification);
+					} else if (state == MumbleConnectionHost.STATE_DISCONNECTED ||
+							   state == MumbleConnectionHost.STATE_DISCONNECTING) {
+						if (mProtocol != null) {
+							mProtocol.stop();
+						}
+
+						if (mNotification != null) {
+							stopForegroundCompat(1);
+							mNotification = null;
+						}
+
+						// Clear the user and channel collections.
+						users.clear();
+						channels.clear();
+					}
+
+					broadcastState();
+				}
+			});
+		}
+
+		@Override
+		public void setError(final String error) {
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					errorString = error;
+				}
+			});
+		}
 	};
 
 	private final AudioOutputHost audioHost = new AudioOutputHost() {
@@ -312,7 +335,9 @@ public class MumbleService extends Service {
 	private final LocalBinder mBinder = new LocalBinder();
 	final Handler handler = new Handler();
 
-	ConnectionState state;
+	int state;
+	boolean synced;
+	ConnectionState serviceState;
 	String errorString;
 	final List<Message> messages = new LinkedList<Message>();
 	final List<Channel> channels = new ArrayList<Channel>();
@@ -330,7 +355,7 @@ public class MumbleService extends Service {
 	private final Object[] mStopForegroundArgs = new Object[1];
 
 	public boolean canSpeak() {
-		return mClient.canSpeak;
+		return mProtocol.canSpeak;
 	}
 
 	public void disconnect() {
@@ -345,28 +370,28 @@ public class MumbleService extends Service {
 	}
 
 	public int getCodec() {
-		if (mClient.codec == MumbleConnection.CODEC_NOCODEC) {
+		if (mProtocol.codec == MumbleProtocol.CODEC_NOCODEC) {
 			throw new IllegalStateException(
 				"Called getCodec on a connection with unsupported codec");
 		}
 
-		return mClient.codec;
+		return mProtocol.codec;
 	}
 
 	public ConnectionState getConnectionState() {
-		return state;
+		return serviceState;
 	}
 
 	public Channel getCurrentChannel() {
 		assertConnected();
 
-		return mClient.currentChannel;
+		return mProtocol.currentChannel;
 	}
 
 	public User getCurrentUser() {
 		assertConnected();
 
-		return mClient.currentUser;
+		return mProtocol.currentUser;
 	}
 
 	public String getError() {
@@ -415,23 +440,29 @@ public class MumbleService extends Service {
 			mClientThread.interrupt();
 		}
 
+		users.clear();
+		channels.clear();
+
 		mClient = new MumbleConnection(
 			connectionHost,
-			audioHost,
 			host,
 			port,
 			username,
-			password,
-			this.getApplicationContext());
+			password);
 
-		mClientThread = new Thread(mClient, "net");
-		mClientThread.start();
+		mProtocol = new MumbleProtocol(
+			protocolHost,
+			audioHost,
+			mClient,
+			getApplicationContext());
+
+		mClientThread = mClient.start(mProtocol);
 
 		return START_NOT_STICKY;
 	}
 
 	public boolean isConnected() {
-		return state == ConnectionState.Connected;
+		return serviceState == ConnectionState.Connected;
 	}
 
 	public boolean isRecording() {
@@ -441,7 +472,7 @@ public class MumbleService extends Service {
 	public void joinChannel(final int channelId) {
 		assertConnected();
 
-		mClient.joinChannel(channelId);
+		mProtocol.joinChannel(channelId);
 	}
 
 	@Override
@@ -467,7 +498,7 @@ public class MumbleService extends Service {
 		}
 
 		Log.i(Globals.LOG_TAG, "MumbleService: Created");
-		state = ConnectionState.Disconnected;
+		serviceState = ConnectionState.Disconnected;
 	}
 
 	@Override
@@ -493,8 +524,10 @@ public class MumbleService extends Service {
 		return handleCommand(intent);
 	}
 
-	public void sendChannelTextMessage(final String message, final Channel channel) {
-		mClient.sendChannelTextMessage(message, channel);
+	public void sendChannelTextMessage(
+		final String message,
+		final Channel channel) {
+		mProtocol.sendChannelTextMessage(message, channel);
 	}
 
 	public void sendUdpMessage(final byte[] buffer, final int length) {
@@ -502,24 +535,23 @@ public class MumbleService extends Service {
 	}
 
 	public void setRecording(final boolean state) {
-		assertConnected();
-
 		if (mRecordThread == null && state) {
 			Assert.assertTrue(canSpeak());
+			assertConnected();
 
 			// start record
 			// TODO check initialized
 			mRecordThread = new Thread(new RecordThread(this), "record");
 			mRecordThread.start();
 			audioHost.setTalkState(
-				mClient.currentUser,
+				mProtocol.currentUser,
 				AudioOutputHost.STATE_TALKING);
 		} else if (mRecordThread != null && !state) {
 			// stop record
 			mRecordThread.interrupt();
 			mRecordThread = null;
 			audioHost.setTalkState(
-				mClient.currentUser,
+				mProtocol.currentUser,
 				AudioOutputHost.STATE_PASSIVE);
 		}
 	}
@@ -527,6 +559,37 @@ public class MumbleService extends Service {
 	private void assertConnected() {
 		if (!isConnected()) {
 			throw new IllegalStateException("Service is not connected");
+		}
+	}
+
+	private void broadcastState() {
+		resolveConnectionState();
+
+		final Bundle b = new Bundle();
+		b.putSerializable(EXTRA_CONNECTION_STATE, serviceState);
+		sendBroadcast(INTENT_CONNECTION_STATE_CHANGED);
+
+		Log.i(Globals.LOG_TAG, "MumbleService: Connection state changed to " +
+							   serviceState.toString());
+	}
+
+	private void resolveConnectionState() {
+		switch (state) {
+		case MumbleConnectionHost.STATE_CONNECTING:
+			serviceState = ConnectionState.Connecting;
+			break;
+		case MumbleConnectionHost.STATE_CONNECTED:
+			serviceState = synced ? ConnectionState.Connected
+				: ConnectionState.Synchronizing;
+			break;
+		case MumbleConnectionHost.STATE_DISCONNECTING:
+			serviceState = ConnectionState.Disconnecting;
+			break;
+		case MumbleConnectionHost.STATE_DISCONNECTED:
+			serviceState = ConnectionState.Disconnected;
+			break;
+		default:
+			Assert.fail();
 		}
 	}
 

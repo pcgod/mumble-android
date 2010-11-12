@@ -5,7 +5,7 @@ import java.util.LinkedList;
 import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.jni.Native;
 import org.pcgod.mumbleclient.jni.celtConstants;
-import org.pcgod.mumbleclient.service.MumbleConnection;
+import org.pcgod.mumbleclient.service.MumbleProtocol;
 import org.pcgod.mumbleclient.service.MumbleService;
 import org.pcgod.mumbleclient.service.PacketDataStream;
 
@@ -24,14 +24,14 @@ public class RecordThread implements Runnable {
 	private final int audioQuality;
 	private static int frameSize;
 	private static int recordingSampleRate;
-	private static final int TARGET_SAMPLE_RATE = MumbleConnection.SAMPLE_RATE;
+	private static final int TARGET_SAMPLE_RATE = MumbleProtocol.SAMPLE_RATE;
 	private final short[] buffer;
 	private int bufferSize;
 	private final long celtEncoder;
 	private final long celtMode;
 	private final int framesPerPacket = 6;
 	private final LinkedList<byte[]> outputQueue = new LinkedList<byte[]>();
-	private final short[] resampleBuffer = new short[MumbleConnection.FRAME_SIZE];
+	private final short[] resampleBuffer = new short[MumbleProtocol.FRAME_SIZE];
 	private int seq;
 	private final long speexResamplerState;
 	private final MumbleService mService;
@@ -62,8 +62,8 @@ public class RecordThread implements Runnable {
 
 		buffer = new short[frameSize];
 		celtMode = Native.celt_mode_create(
-			MumbleConnection.SAMPLE_RATE,
-			MumbleConnection.FRAME_SIZE);
+			MumbleProtocol.SAMPLE_RATE,
+			MumbleProtocol.FRAME_SIZE);
 		celtEncoder = Native.celt_encoder_create(celtMode, 1);
 		Native.celt_encoder_ctl(
 			celtEncoder,

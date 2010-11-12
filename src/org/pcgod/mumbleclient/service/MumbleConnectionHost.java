@@ -1,35 +1,18 @@
 package org.pcgod.mumbleclient.service;
 
-import org.pcgod.mumbleclient.service.model.Channel;
-import org.pcgod.mumbleclient.service.model.Message;
-import org.pcgod.mumbleclient.service.model.User;
-
+/**
+ * Callback interface for Connection to communicate back to the service.
+ *
+ * @author Rantanen
+ *
+ */
 public interface MumbleConnectionHost {
-	public enum ConnectionState {
-		Disconnected, Connecting, Synchronizing, Connected, Disconnecting
-	}
+	public final static int STATE_DISCONNECTED = 0;
+	public final static int STATE_CONNECTING = 1;
+	public final static int STATE_CONNECTED = 2;
+	public final static int STATE_DISCONNECTING = 3;
 
-	public void channelAdded(Channel channel);
-
-	public void channelRemoved(int channelId);
-
-	public void channelUpdated(Channel channel);
-
-	public void currentChannelChanged();
-
-	public void currentUserUpdated();
-
-	public void messageReceived(Message msg);
-
-	public void messageSent(Message msg);
-
-	public void setConnectionState(ConnectionState state);
+	public void setConnectionState(int state);
 
 	public void setError(final String error);
-
-	public void userAdded(User user);
-
-	public void userRemoved(int userId);
-
-	public void userUpdated(User user);
 }

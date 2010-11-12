@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.jni.Native;
-import org.pcgod.mumbleclient.service.MumbleConnection;
+import org.pcgod.mumbleclient.service.MumbleProtocol;
 import org.pcgod.mumbleclient.service.PacketDataStream;
 import org.pcgod.mumbleclient.service.model.User;
 
@@ -32,7 +32,7 @@ public class AudioUser {
 	private final long celtMode;
 	private final long celtDecoder;
 	private final Queue<byte[]> dataArrayPool = new ConcurrentLinkedQueue<byte[]>();
-	float[] lastFrame = new float[MumbleConnection.FRAME_SIZE];
+	float[] lastFrame = new float[MumbleProtocol.FRAME_SIZE];
 	private final User user;
 
 	private int missedFrames = 0;
@@ -42,19 +42,19 @@ public class AudioUser {
 		this.useJitterBuffer = useJitterBuffer;
 
 		celtMode = Native.celt_mode_create(
-			MumbleConnection.SAMPLE_RATE,
-			MumbleConnection.FRAME_SIZE);
+			MumbleProtocol.SAMPLE_RATE,
+			MumbleProtocol.FRAME_SIZE);
 		celtDecoder = Native.celt_decoder_create(celtMode, 1);
 
 		// Initialize one of the buffers.
 		if (useJitterBuffer) {
 			jbLock = new Object();
 			currentTimestamp = new int[1];
-			jitterBuffer = Native.jitter_buffer_init(MumbleConnection.FRAME_SIZE);
+			jitterBuffer = Native.jitter_buffer_init(MumbleProtocol.FRAME_SIZE);
 			Native.jitter_buffer_ctl(
 				jitterBuffer,
 				0,
-				new int[] { 5 * MumbleConnection.FRAME_SIZE });
+				new int[] { 5 * MumbleProtocol.FRAME_SIZE });
 
 			normalBuffer = null;
 		} else {
@@ -81,8 +81,8 @@ public class AudioUser {
 		// class anyway. In theory only this class needs to know what packets
 		// can be decoded.)
 		final int type = (packetHeader >> 5) & 0x7;
-		if (type != MumbleConnection.UDPMESSAGETYPE_UDPVOICECELTALPHA &&
-			type != MumbleConnection.UDPMESSAGETYPE_UDPVOICECELTBETA) {
+		if (type != MumbleProtocol.UDPMESSAGETYPE_UDPVOICECELTALPHA &&
+			type != MumbleProtocol.UDPMESSAGETYPE_UDPVOICECELTBETA) {
 			return false;
 		}
 
@@ -115,8 +115,8 @@ public class AudioUser {
 
 				if (useJitterBuffer) {
 					jbp.timestamp = (short) (sequence + frameCount) *
-									MumbleConnection.FRAME_SIZE;
-					jbp.span = MumbleConnection.FRAME_SIZE;
+									MumbleProtocol.FRAME_SIZE;
+					jbp.span = MumbleProtocol.FRAME_SIZE;
 
 					synchronized (jbLock) {
 						Native.jitter_buffer_put(jitterBuffer, jbp);
@@ -165,7 +165,7 @@ public class AudioUser {
 				if (Native.jitter_buffer_get(
 					jitterBuffer,
 					jbp,
-					MumbleConnection.FRAME_SIZE,
+					MumbleProtocol.FRAME_SIZE,
 					currentTimestamp) == 0) {
 
 					data = jbp.data;
