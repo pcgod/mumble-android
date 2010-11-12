@@ -94,7 +94,7 @@ public class MumbleProtocol {
 		final UserState.Builder us = UserState.newBuilder();
 		us.setSession(currentUser.session);
 		us.setChannelId(channelId);
-		conn.sendMessage(MessageType.UserState, us);
+		conn.sendTcpMessage(MessageType.UserState, us);
 	}
 
 	public void processTcp(final short type, final byte[] buffer)
@@ -164,7 +164,7 @@ public class MumbleProtocol {
 
 			final UserState.Builder usb = UserState.newBuilder();
 			usb.setSession(currentUser.session);
-			conn.sendMessage(MessageType.UserState, usb);
+			conn.sendTcpMessage(MessageType.UserState, usb);
 
 			host.setSynchronized(true);
 
@@ -302,7 +302,7 @@ public class MumbleProtocol {
 					"MumbleConnection: Server requesting nonce");
 				final CryptSetup.Builder nonceBuilder = CryptSetup.newBuilder();
 				nonceBuilder.setClientNonce(ByteString.copyFrom(conn.cryptState.getClientNonce()));
-				conn.sendMessage(MessageType.CryptSetup, nonceBuilder);
+				conn.sendTcpMessage(MessageType.CryptSetup, nonceBuilder);
 			}
 			break;
 		default:
@@ -338,7 +338,7 @@ public class MumbleProtocol {
 		final TextMessage.Builder tmb = TextMessage.newBuilder();
 		tmb.addChannelId(channel.id);
 		tmb.setMessage(message);
-		conn.sendMessage(MessageType.TextMessage, tmb);
+		conn.sendTcpMessage(MessageType.TextMessage, tmb);
 
 		final Message msg = new Message();
 		msg.timestamp = System.currentTimeMillis();
@@ -408,8 +408,6 @@ public class MumbleProtocol {
 	}
 
 	private void stopThreads() {
-		// Clean connection state that might have been initialized.
-		// Do this before closing the socket as the threads could use it.
 		if (ao != null) {
 			ao.stop();
 			try {

@@ -23,7 +23,7 @@ class PingThread implements Runnable {
 				// TCP
 				final Ping.Builder p = Ping.newBuilder();
 				p.setTimestamp(timestamp);
-				mc.sendMessage(MumbleProtocol.MessageType.Ping, p);
+				mc.sendTcpMessage(MumbleProtocol.MessageType.Ping, p);
 
 				// UDP
 				udpBuffer[1] = (byte) ((timestamp >> 56) & 0xFF);

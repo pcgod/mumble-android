@@ -12,9 +12,31 @@ import android.util.Log;
  * @author Rantanen
  *
  */
-public abstract class MumbleSocketReader implements Runnable {
+public abstract class MumbleSocketReader {
 	private final Object monitor;
 	private boolean running;
+	private final Thread thread;
+
+	protected Runnable runnable = new Runnable() {
+		@Override
+		public void run() {
+			try {
+				while (isRunning()) {
+					process();
+				}
+			} catch (final IOException ex) {
+				// If we aren't running, exception is expected.
+				if (isRunning()) {
+					Log.e(Globals.LOG_TAG, "Error reading socket", ex);
+				}
+			} finally {
+				running = false;
+				synchronized (monitor) {
+					monitor.notifyAll();
+				}
+			}
+		}
+	};
 
 	/**
 	 * Constructs a new Reader instance
@@ -23,9 +45,10 @@ public abstract class MumbleSocketReader implements Runnable {
 	 *            The monitor that should be signaled when the thread is
 	 *            quitting.
 	 */
-	public MumbleSocketReader(final Object monitor) {
+	public MumbleSocketReader(final Object monitor, final String name) {
 		this.monitor = monitor;
 		this.running = true;
+		this.thread = new Thread(runnable, name);
 	}
 
 	/**
@@ -34,25 +57,19 @@ public abstract class MumbleSocketReader implements Runnable {
 	 * @return True while the reader should keep processing the socket.
 	 */
 	public boolean isRunning() {
-		return running;
+		return running && thread.isAlive();
 	}
 
-	@Override
-	public void run() {
+	public void start() {
+		this.thread.start();
+	}
+
+	public void stop() {
+		this.thread.interrupt();
 		try {
-			while (isRunning()) {
-				process();
-			}
-		} catch (final IOException ex) {
-			// If we aren't running, exception is expected.
-			if (isRunning()) {
-				Log.e(Globals.LOG_TAG, "Error reading socket", ex);
-			}
-		} finally {
-			running = false;
-			synchronized (monitor) {
-				monitor.notifyAll();
-			}
+			this.thread.join();
+		} catch (final InterruptedException e) {
+			Log.w(Globals.LOG_TAG, e);
 		}
 	}
 
