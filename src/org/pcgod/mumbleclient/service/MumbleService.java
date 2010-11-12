@@ -229,6 +229,16 @@ public class MumbleService extends Service {
 		}
 
 		@Override
+		public void setError(final String error) {
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					errorString = error;
+				}
+			});
+		}
+
+		@Override
 		public void userAdded(final User user) {
 			handler.post(new Runnable() {
 				@Override
@@ -304,6 +314,7 @@ public class MumbleService extends Service {
 	final Handler handler = new Handler();
 
 	ConnectionState state;
+	String errorString;
 	final List<Message> messages = new LinkedList<Message>();
 	final List<Channel> channels = new ArrayList<Channel>();
 	final List<User> users = new ArrayList<User>();
@@ -360,10 +371,9 @@ public class MumbleService extends Service {
 	}
 
 	public String getError() {
-		if (mClient == null) {
-			return null;
-		}
-		return mClient.getError();
+		final String r = errorString;
+		errorString = null;
+		return r;
 	}
 
 	public List<Message> getMessageList() {

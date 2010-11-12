@@ -123,7 +123,6 @@ public class MumbleConnection implements Runnable {
 	private Thread tcpReaderThread;
 	private final Object stateLock = new Object();
 	private final CryptState cryptState = new CryptState();
-	private String errorString;
 
 	/**
 	 * Constructor for new connection thread.
@@ -192,12 +191,6 @@ public class MumbleConnection implements Runnable {
 		}
 	}
 
-	public String getError() {
-		final String error = errorString;
-		errorString = null;
-		return error;
-	}
-
 	public final boolean isConnectionAlive() {
 		return !disconnecting && !connectionDead();
 	}
@@ -236,10 +229,14 @@ public class MumbleConnection implements Runnable {
 				connectUdp();
 				connected = true;
 			} catch (final UnknownHostException e) {
-				errorString = String.format("Host \"%s\" unknown", host);
+				final String errorString = String.format(
+					"Host \"%s\" unknown",
+					host);
+				connectionHost.setError(errorString);
 				Log.e(Globals.LOG_TAG, errorString, e);
 			} catch (final ConnectException e) {
-				errorString = "The host refused connection";
+				final String errorString = "The host refused connection";
+				connectionHost.setError(errorString);
 				Log.e(Globals.LOG_TAG, errorString, e);
 			} catch (final KeyManagementException e) {
 				Log.e(Globals.LOG_TAG, String.format(
@@ -270,10 +267,16 @@ public class MumbleConnection implements Runnable {
 			try {
 				handleProtocol();
 			} catch (final IOException e) {
-				errorString = String.format("Connection lost", host);
+				final String errorString = String.format(
+					"Connection lost",
+					host);
+				connectionHost.setError(errorString);
 				Log.e(Globals.LOG_TAG, errorString, e);
 			} catch (final InterruptedException e) {
-				errorString = String.format("Connection lost", host);
+				final String errorString = String.format(
+					"Connection lost",
+					host);
+				connectionHost.setError(errorString);
 				Log.e(Globals.LOG_TAG, errorString, e);
 			}
 		} finally {
@@ -630,9 +633,10 @@ public class MumbleConnection implements Runnable {
 			break;
 		case Reject:
 			final Reject reject = Reject.parseFrom(buffer);
-			errorString = String.format(
+			final String errorString = String.format(
 				"Connection rejected: %s",
 				reject.getReason());
+			connectionHost.setError(errorString);
 			Log.e(Globals.LOG_TAG, String.format(
 				"Received Reject message: %s",
 				reject.getReason()));

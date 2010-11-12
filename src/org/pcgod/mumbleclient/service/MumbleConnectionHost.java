@@ -25,6 +25,8 @@ public interface MumbleConnectionHost {
 
 	public void setConnectionState(ConnectionState state);
 
+	public void setError(final String error);
+
 	public void userAdded(User user);
 
 	public void userRemoved(int userId);
