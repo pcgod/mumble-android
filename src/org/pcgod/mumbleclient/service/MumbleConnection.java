@@ -173,8 +173,13 @@ public class MumbleConnection implements Runnable {
 	}
 
 	public final void disconnect() {
-		disconnecting = true;
 		synchronized (stateLock) {
+			if (disconnecting == true) {
+				return;
+			}
+
+			disconnecting = true;
+
 			if (tcpReaderThread != null) {
 				tcpReaderThread.interrupt();
 			}
@@ -275,6 +280,7 @@ public class MumbleConnection implements Runnable {
 			cleanConnection();
 
 			synchronized (stateLock) {
+				disconnecting = true;
 				connectionHost.setConnectionState(ConnectionState.Disconnected);
 			}
 		}
@@ -627,7 +633,9 @@ public class MumbleConnection implements Runnable {
 			errorString = String.format(
 				"Connection rejected: %s",
 				reject.getReason());
-			Log.e(Globals.LOG_TAG, String.format("Received Reject message: %s", reject.getReason()));
+			Log.e(Globals.LOG_TAG, String.format(
+				"Received Reject message: %s",
+				reject.getReason()));
 			break;
 		case ServerSync:
 			final ServerSync ss = ServerSync.parseFrom(buffer);
