@@ -58,15 +58,14 @@ public class MumbleConnection implements Runnable {
 	private long useUdpUntil;
 	boolean usingUdp = false;
 
-	private boolean disconnecting = false;
+	private volatile boolean disconnecting = false;
+	private volatile boolean suppressErrors = false;
 
 	private final String host;
 	private final int port;
 	private final String username;
 	private final String password;
 
-	private Thread udpReaderThread;
-	private Thread tcpReaderThread;
 	private final Object stateLock = new Object();
 	final CryptState cryptState = new CryptState();
 
@@ -120,15 +119,16 @@ public class MumbleConnection implements Runnable {
 			}
 
 			disconnecting = true;
+			suppressErrors = true;
 
-			if (tcpReaderThread != null) {
-				tcpReaderThread.interrupt();
+			try {
+				tcpSocket.close();
+			} catch (final IOException e) {
+				Log.e(Globals.LOG_TAG, "Error disconnecting TCP socket", e);
 			}
-			if (udpReaderThread != null) {
-				udpReaderThread.interrupt();
-			}
+			udpSocket.close();
 
-			connectionHost.setConnectionState(MumbleConnectionHost.STATE_DISCONNECTING);
+			connectionHost.setConnectionState(MumbleConnectionHost.STATE_DISCONNECTED);
 			stateLock.notifyAll();
 		}
 	}
@@ -169,24 +169,22 @@ public class MumbleConnection implements Runnable {
 				final String errorString = String.format(
 					"Host \"%s\" unknown",
 					host);
-				connectionHost.setError(errorString);
-				Log.e(Globals.LOG_TAG, errorString, e);
+				reportError(errorString, e);
 			} catch (final ConnectException e) {
 				final String errorString = "The host refused connection";
-				connectionHost.setError(errorString);
-				Log.e(Globals.LOG_TAG, errorString, e);
+				reportError(errorString, e);
 			} catch (final KeyManagementException e) {
-				Log.e(Globals.LOG_TAG, String.format(
+				reportError(String.format(
 					"Could not connect to Mumble server \"%s:%s\"",
 					host,
 					port), e);
 			} catch (final NoSuchAlgorithmException e) {
-				Log.e(Globals.LOG_TAG, String.format(
+				reportError(String.format(
 					"Could not connect to Mumble server \"%s:%s\"",
 					host,
 					port), e);
 			} catch (final IOException e) {
-				Log.e(Globals.LOG_TAG, String.format(
+				reportError(String.format(
 					"Could not connect to Mumble server \"%s:%s\"",
 					host,
 					port), e);
@@ -198,6 +196,10 @@ public class MumbleConnection implements Runnable {
 			}
 
 			synchronized (stateLock) {
+				if (disconnecting) {
+					return;
+				}
+
 				connectionHost.setConnectionState(MumbleConnectionHost.STATE_CONNECTED);
 			}
 
@@ -207,14 +209,12 @@ public class MumbleConnection implements Runnable {
 				final String errorString = String.format(
 					"Connection lost",
 					host);
-				connectionHost.setError(errorString);
-				Log.e(Globals.LOG_TAG, errorString, e);
+				reportError(errorString, e);
 			} catch (final InterruptedException e) {
 				final String errorString = String.format(
 					"Connection lost",
 					host);
-				connectionHost.setError(errorString);
-				Log.e(Globals.LOG_TAG, errorString, e);
+				reportError(errorString, e);
 			}
 		} finally {
 			synchronized (stateLock) {
@@ -233,20 +233,18 @@ public class MumbleConnection implements Runnable {
 		final short type = (short) t.ordinal();
 		final int length = m.getSerializedSize();
 
-		synchronized (stateLock) {
-			if (disconnecting) {
-				return;
-			}
+		if (disconnecting) {
+			return;
+		}
 
-			try {
-				synchronized (out) {
-					out.writeShort(type);
-					out.writeInt(length);
-					m.writeTo(out);
-				}
-			} catch (final IOException e) {
-				handleSendingException(e);
+		try {
+			synchronized (out) {
+				out.writeShort(type);
+				out.writeInt(length);
+				m.writeTo(out);
 			}
+		} catch (final IOException e) {
+			handleSendingException(e);
 		}
 
 		if (t != MessageType.Ping) {
@@ -283,16 +281,14 @@ public class MumbleConnection implements Runnable {
 			}
 			outPacket.setPort(port);
 
-			synchronized (stateLock) {
-				if (disconnecting) {
-					return;
-				}
+			if (disconnecting) {
+				return;
+			}
 
-				try {
-					udpSocket.send(outPacket);
-				} catch (final IOException e) {
-					handleSendingException(e);
-				}
+			try {
+				udpSocket.send(outPacket);
+			} catch (final IOException e) {
+				handleSendingException(e);
 			}
 		} else {
 			if (usingUdp) {
@@ -302,19 +298,17 @@ public class MumbleConnection implements Runnable {
 
 			final short type = (short) MessageType.UDPTunnel.ordinal();
 
-			synchronized (stateLock) {
-				if (disconnecting) {
-					return;
-				}
+			if (disconnecting) {
+				return;
+			}
 
-				synchronized (out) {
-					try {
-						out.writeShort(type);
-						out.writeInt(length);
-						out.write(buffer, 0, length);
-					} catch (final IOException e) {
-						handleSendingException(e);
-					}
+			synchronized (out) {
+				try {
+					out.writeShort(type);
+					out.writeInt(length);
+					out.write(buffer, 0, length);
+				} catch (final IOException e) {
+					handleSendingException(e);
 				}
 			}
 		}
@@ -381,10 +375,8 @@ public class MumbleConnection implements Runnable {
 	}
 
 	private void handleProtocol() throws IOException, InterruptedException {
-		synchronized (stateLock) {
-			if (disconnecting) {
-				return;
-			}
+		if (disconnecting) {
+			return;
 		}
 
 		out = new DataOutputStream(tcpSocket.getOutputStream());
@@ -402,22 +394,17 @@ public class MumbleConnection implements Runnable {
 		sendMessage(MessageType.Version, v);
 		sendMessage(MessageType.Authenticate, a);
 
-		synchronized (stateLock) {
-			if (disconnecting) {
-				return;
-			}
+		if (disconnecting) {
+			return;
 		}
 
-		// Process the stream in separate thread so we can interrupt it if necessary
-		// without interrupting the whole connection thread and thus allowing us to
-		// disconnect cleanly.
+		// Spawn one thread for each socket to allow concurrent processing.
 		final MumbleSocketReader tcpReader = new MumbleSocketReader(stateLock) {
 			private byte[] msg = null;
 
 			@Override
 			public boolean isRunning() {
-				return tcpSocket.isConnected() && !disconnecting &&
-					   super.isRunning();
+				return !disconnecting && super.isRunning();
 			}
 
 			@Override
@@ -440,8 +427,7 @@ public class MumbleConnection implements Runnable {
 
 			@Override
 			public boolean isRunning() {
-				return udpSocket.isConnected() && !disconnecting &&
-					   super.isRunning();
+				return !disconnecting && super.isRunning();
 			}
 
 			@Override
@@ -461,15 +447,16 @@ public class MumbleConnection implements Runnable {
 			}
 		};
 
-		tcpReaderThread = new Thread(tcpReader, "TCP Reader");
-		udpReaderThread = new Thread(udpReader, "UDP Reader");
+		Thread tcpReaderThread = new Thread(tcpReader, "TCP Reader");
+		Thread udpReaderThread = new Thread(udpReader, "UDP Reader");
 
 		tcpReaderThread.start();
 		udpReaderThread.start();
 
 		synchronized (stateLock) {
-			while (tcpReaderThread.isAlive() && tcpReader.isRunning() &&
-				   udpReaderThread.isAlive() && udpReader.isRunning()) {
+			while (!disconnecting && tcpReaderThread.isAlive() &&
+				   tcpReader.isRunning() && udpReaderThread.isAlive() &&
+				   udpReader.isRunning()) {
 				stateLock.wait();
 			}
 
@@ -493,8 +480,8 @@ public class MumbleConnection implements Runnable {
 
 		// Otherwise see if we should be disconnecting really.
 		if (connectionDead()) {
-			disconnect();
 			reportError(String.format("Connection lost: %s", e.getMessage()), e);
+			disconnect();
 		} else {
 			// Connection is alive but we still couldn't send message?
 			reportError(String.format(
@@ -506,6 +493,11 @@ public class MumbleConnection implements Runnable {
 	}
 
 	private void reportError(final String error, final Exception e) {
+		if (suppressErrors) {
+			Log.w(Globals.LOG_TAG, "Error while disconnecting");
+			Log.w(Globals.LOG_TAG, error, e);
+			return;
+		}
 		connectionHost.setError(String.format(error));
 		Log.e(Globals.LOG_TAG, error, e);
 	}
