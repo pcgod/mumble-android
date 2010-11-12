@@ -1,7 +1,5 @@
 package org.pcgod.mumbleclient.service;
 
-import java.io.IOException;
-
 import net.sf.mumble.MumbleProto.Ping;
 
 class PingThread implements Runnable {
@@ -39,15 +37,10 @@ class PingThread implements Runnable {
 
 				mc.sendUdpMessage(udpBuffer, udpBuffer.length, true);
 				Thread.sleep(5000);
-			} catch (final IOException e) {
-				e.printStackTrace();
-				running = false;
 			} catch (final InterruptedException e) {
 				e.printStackTrace();
 				running = false;
 			}
 		}
 	}
-
 }
-

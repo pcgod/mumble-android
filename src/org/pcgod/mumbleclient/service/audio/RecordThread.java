@@ -1,6 +1,5 @@
 package org.pcgod.mumbleclient.service.audio;
 
-import java.io.IOException;
 import java.util.LinkedList;
 
 import org.pcgod.mumbleclient.Settings;
@@ -88,7 +87,7 @@ public class RecordThread implements Runnable {
 
 	@Override
 	public final void run() {
-		boolean running = true;
+		final boolean running = true;
 		android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
 
 		AudioRecord ar = null;
@@ -172,13 +171,7 @@ public class RecordThread implements Runnable {
 						pds.append(tmp);
 					}
 
-					try {
-						mService.sendUdpMessage(outputBuffer, pds.size());
-					} catch (final IOException e) {
-						e.printStackTrace();
-						running = false;
-						break;
-					}
+					mService.sendUdpMessage(outputBuffer, pds.size());
 				}
 			}
 		} finally {

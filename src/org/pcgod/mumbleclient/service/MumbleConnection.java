@@ -47,10 +47,19 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.MessageLite;
 
 /**
- * The main mumble client connection
+ * Maintains connection to the server and implements the low level communication
+ * protocol.
  *
- * Maintains connection to the server and implements the low level
- * communication protocol
+ * This class should support calls from both the main application thread and its
+ * own connection thread. As a result the disconnecting state is quite
+ * complicated. Disconnect can basically happen at any point as the server might
+ * cut the connection due to restart or kick.
+ *
+ * When disconnection happens, the connection reports "Disconnected" state and
+ * stops handling incoming or outgoing messages. Since at this point some of
+ * the sockets might already be closed there is no use waiting on Disconnected
+ * reporting until all the other threads, such as PingThread or RecordThread
+ * have been stopped.
  *
  * @author pcgod
  */
@@ -209,11 +218,7 @@ public class MumbleConnection implements Runnable {
 		final UserState.Builder us = UserState.newBuilder();
 		us.setSession(currentUser.session);
 		us.setChannelId(channelId);
-		try {
-			sendMessage(MessageType.UserState, us);
-		} catch (final IOException e) {
-			e.printStackTrace();
-		}
+		sendMessage(MessageType.UserState, us);
 	}
 
 	@Override
@@ -296,11 +301,7 @@ public class MumbleConnection implements Runnable {
 		final TextMessage.Builder tmb = TextMessage.newBuilder();
 		tmb.addChannelId(channel.id);
 		tmb.setMessage(message);
-		try {
-			sendMessage(MessageType.TextMessage, tmb);
-		} catch (final IOException e) {
-			Log.e(Globals.LOG_TAG, "Could not send text message", e);
-		}
+		sendMessage(MessageType.TextMessage, tmb);
 
 		final Message msg = new Message();
 		msg.timestamp = System.currentTimeMillis();
@@ -312,7 +313,7 @@ public class MumbleConnection implements Runnable {
 
 	public final void sendMessage(
 		final MessageType t,
-		final MessageLite.Builder b) throws IOException {
+		final MessageLite.Builder b) {
 		final MessageLite m = b.build();
 		final short type = (short) t.ordinal();
 		final int length = m.getSerializedSize();
@@ -322,10 +323,14 @@ public class MumbleConnection implements Runnable {
 				return;
 			}
 
-			synchronized (out) {
-				out.writeShort(type);
-				out.writeInt(length);
-				m.writeTo(out);
+			try {
+				synchronized (out) {
+					out.writeShort(type);
+					out.writeInt(length);
+					m.writeTo(out);
+				}
+			} catch (final IOException e) {
+				handleSendingException(e);
 			}
 		}
 
@@ -337,7 +342,7 @@ public class MumbleConnection implements Runnable {
 	public final void sendUdpMessage(
 		final byte[] buffer,
 		final int length,
-		final boolean forceUdp) throws IOException {
+		final boolean forceUdp) {
 		// FIXME: This would break things because we don't handle nonce resync messages
 //		if (!cryptState.isInitialized()) {
 //			return;
@@ -355,7 +360,13 @@ public class MumbleConnection implements Runnable {
 				encryptedBuffer,
 				encryptedBuffer.length);
 
-			outPacket.setAddress(Inet4Address.getByName(host));
+			try {
+				outPacket.setAddress(Inet4Address.getByName(host));
+			} catch (final UnknownHostException e) {
+				reportError(String.format("Cannot resolve host %s", host), e);
+				disconnect();
+				return;
+			}
 			outPacket.setPort(port);
 
 			synchronized (stateLock) {
@@ -363,7 +374,11 @@ public class MumbleConnection implements Runnable {
 					return;
 				}
 
-				udpSocket.send(outPacket);
+				try {
+					udpSocket.send(outPacket);
+				} catch (final IOException e) {
+					handleSendingException(e);
+				}
 			}
 		} else {
 			if (usingUdp) {
@@ -379,9 +394,13 @@ public class MumbleConnection implements Runnable {
 				}
 
 				synchronized (out) {
-					out.writeShort(type);
-					out.writeInt(length);
-					out.write(buffer, 0, length);
+					try {
+						out.writeShort(type);
+						out.writeInt(length);
+						out.write(buffer, 0, length);
+					} catch (final IOException e) {
+						handleSendingException(e);
+					}
 				}
 			}
 		}
@@ -584,6 +603,26 @@ public class MumbleConnection implements Runnable {
 			tcpReaderThread = null;
 			udpReaderThread = null;
 		}
+	}
+
+	private boolean handleSendingException(final IOException e) {
+		// If we are already disconnecting, just ignore this.
+		if (disconnecting) {
+			return true;
+		}
+
+		// Otherwise see if we should be disconnecting really.
+		if (connectionDead()) {
+			disconnect();
+			reportError(String.format("Connection lost: %s", e.getMessage()), e);
+		} else {
+			// Connection is alive but we still couldn't send message?
+			reportError(String.format(
+				"Error while sending message: %s",
+				e.getMessage()), e);
+		}
+
+		return false;
 	}
 
 	private void handleTextMessage(final TextMessage ts) {
@@ -858,5 +897,10 @@ public class MumbleConnection implements Runnable {
 		// Rewind the packet. Otherwise consumers are confusing to implement.
 		pds.rewind();
 		ao.addFrameToBuffer(u, pds, flags);
+	}
+
+	private void reportError(final String error, final Exception e) {
+		connectionHost.setError(String.format(error));
+		Log.e(Globals.LOG_TAG, error, e);
 	}
 }

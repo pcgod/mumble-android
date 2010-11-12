@@ -1,6 +1,5 @@
 package org.pcgod.mumbleclient.service;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -495,13 +494,10 @@ public class MumbleService extends Service {
 	}
 
 	public void sendChannelTextMessage(final String message, final Channel channel) {
-		assertConnected();
-
 		mClient.sendChannelTextMessage(message, channel);
 	}
 
-	public void sendUdpMessage(final byte[] buffer, final int length)
-		throws IOException {
+	public void sendUdpMessage(final byte[] buffer, final int length) {
 		mClient.sendUdpMessage(buffer, length, false);
 	}
 
