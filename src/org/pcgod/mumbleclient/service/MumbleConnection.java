@@ -46,6 +46,62 @@ import com.google.protobuf.MessageLite;
  * @author pcgod
  */
 public class MumbleConnection implements Runnable {
+	class TcpSocketReader extends MumbleSocketReader {
+		public TcpSocketReader(Object monitor) {
+			super(monitor);
+		}
+
+		private byte[] msg = null;
+
+		@Override
+		public boolean isRunning() {
+			return !disconnecting && super.isRunning();
+		}
+
+		@Override
+		protected void process() throws IOException {
+			final short type = in.readShort();
+			final int length = in.readInt();
+			if (msg == null || msg.length != length) {
+				msg = new byte[length];
+			}
+			in.readFully(msg);
+
+			protocol.processTcp(type, msg);
+		}
+	};
+
+	class UdpSocketReader extends MumbleSocketReader {
+		public UdpSocketReader(Object monitor) {
+			super(monitor);
+		}
+
+		private final DatagramPacket packet = new DatagramPacket(
+			new byte[UDP_BUFFER_SIZE],
+			UDP_BUFFER_SIZE);
+
+		@Override
+		public boolean isRunning() {
+			return !disconnecting && super.isRunning();
+		}
+
+		@Override
+		protected void process() throws IOException {
+			udpSocket.receive(packet);
+
+			final byte[] buffer = cryptState.decrypt(
+				packet.getData(),
+				packet.getLength());
+
+			// Decrypt might return null if the buffer was total garbage.
+			if (buffer == null) {
+				return;
+			}
+
+			protocol.processUdp(buffer, buffer.length);
+		}
+	};
+
 	public static final int UDP_BUFFER_SIZE = 2048;
 
 	private final MumbleConnectionHost connectionHost;
@@ -399,53 +455,8 @@ public class MumbleConnection implements Runnable {
 		}
 
 		// Spawn one thread for each socket to allow concurrent processing.
-		final MumbleSocketReader tcpReader = new MumbleSocketReader(stateLock) {
-			private byte[] msg = null;
-
-			@Override
-			public boolean isRunning() {
-				return !disconnecting && super.isRunning();
-			}
-
-			@Override
-			protected void process() throws IOException {
-				final short type = in.readShort();
-				final int length = in.readInt();
-				if (msg == null || msg.length != length) {
-					msg = new byte[length];
-				}
-				in.readFully(msg);
-
-				protocol.processTcp(type, msg);
-			}
-		};
-
-		final MumbleSocketReader udpReader = new MumbleSocketReader(stateLock) {
-			private final DatagramPacket packet = new DatagramPacket(
-				new byte[UDP_BUFFER_SIZE],
-				UDP_BUFFER_SIZE);
-
-			@Override
-			public boolean isRunning() {
-				return !disconnecting && super.isRunning();
-			}
-
-			@Override
-			protected void process() throws IOException {
-				udpSocket.receive(packet);
-
-				final byte[] buffer = cryptState.decrypt(
-					packet.getData(),
-					packet.getLength());
-
-				// Decrypt might return null if the buffer was total garbage.
-				if (buffer == null) {
-					return;
-				}
-
-				protocol.processUdp(buffer, buffer.length);
-			}
-		};
+		final MumbleSocketReader tcpReader = new TcpSocketReader(stateLock);
+		final MumbleSocketReader udpReader = new UdpSocketReader(stateLock);
 
 		Thread tcpReaderThread = new Thread(tcpReader, "TCP Reader");
 		Thread udpReaderThread = new Thread(udpReader, "UDP Reader");
@@ -458,6 +469,11 @@ public class MumbleConnection implements Runnable {
 				   tcpReader.isRunning() && udpReaderThread.isAlive() &&
 				   udpReader.isRunning()) {
 				stateLock.wait();
+			}
+
+			// Report error if we died without being in a disconnecting state.
+			if (!disconnecting) {
+				reportError("Connection lost", null);
 			}
 
 			disconnecting = true;
