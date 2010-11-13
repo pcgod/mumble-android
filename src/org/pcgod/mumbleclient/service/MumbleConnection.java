@@ -67,6 +67,16 @@ public class MumbleConnection implements Runnable {
 		}
 
 		@Override
+		public void stop() {
+			try {
+				tcpSocket.close();
+			} catch (final IOException e) {
+				Log.e(Globals.LOG_TAG, "Error when closing tcp socket", e);
+			}
+			super.stop();
+		}
+
+		@Override
 		protected void process() throws IOException {
 			final short type = in.readShort();
 			final int length = in.readInt();
@@ -98,6 +108,12 @@ public class MumbleConnection implements Runnable {
 		@Override
 		public boolean isRunning() {
 			return !disconnecting && super.isRunning();
+		}
+
+		@Override
+		public void stop() {
+			udpSocket.close();
+			super.stop();
 		}
 
 		@Override
@@ -305,8 +321,13 @@ public class MumbleConnection implements Runnable {
 			}
 		} finally {
 			synchronized (stateLock) {
-				disconnecting = true;
-				connectionHost.setConnectionState(MumbleConnectionHost.STATE_DISCONNECTED);
+				// Don't re-update state in case we are already disconnecting.
+				// ANOTHER MumbleConnection thread might have already set state
+				// to connected and this confuses everything.
+				if (!disconnecting) {
+					disconnecting = true;
+					connectionHost.setConnectionState(MumbleConnectionHost.STATE_DISCONNECTED);
+				}
 			}
 
 			cleanConnection();
@@ -490,13 +511,15 @@ public class MumbleConnection implements Runnable {
 				reportError("Connection lost", null);
 			}
 
-			disconnecting = true;
-			connectionHost.setConnectionState(MumbleConnectionHost.STATE_DISCONNECTED);
-
-			// Stop readers in case one of them is still running
-			tcpReader.stop();
-			udpReader.stop();
+			if (!disconnecting) {
+				disconnecting = true;
+				connectionHost.setConnectionState(MumbleConnectionHost.STATE_DISCONNECTED);
+			}
 		}
+
+		// Stop readers in case one of them is still running
+		tcpReader.stop();
+		udpReader.stop();
 	}
 
 	private boolean handleSendingException(final IOException e) {
