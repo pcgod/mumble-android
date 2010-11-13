@@ -194,6 +194,7 @@ public class MumbleConnection implements Runnable {
 				return;
 			}
 
+			Log.i(Globals.LOG_TAG, "MumbleConnection: disconnect");
 			disconnecting = true;
 			suppressErrors = true;
 
@@ -219,7 +220,7 @@ public class MumbleConnection implements Runnable {
 
 	public final boolean isConnectionAlive() {
 		return !disconnecting && udpSocket != null && tcpSocket != null &&
-			   !tcpSocket.isClosed() && !tcpSocket.isConnected() &&
+			   !tcpSocket.isClosed() && tcpSocket.isConnected() &&
 			   !udpSocket.isClosed();
 	}
 
