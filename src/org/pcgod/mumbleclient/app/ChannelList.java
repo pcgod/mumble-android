@@ -167,15 +167,6 @@ public class ChannelList extends ConnectedActivity {
 
 	}
 
-	private final Runnable usersChangedCallback = new Runnable() {
-		@Override
-		public void run() {
-			final boolean hasUsers = usersAdapter.getCount() > 0;
-			noUsersText.setVisibility(hasUsers ? View.GONE : View.VISIBLE);
-			channelUsersList.setVisibility(hasUsers ? View.VISIBLE : View.GONE);
-		}
-	};
-
 	public static final String JOIN_CHANNEL = "join_channel";
 	public static final String SAVED_STATE_VISIBLE_CHANNEL = "visible_channel";
 
@@ -477,11 +468,9 @@ public class ChannelList extends ConnectedActivity {
 		joinButton.setOnClickListener(joinButtonClickEvent);
 		speakButton.setOnClickListener(speakButtonClickEvent);
 
-		usersAdapter = new UserListAdapter(
-			this,
-			channelUsersList,
-			usersChangedCallback);
+		usersAdapter = new UserListAdapter(this, channelUsersList, null);
 		channelUsersList.setAdapter(usersAdapter);
+		channelUsersList.setEmptyView(noUsersText);
 
 		// Disable speaker check box for now since switching between audio
 		// inputs isn't supported.
