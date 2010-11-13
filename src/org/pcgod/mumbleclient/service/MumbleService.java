@@ -387,8 +387,6 @@ public class MumbleService extends Service {
 	}
 
 	public List<Channel> getChannelList() {
-		assertConnected();
-
 		return Collections.unmodifiableList(channels);
 	}
 
@@ -406,14 +404,10 @@ public class MumbleService extends Service {
 	}
 
 	public Channel getCurrentChannel() {
-		assertConnected();
-
 		return mProtocol.currentChannel;
 	}
 
 	public User getCurrentUser() {
-		assertConnected();
-
 		return mProtocol.currentUser;
 	}
 
@@ -428,8 +422,6 @@ public class MumbleService extends Service {
 	}
 
 	public List<User> getUserList() {
-		assertConnected();
-
 		return Collections.unmodifiableList(users);
 	}
 
@@ -493,8 +485,6 @@ public class MumbleService extends Service {
 	}
 
 	public void joinChannel(final int channelId) {
-		assertConnected();
-
 		mProtocol.joinChannel(channelId);
 	}
 
@@ -568,7 +558,6 @@ public class MumbleService extends Service {
 	public void setRecording(final boolean state) {
 		if (mRecordThread == null && state) {
 			Assert.assertTrue(canSpeak());
-			assertConnected();
 
 			// start record
 			// TODO check initialized
@@ -584,12 +573,6 @@ public class MumbleService extends Service {
 			audioHost.setTalkState(
 				mProtocol.currentUser,
 				AudioOutputHost.STATE_PASSIVE);
-		}
-	}
-
-	private void assertConnected() {
-		if (!isConnected()) {
-			throw new IllegalStateException("Service is not connected");
 		}
 	}
 
