@@ -426,7 +426,11 @@ public class ChannelList extends ConnectedActivity {
 	}
 
 	private void synchronizeControls() {
-		if (mService == null || !mService.isConnected()) {
+		// Use 'visibleChannel' to mark whether we should show stuff or not.
+		// We used mService.isConnected at some point but this has an issue if
+		// onConnected has not been called yet (and thus visibleChannel has not
+		// been set).
+		if (mService == null || visibleChannel == null) {
 			findViewById(R.id.connectionViewRoot).setVisibility(View.GONE);
 			speakButton.setEnabled(false);
 			joinButton.setEnabled(false);
