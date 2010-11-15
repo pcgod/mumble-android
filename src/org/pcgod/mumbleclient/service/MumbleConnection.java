@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -158,6 +158,7 @@ public class MumbleConnection implements Runnable {
 	 */
 	private volatile boolean suppressErrors = false;
 
+	private InetAddress hostAddress;
 	private final String host;
 	private final int port;
 	private final String username;
@@ -265,6 +266,7 @@ public class MumbleConnection implements Runnable {
 					host,
 					port));
 
+				this.hostAddress = InetAddress.getByName(host);
 				tcpSocket = connectTcp();
 				udpSocket = connectUdp();
 				connected = true;
@@ -401,13 +403,7 @@ public class MumbleConnection implements Runnable {
 				encryptedBuffer,
 				encryptedBuffer.length);
 
-			try {
-				outPacket.setAddress(Inet4Address.getByName(host));
-			} catch (final UnknownHostException e) {
-				reportError(String.format("Cannot resolve host %s", host), e);
-				disconnect();
-				return;
-			}
+			outPacket.setAddress(hostAddress);
 			outPacket.setPort(port);
 
 			if (disconnecting) {
@@ -557,7 +553,7 @@ public class MumbleConnection implements Runnable {
 		final SSLContext ctx_ = SSLContext.getInstance("TLS");
 		ctx_.init(null, new TrustManager[] { new LocalSSLTrustManager() }, null);
 		final SSLSocketFactory factory = ctx_.getSocketFactory();
-		final SSLSocket sslSocket = (SSLSocket) factory.createSocket(host, port);
+		final SSLSocket sslSocket = (SSLSocket) factory.createSocket(hostAddress, port);
 		sslSocket.setUseClientMode(true);
 		sslSocket.setEnabledProtocols(new String[] { "TLSv1" });
 		sslSocket.startHandshake();
@@ -570,7 +566,7 @@ public class MumbleConnection implements Runnable {
 	protected DatagramSocket connectUdp() throws SocketException,
 		UnknownHostException {
 		udpSocket = new DatagramSocket();
-		udpSocket.connect(Inet4Address.getByName(host), port);
+		udpSocket.connect(hostAddress, port);
 
 		Log.i(Globals.LOG_TAG, "UDP Socket opened");
 
