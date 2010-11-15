@@ -38,255 +38,18 @@ import android.util.Log;
  * @author Rantanen
  */
 public class MumbleService extends Service {
-
 	public class LocalBinder extends Binder {
 		public MumbleService getService() {
 			return MumbleService.this;
 		}
 	}
 
-	private abstract class ProtocolMessage implements Runnable {
-		@Override
-		public final void run() {
-			if (state != MumbleConnectionHost.STATE_DISCONNECTED) {
-				process();
-			} else {
-				Log.w(
-					Globals.LOG_TAG,
-					"Ignoring message, Service is disconnected");
-			}
-		}
-
-		protected abstract void process();
-	}
-
-	public static final int CONNECTION_STATE_DISCONNECTED = 0;
-	public static final int CONNECTION_STATE_CONNECTING = 1;
-	public static final int CONNECTION_STATE_SYNCHRONIZING = 2;
-	public static final int CONNECTION_STATE_CONNECTED = 3;
-
-	private static final String[] CONNECTION_STATE_NAMES = {
-		"Disconnected", "Connecting", "Synchronizing", "Connected"
-	};
-
-	public static final String ACTION_CONNECT = "mumbleclient.action.CONNECT";
-	public static final String INTENT_CHANNEL_LIST_UPDATE = "mumbleclient.intent.CHANNEL_LIST_UPDATE";
-	public static final String INTENT_CURRENT_CHANNEL_CHANGED = "mumbleclient.intent.CURRENT_CHANNEL_CHANGED";
-	public static final String INTENT_CURRENT_USER_UPDATED = "mumbleclient.intent.CURRENT_USER_UPDATED";
-	public static final String INTENT_USER_ADDED = "mumbleclient.intent.USER_ADDED";
-	public static final String INTENT_USER_REMOVED = "mumbleclient.intent.USER_REMOVED";
-	public static final String INTENT_USER_UPDATE = "mumbleclient.intent.USER_UPDATE";
-	public static final String INTENT_CHAT_TEXT_UPDATE = "mumbleclient.intent.CHAT_TEXT_UPDATE";
-
-	public static final String INTENT_CONNECTION_STATE_CHANGED = "mumbleclient.intent.CONNECTION_STATE_CHANGED";
-	public static final String EXTRA_MESSAGE = "mumbleclient.extra.MESSAGE";
-
-	public static final String EXTRA_CONNECTION_STATE = "mumbleclient.extra.CONNECTION_STATE";
-	public static final String EXTRA_HOST = "mumbleclient.extra.HOST";
-	public static final String EXTRA_PORT = "mumbleclient.extra.PORT";
-	public static final String EXTRA_USERNAME = "mumbleclient.extra.USERNAME";
-	public static final String EXTRA_PASSWORD = "mumbleclient.extra.PASSWORD";
-	public static final String EXTRA_USER = "mumbleclient.extra.USER";
-
-	private MumbleConnection mClient;
-	private MumbleProtocol mProtocol;
-	private Thread mClientThread;
-	private Thread mRecordThread;
-
-	Notification mNotification;
-
-	/**
-	 * Connection host for MumbleConnection.
-	 *
-	 * MumbleConnection uses this interface to communicate back to
-	 * MumbleService. Since MumbleConnection processes the data packets in a
-	 * background thread these methods will be called from that thread.
-	 * MumbleService should expose itself as a single threaded Service so its
-	 * consumers don't need to bother with synchronizing. For this reason these
-	 * handlers should take care of the required synchronization.
-	 *
-	 * Also it is worth noting that in case a certain handler doesn't need
-	 * synchronizing for its own purposes it might need it to maintain the order
-	 * of events. Forwarding the CURRENT_USER_UPDATED event shouldn't be done
-	 * before the USER_ADDED event has been processed for that user. For this
-	 * reason even events like the CURRENT_USER_UPDATED are posted to the
-	 * MumbleService handler.
-	 */
-	private final MumbleProtocolHost protocolHost = new MumbleProtocolHost() {
-		@Override
-		public void channelAdded(final Channel channel) {
-			handler.post(new ProtocolMessage() {
-				@Override
-				public void process() {
-					channels.add(channel);
-					sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
-				}
-			});
-		}
-
-		@Override
-		public void channelRemoved(final int channelId) {
-			handler.post(new ProtocolMessage() {
-				@Override
-				public void process() {
-					for (int i = 0; i < channels.size(); i++) {
-						if (channels.get(i).id == channelId) {
-							channels.remove(i);
-							break;
-						}
-					}
-					sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
-				}
-			});
-		}
-
-		@Override
-		public void channelUpdated(final Channel channel) {
-			handler.post(new ProtocolMessage() {
-				@Override
-				public void process() {
-					for (int i = 0; i < channels.size(); i++) {
-						if (channels.get(i).id == channel.id) {
-							channels.set(i, channel);
-							break;
-						}
-					}
-					sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
-				}
-			});
-		}
-
-		public void currentChannelChanged() {
-			handler.post(new ProtocolMessage() {
-				@Override
-				public void process() {
-					sendBroadcast(INTENT_CURRENT_CHANNEL_CHANGED);
-				}
-			});
-		}
-
-		@Override
-		public void currentUserUpdated() {
-			handler.post(new ProtocolMessage() {
-				@Override
-				public void process() {
-					if (!canSpeak() && isRecording()) {
-						setRecording(false);
-					}
-
-					sendBroadcast(INTENT_CURRENT_USER_UPDATED);
-				}
-			});
-		}
-
-		public void messageReceived(final Message msg) {
-			handler.post(new ProtocolMessage() {
-				@Override
-				public void process() {
-					messages.add(msg);
-					final Bundle b = new Bundle();
-					b.putSerializable(EXTRA_MESSAGE, msg);
-					sendBroadcast(INTENT_CHAT_TEXT_UPDATE, b);
-				}
-			});
-		}
-
-		public void messageSent(final Message msg) {
-			handler.post(new ProtocolMessage() {
-				@Override
-				public void process() {
-					messages.add(msg);
-					final Bundle b = new Bundle();
-					b.putSerializable(EXTRA_MESSAGE, msg);
-					sendBroadcast(INTENT_CHAT_TEXT_UPDATE, b);
-				}
-			});
-		}
-
-		@Override
-		public void setError(final String error) {
-			handler.post(new Runnable() {
-				@Override
-				public void run() {
-					errorString = error;
-				}
-			});
-		}
-
-		@Override
-		public void setSynchronized(final boolean synced) {
-			handler.post(new Runnable() {
-				@Override
-				public void run() {
-					MumbleService.this.synced = synced;
-					updateConnectionState();
-				}
-			});
-		}
-
-		@Override
-		public void userAdded(final User user) {
-			handler.post(new ProtocolMessage() {
-				@Override
-				public void process() {
-					users.add(user);
-					final Bundle b = new Bundle();
-					b.putSerializable(EXTRA_USER, user);
-					sendBroadcast(INTENT_USER_ADDED, b);
-				}
-			});
-		}
-
-		@Override
-		public void userRemoved(final int userId) {
-			handler.post(new ProtocolMessage() {
-				@Override
-				public void process() {
-					for (int i = 0; i < users.size(); i++) {
-						if (users.get(i).session == userId) {
-							final User user = users.remove(i);
-
-							final Bundle b = new Bundle();
-							b.putSerializable(EXTRA_USER, user);
-							sendBroadcast(INTENT_USER_REMOVED, b);
-
-							return;
-						}
-					}
-
-					Assert.fail("Non-existant user was removed");
-				}
-			});
-		}
-
-		@Override
-		public void userUpdated(final User user) {
-			handler.post(new ProtocolMessage() {
-				@Override
-				public void process() {
-					for (int i = 0; i < users.size(); i++) {
-						if (users.get(i).session == user.session) {
-							users.set(i, user);
-
-							final Bundle b = new Bundle();
-							b.putSerializable(EXTRA_USER, user);
-							sendBroadcast(INTENT_USER_UPDATE, b);
-
-							return;
-						}
-					}
-					Assert.fail("Non-existant user was updated");
-				}
-			});
-		}
-
-	};
-
-	private final MumbleConnectionHost connectionHost = new MumbleConnectionHost() {
+	class ServiceConnectionHost extends AbstractHost implements
+		MumbleConnectionHost {
 		public void setConnectionState(final int state) {
-			handler.post(new Runnable() {
+			handler.post(new ProtocolMessage() {
 				@Override
-				public void run() {
+				public void process() {
 					if (MumbleService.this.state == state) {
 						return;
 					}
@@ -326,10 +89,20 @@ public class MumbleService extends Service {
 							mNotification = null;
 						}
 
+						if (mProtocolHost != null) {
+							mProtocolHost.disable();
+						}
+
+						ServiceConnectionHost.this.disable();
+
 						updateConnectionState();
 
 						tryClear();
 					}
+				}
+
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
 				}
 			});
 		}
@@ -343,7 +116,276 @@ public class MumbleService extends Service {
 				}
 			});
 		}
+	}
+
+	/**
+	 * Connection host for MumbleConnection.
+	 *
+	 * MumbleConnection uses this interface to communicate back to
+	 * MumbleService. Since MumbleConnection processes the data packets in a
+	 * background thread these methods will be called from that thread.
+	 * MumbleService should expose itself as a single threaded Service so its
+	 * consumers don't need to bother with synchronizing. For this reason these
+	 * handlers should take care of the required synchronization.
+	 *
+	 * Also it is worth noting that in case a certain handler doesn't need
+	 * synchronizing for its own purposes it might need it to maintain the order
+	 * of events. Forwarding the CURRENT_USER_UPDATED event shouldn't be done
+	 * before the USER_ADDED event has been processed for that user. For this
+	 * reason even events like the CURRENT_USER_UPDATED are posted to the
+	 * MumbleService handler.
+	 */
+	class ServiceProtocolHost extends AbstractHost implements
+		MumbleProtocolHost {
+		@Override
+		public void channelAdded(final Channel channel) {
+			handler.post(new ProtocolMessage() {
+				@Override
+				public void process() {
+					channels.add(channel);
+				}
+
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
+					sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
+				}
+			});
+		}
+
+		@Override
+		public void channelRemoved(final int channelId) {
+			handler.post(new ProtocolMessage() {
+				@Override
+				public void process() {
+					for (int i = 0; i < channels.size(); i++) {
+						if (channels.get(i).id == channelId) {
+							channels.remove(i);
+							break;
+						}
+					}
+				}
+
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
+					sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
+				}
+			});
+		}
+
+		@Override
+		public void channelUpdated(final Channel channel) {
+			handler.post(new ProtocolMessage() {
+				@Override
+				public void process() {
+					for (int i = 0; i < channels.size(); i++) {
+						if (channels.get(i).id == channel.id) {
+							channels.set(i, channel);
+							break;
+						}
+					}
+				}
+
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
+					sendBroadcast(INTENT_CHANNEL_LIST_UPDATE);
+				}
+			});
+		}
+
+		public void currentChannelChanged() {
+			handler.post(new ProtocolMessage() {
+				@Override
+				public void process() {
+				}
+
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
+					sendBroadcast(INTENT_CURRENT_CHANNEL_CHANGED);
+				}
+			});
+		}
+
+		@Override
+		public void currentUserUpdated() {
+			handler.post(new ProtocolMessage() {
+				@Override
+				public void process() {
+					if (!canSpeak() && isRecording()) {
+						setRecording(false);
+					}
+				}
+
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
+					sendBroadcast(INTENT_CURRENT_USER_UPDATED);
+				}
+			});
+		}
+
+		public void messageReceived(final Message msg) {
+			handler.post(new ProtocolMessage() {
+				@Override
+				public void process() {
+					messages.add(msg);
+				}
+
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
+					final Bundle b = new Bundle();
+					b.putSerializable(EXTRA_MESSAGE, msg);
+					sendBroadcast(INTENT_CHAT_TEXT_UPDATE, b);
+				}
+			});
+		}
+
+		public void messageSent(final Message msg) {
+			handler.post(new ProtocolMessage() {
+				@Override
+				public void process() {
+					messages.add(msg);
+				}
+
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
+					final Bundle b = new Bundle();
+					b.putSerializable(EXTRA_MESSAGE, msg);
+					sendBroadcast(INTENT_CHAT_TEXT_UPDATE, b);
+				}
+			});
+		}
+
+		@Override
+		public void setError(final String error) {
+			handler.post(new ProtocolMessage() {
+				@Override
+				public void process() {
+					errorString = error;
+				}
+
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
+				}
+			});
+		}
+
+		@Override
+		public void setSynchronized(final boolean synced) {
+			handler.post(new ProtocolMessage() {
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
+				}
+
+				@Override
+				protected void process() {
+					MumbleService.this.synced = synced;
+					updateConnectionState();
+				}
+			});
+		}
+
+		@Override
+		public void userAdded(final User user) {
+			handler.post(new ProtocolMessage() {
+				@Override
+				public void process() {
+					users.add(user);
+				}
+
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
+					final Bundle b = new Bundle();
+					b.putSerializable(EXTRA_USER, user);
+					sendBroadcast(INTENT_USER_ADDED, b);
+				}
+			});
+		}
+
+		@Override
+		public void userRemoved(final int userId) {
+			handler.post(new ProtocolMessage() {
+				private User user;
+				@Override
+				public void process() {
+					for (int i = 0; i < users.size(); i++) {
+						if (users.get(i).session == userId) {
+							this.user = users.remove(i);
+							return;
+						}
+					}
+
+					Assert.fail("Non-existant user was removed");
+				}
+
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
+					final Bundle b = new Bundle();
+					b.putSerializable(EXTRA_USER, user);
+					sendBroadcast(INTENT_USER_REMOVED, b);
+				}
+			});
+		}
+
+		@Override
+		public void userUpdated(final User user) {
+			handler.post(new ProtocolMessage() {
+				@Override
+				public void process() {
+					for (int i = 0; i < users.size(); i++) {
+						if (users.get(i).session == user.session) {
+							users.set(i, user);
+
+							return;
+						}
+					}
+					Assert.fail("Non-existant user was updated");
+				}
+
+				@Override
+				protected void broadcast(final IServiceObserver observer) {
+					final Bundle b = new Bundle();
+					b.putSerializable(EXTRA_USER, user);
+					sendBroadcast(INTENT_USER_UPDATE, b);
+				}
+			});
+		}
+
+	}
+	public static final int CONNECTION_STATE_DISCONNECTED = 0;
+	public static final int CONNECTION_STATE_CONNECTING = 1;
+
+	public static final int CONNECTION_STATE_SYNCHRONIZING = 2;
+
+	public static final int CONNECTION_STATE_CONNECTED = 3;
+	private static final String[] CONNECTION_STATE_NAMES = {
+		"Disconnected", "Connecting", "Synchronizing", "Connected"
 	};
+	public static final String ACTION_CONNECT = "mumbleclient.action.CONNECT";
+	public static final String INTENT_CHANNEL_LIST_UPDATE = "mumbleclient.intent.CHANNEL_LIST_UPDATE";
+	public static final String INTENT_CURRENT_CHANNEL_CHANGED = "mumbleclient.intent.CURRENT_CHANNEL_CHANGED";
+	public static final String INTENT_CURRENT_USER_UPDATED = "mumbleclient.intent.CURRENT_USER_UPDATED";
+	public static final String INTENT_USER_ADDED = "mumbleclient.intent.USER_ADDED";
+	public static final String INTENT_USER_REMOVED = "mumbleclient.intent.USER_REMOVED";
+
+	public static final String INTENT_USER_UPDATE = "mumbleclient.intent.USER_UPDATE";
+	public static final String INTENT_CHAT_TEXT_UPDATE = "mumbleclient.intent.CHAT_TEXT_UPDATE";
+
+	public static final String INTENT_CONNECTION_STATE_CHANGED = "mumbleclient.intent.CONNECTION_STATE_CHANGED";
+	public static final String EXTRA_MESSAGE = "mumbleclient.extra.MESSAGE";
+	public static final String EXTRA_CONNECTION_STATE = "mumbleclient.extra.CONNECTION_STATE";
+	public static final String EXTRA_HOST = "mumbleclient.extra.HOST";
+	public static final String EXTRA_PORT = "mumbleclient.extra.PORT";
+	public static final String EXTRA_USERNAME = "mumbleclient.extra.USERNAME";
+
+	public static final String EXTRA_PASSWORD = "mumbleclient.extra.PASSWORD";
+	public static final String EXTRA_USER = "mumbleclient.extra.USER";
+	private MumbleConnection mClient;
+	private MumbleProtocol mProtocol;
+
+	private Thread mClientThread;
+
+	private Thread mRecordThread;;
+
+	Notification mNotification;;
 
 	private final AudioOutputHost audioHost = new AudioOutputHost() {
 		@Override
@@ -382,6 +424,8 @@ public class MumbleService extends Service {
 	private final Object[] mStartForegroundArgs = new Object[2];
 	private final Object[] mStopForegroundArgs = new Object[1];
 	private boolean isBound = false;
+	private ServiceProtocolHost mProtocolHost;
+	private ServiceConnectionHost mConnectionHost;
 
 	public boolean canSpeak() {
 		return mProtocol.canSpeak;
@@ -461,18 +505,29 @@ public class MumbleService extends Service {
 			mClientThread.interrupt();
 		}
 
+		if (mProtocolHost != null) {
+			mProtocolHost.disable();
+		}
+
+		if (mConnectionHost != null) {
+			mConnectionHost.disable();
+		}
+
 		users.clear();
 		channels.clear();
 
+		mProtocolHost = new ServiceProtocolHost();
+		mConnectionHost = new ServiceConnectionHost();
+
 		mClient = new MumbleConnection(
-			connectionHost,
+			mConnectionHost,
 			host,
 			port,
 			username,
 			password);
 
 		mProtocol = new MumbleProtocol(
-			protocolHost,
+			mProtocolHost,
 			audioHost,
 			mClient,
 			getApplicationContext());
