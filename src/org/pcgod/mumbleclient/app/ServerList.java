@@ -221,14 +221,14 @@ public class ServerList extends ConnectedListActivity {
 	 */
 	private final boolean checkConnectionState() {
 		switch (mService.getConnectionState()) {
-		case Connecting:
-		case Synchronizing:
-		case Connected:
+		case MumbleService.CONNECTION_STATE_CONNECTING:
+		case MumbleService.CONNECTION_STATE_SYNCHRONIZING:
+		case MumbleService.CONNECTION_STATE_CONNECTED:
 			unregisterConnectionReceiver();
 			final Intent i = new Intent(this, ChannelList.class);
 			startActivityForResult(i, ACTIVITY_CHANNEL_LIST);
 			return true;
-		case Disconnected:
+		case MumbleService.CONNECTION_STATE_DISCONNECTED:
 			// TODO: Error message checks.
 			// This can be reached if the user leaves ServerList after clicking
 			// server but before the connection intent reaches the service.

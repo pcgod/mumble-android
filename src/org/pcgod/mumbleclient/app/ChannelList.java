@@ -360,19 +360,19 @@ public class ChannelList extends ConnectedActivity {
 
 	private final void onConnectionStateUpdated() {
 		switch (mService.getConnectionState()) {
-		case Connecting:
+		case MumbleService.CONNECTION_STATE_CONNECTING:
 			Log.i(Globals.LOG_TAG, "ChannelList: Connecting");
 			onConnecting();
 			break;
-		case Synchronizing:
+		case MumbleService.CONNECTION_STATE_SYNCHRONIZING:
 			Log.i(Globals.LOG_TAG, "ChannelList: Synchronizing");
 			onSynchronizing();
 			break;
-		case Connected:
+		case MumbleService.CONNECTION_STATE_CONNECTED:
 			Log.i(Globals.LOG_TAG, "ChannelList: Connected");
 			onConnected();
 			break;
-		case Disconnected:
+		case MumbleService.CONNECTION_STATE_DISCONNECTED:
 			Log.i(Globals.LOG_TAG, "ChannelList: Disconnected");
 			onDisconnected();
 			break;
