@@ -2,6 +2,7 @@ package org.pcgod.mumbleclient.service;
 
 import org.pcgod.mumbleclient.Globals;
 
+import android.os.RemoteException;
 import android.util.Log;
 
 public abstract class AbstractHost {
@@ -15,10 +16,23 @@ public abstract class AbstractHost {
 			}
 
 			process();
-			broadcast(null);
+
+			for (final IServiceObserver observer : getObservers()) {
+				try {
+					broadcast(observer);
+				} catch (final RemoteException e) {
+					Log.e(
+						Globals.LOG_TAG,
+						"Error while broadcasting service state",
+						e);
+				}
+			}
 		}
 
-		protected abstract void broadcast(IServiceObserver observer);
+		protected abstract void broadcast(IServiceObserver observer)
+			throws RemoteException;
+
+		protected abstract Iterable<IServiceObserver> getObservers();
 
 		protected abstract void process();
 	}

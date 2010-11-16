@@ -1,11 +1,21 @@
 package org.pcgod.mumbleclient.service.model;
 
-import java.io.Serializable;
-
 import junit.framework.Assert;
+import android.os.Parcel;
+import android.os.Parcelable;
 
-public class User implements Serializable {
-	private static final long serialVersionUID = 1L;
+public class User implements Parcelable {
+	public static final Parcelable.Creator<User> CREATOR = new Creator<User>() {
+		@Override
+		public User createFromParcel(final Parcel source) {
+			return new User(source);
+		}
+
+		@Override
+		public User[] newArray(final int size) {
+			return new User[size];
+		}
+	};
 
 	public static final int TALKINGSTATE_PASSIVE = 0;
 	public static final int TALKINGSTATE_TALKING = 1;
@@ -22,6 +32,18 @@ public class User implements Serializable {
 	public boolean deafened;
 
 	private Channel channel;
+
+	public User() {
+	}
+
+	public User(final Parcel in) {
+		readFromParcel(in);
+	}
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
 
 	@Override
 	public final boolean equals(final Object o) {
@@ -57,6 +79,33 @@ public class User implements Serializable {
 	@Override
 	public final String toString() {
 		return "User [session=" + session + ", name=" + name + ", channel=" +
-				channel + "]";
+			   channel + "]";
+	}
+
+	@Override
+	public void writeToParcel(final Parcel dest, final int flags) {
+		dest.writeInt(0); // Version
+
+		dest.writeInt(session);
+		dest.writeString(name);
+		dest.writeFloat(averageAvailable);
+		dest.writeInt(talkingState);
+		dest.writeBooleanArray(new boolean[] { isCurrent, muted, deafened });
+		dest.writeParcelable(channel, 0);
+	}
+
+	private void readFromParcel(final Parcel in) {
+		in.readInt(); // Version
+
+		session = in.readInt();
+		name = in.readString();
+		averageAvailable = in.readFloat();
+		talkingState = in.readInt();
+		final boolean[] boolArr = new boolean[3];
+		in.readBooleanArray(boolArr);
+		isCurrent = boolArr[0];
+		muted = boolArr[1];
+		deafened = boolArr[2];
+		channel = in.readParcelable(null);
 	}
 }

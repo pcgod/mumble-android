@@ -1,5 +1,6 @@
 package org.pcgod.mumbleclient.app;
 
+import org.pcgod.mumbleclient.service.IServiceObserver;
 import org.pcgod.mumbleclient.service.MumbleService;
 
 import android.app.Activity;
@@ -24,6 +25,12 @@ public class ConnectedActivity extends Activity {
 			final IBinder binder) {
 			mService = ((MumbleService.LocalBinder) binder).getService();
 			Log.i("Mumble", "mService set");
+
+			mObserver = createServiceObserver();
+			if (mObserver != null) {
+				mService.registerObserver(mObserver);
+			}
+
 			onServiceBound();
 		}
 
@@ -32,10 +39,18 @@ public class ConnectedActivity extends Activity {
 		}
 	};
 	protected MumbleService mService;
+	protected IServiceObserver mObserver;
+
+	protected IServiceObserver createServiceObserver() {
+		return null;
+	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
+		if (mObserver != null) {
+			mService.unregisterObserver(mObserver);
+		}
 		unbindService(mServiceConn);
 	}
 

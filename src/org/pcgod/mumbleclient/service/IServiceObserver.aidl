@@ -1,7 +1,9 @@
 package org.pcgod.mumbleclient.service;
 
+import org.pcgod.mumbleclient.service.model.User;
+import org.pcgod.mumbleclient.service.model.Message;
+
 interface IServiceObserver {
-	
 	void onChannelAdded();
 
 	void onChannelRemoved();
@@ -12,15 +14,12 @@ interface IServiceObserver {
 	
 	void onCurrentUserUpdated();
 	
-	void onUserAdded();
+	void onUserAdded(in User user);
+	void onUserRemoved(in User user);
+	void onUserUpdated(in User user);
 	
-	void onUserRemoved();
-	
-	void onUserUpdated();
-	
-	void onMessageReceived();
-
-	void onMessageSent();
+	void onMessageReceived(in Message msg);
+	void onMessageSent(in Message msg);
 	
 	/**
 	 * Called when the connection state changes.

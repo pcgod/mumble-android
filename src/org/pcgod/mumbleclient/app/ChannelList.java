@@ -9,19 +9,19 @@ import junit.framework.Assert;
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.Settings;
+import org.pcgod.mumbleclient.service.BaseServiceObserver;
+import org.pcgod.mumbleclient.service.IServiceObserver;
 import org.pcgod.mumbleclient.service.MumbleService;
 import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.DialogInterface.OnCancelListener;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -79,92 +79,75 @@ public class ChannelList extends ConnectedActivity {
 	/**
 	 * Handles broadcasts from MumbleService
 	 */
-	private class ChannelBroadcastReceiver extends BroadcastReceiver {
+	class ChannelServiceObserver extends BaseServiceObserver {
 		@Override
-		public final void onReceive(final Context ctx, final Intent i) {
-			final String action = i.getAction();
-
-			// It might be possible that intents are being received from the
-			// service before the service has been acquired by the Activity.
-			// Since processing intents requires the service we'll ignore the
-			// intents until we have the service reference.
-			//
-			// WARNING: There might be issues with this check. At first the
-			// broadcast receiver was registered in onServiceBound method but
-			// it was later changed to onResume for some reason.
-			//
-			// TODO: Figure out the correct solution.
-			if (mService == null) {
-				return;
-			}
-
-			// First process intents that do NOT require active connection.
-			if (action.equals(MumbleService.INTENT_CONNECTION_STATE_CHANGED)) {
-				onConnectionStateUpdated();
-				return;
-			}
-
-			// Next try processing intents that imply an active connection.
-
-			// If the connection is NOT active at this point, skip everything.
-			// This means the connection WAS active but it was disconnected
-			// before the intents were processed.
-			if (!mService.isConnected()) {
-				return;
-			}
-
-			if (action.equals(MumbleService.INTENT_CURRENT_CHANNEL_CHANGED)) {
-				setChannel(mService.getCurrentChannel());
-				return;
-			}
-
-			if (action.equals(MumbleService.INTENT_CHANNEL_LIST_UPDATE)) {
-				// Channel list update doesn't matter if the visible channel
-				// isn't valid from the beginning.
-				if (visibleChannel == null) {
-					return;
-				}
-
-				boolean visibleChannelValid = false;
-				for (final Channel c : mService.getChannelList()) {
-					if (visibleChannel.id == c.id) {
-						visibleChannelValid = true;
-						break;
-					}
-				}
-
-				if (!visibleChannelValid) {
-					setChannel(mService.getCurrentChannel());
-				}
-				return;
-			}
-
-			if (action.equals(MumbleService.INTENT_USER_UPDATE) ||
-				action.equals(MumbleService.INTENT_USER_ADDED)) {
-
-				final User updatedUser = (User) i.getSerializableExtra(MumbleService.EXTRA_USER);
-				usersAdapter.refreshUser(updatedUser);
-
-				return;
-			}
-
-			if (action.equals(MumbleService.INTENT_USER_REMOVED)) {
-				final User removedUser = (User) i.getSerializableExtra(MumbleService.EXTRA_USER);
-				usersAdapter.removeUser(removedUser.session);
-				return;
-			}
-
-			if (action.equals(MumbleService.INTENT_CURRENT_USER_UPDATED)) {
-				// If the current user was updated, synchronize controls as well
-				// as it might have been muted/unmuted for example.
-				synchronizeControls();
-
-				return;
-			}
-
-			Assert.fail("Unknown intent broadcast");
+		public void onChannelAdded() throws RemoteException {
+			onChannelListUpdate();
 		}
 
+		@Override
+		public void onChannelRemoved() throws RemoteException {
+			onChannelListUpdate();
+		}
+
+		@Override
+		public void onChannelUpdated() throws RemoteException {
+			onChannelListUpdate();
+		}
+
+		@Override
+		public void onConnectionStateChanged(final int state) throws RemoteException {
+			onConnectionStateUpdated();
+		}
+
+		@Override
+		public void onCurrentChannelChanged() throws RemoteException {
+			setChannel(mService.getCurrentChannel());
+		}
+
+		@Override
+		public void onCurrentUserUpdated() throws RemoteException {
+			synchronizeControls();
+		}
+
+		@Override
+		public void onUserAdded(final User user) throws RemoteException {
+			refreshUser(user);
+		}
+
+		@Override
+		public void onUserRemoved(final User user) throws RemoteException {
+			usersAdapter.removeUser(user.session);
+		}
+
+		@Override
+		public void onUserUpdated(final User user) throws RemoteException {
+			refreshUser(user);
+		}
+
+		private void onChannelListUpdate() {
+			// Channel list update doesn't matter if the visible channel
+			// isn't valid from the beginning.
+			if (visibleChannel == null) {
+				return;
+			}
+
+			boolean visibleChannelValid = false;
+			for (final Channel c : mService.getChannelList()) {
+				if (visibleChannel.id == c.id) {
+					visibleChannelValid = true;
+					break;
+				}
+			}
+
+			if (!visibleChannelValid) {
+				setChannel(mService.getCurrentChannel());
+			}
+		}
+
+		private void refreshUser(final User user) {
+			usersAdapter.refreshUser(user);
+		}
 	}
 
 	public static final String JOIN_CHANNEL = "join_channel";
@@ -183,7 +166,6 @@ public class ChannelList extends ConnectedActivity {
 	private Button joinButton;
 	private CheckBox speakerCheckBox;
 
-	private ChannelBroadcastReceiver bcReceiver;
 	private AlertDialog mChannelSelectDialog;
 	List<Channel> selectableChannels;
 	private ProgressDialog mProgressDialog;
@@ -450,6 +432,11 @@ public class ChannelList extends ConnectedActivity {
 	}
 
 	@Override
+	protected IServiceObserver createServiceObserver() {
+		return new ChannelServiceObserver();
+	}
+
+	@Override
 	protected final void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.channel_list);
@@ -481,7 +468,7 @@ public class ChannelList extends ConnectedActivity {
 		speakerCheckBox.setVisibility(View.GONE);
 
 		if (savedInstanceState != null) {
-			final Channel channel = (Channel) savedInstanceState.getSerializable(SAVED_STATE_VISIBLE_CHANNEL);
+			final Channel channel = (Channel) savedInstanceState.getParcelable(SAVED_STATE_VISIBLE_CHANNEL);
 
 			// Channel might be null if we for example caused screen rotation
 			// while still connecting.
@@ -494,39 +481,13 @@ public class ChannelList extends ConnectedActivity {
 	@Override
 	protected final void onPause() {
 		super.onPause();
-
-		if (bcReceiver != null) {
-			unregisterReceiver(bcReceiver);
-			bcReceiver = null;
-		}
-
 		cleanDialogs();
-	}
-
-	@Override
-	protected final void onResume() {
-		super.onResume();
-
-		final IntentFilter ifilter = new IntentFilter();
-		ifilter.addAction(MumbleService.INTENT_CHANNEL_LIST_UPDATE);
-		ifilter.addAction(MumbleService.INTENT_USER_UPDATE);
-		ifilter.addAction(MumbleService.INTENT_USER_ADDED);
-		ifilter.addAction(MumbleService.INTENT_USER_REMOVED);
-		ifilter.addAction(MumbleService.INTENT_CONNECTION_STATE_CHANGED);
-		ifilter.addAction(MumbleService.INTENT_CURRENT_CHANNEL_CHANGED);
-		ifilter.addAction(MumbleService.INTENT_CURRENT_USER_UPDATED);
-		bcReceiver = new ChannelBroadcastReceiver();
-		registerReceiver(bcReceiver, ifilter);
-
-		// Do not synchronize controls here as the service might not be
-		// available. The onServiceBound event should arrive soon. Once it
-		// arrives we'll first check that we are still connected to the server.
 	}
 
 	@Override
 	protected void onSaveInstanceState(final Bundle outState) {
 		super.onSaveInstanceState(outState);
-		outState.putSerializable(SAVED_STATE_VISIBLE_CHANNEL, visibleChannel);
+		outState.putParcelable(SAVED_STATE_VISIBLE_CHANNEL, visibleChannel);
 	}
 
 	/**

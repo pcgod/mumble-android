@@ -3,15 +3,13 @@ package org.pcgod.mumbleclient.app;
 import java.util.List;
 
 import org.pcgod.mumbleclient.R;
-import org.pcgod.mumbleclient.service.MumbleService;
+import org.pcgod.mumbleclient.service.BaseServiceObserver;
+import org.pcgod.mumbleclient.service.IServiceObserver;
 import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.Message;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.text.format.DateUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.view.KeyEvent;
@@ -46,11 +44,14 @@ public class ChatActivity extends ConnectedActivity {
 		}
 	}
 
-	private class ChatBroadcastReceiver extends BroadcastReceiver {
+	private class ChatServiceObserver extends BaseServiceObserver {
 		@Override
-		public final void onReceive(final Context ctx, final Intent i) {
-			final Message msg = (Message) i
-					.getSerializableExtra(MumbleService.EXTRA_MESSAGE);
+		public void onMessageReceived(final Message msg) throws RemoteException {
+			addMessage(msg);
+		}
+
+		@Override
+		public void onMessageSent(final Message msg) throws RemoteException {
 			addMessage(msg);
 		}
 	}
@@ -65,8 +66,10 @@ public class ChatActivity extends ConnectedActivity {
 
 	private final OnEditorActionListener chatTextEditActionEvent = new OnEditorActionListener() {
 		@Override
-		public boolean onEditorAction(final TextView v, final int actionId,
-				final KeyEvent event) {
+		public boolean onEditorAction(
+			final TextView v,
+			final int actionId,
+			final KeyEvent event) {
 			if (event != null && !event.isShiftPressed() && v != null) {
 				final View focus = v.focusSearch(View.FOCUS_RIGHT);
 				if (focus != null) {
@@ -93,18 +96,17 @@ public class ChatActivity extends ConnectedActivity {
 		}
 	};
 
-	private ChatBroadcastReceiver bcReceiver;
-
 	@Override
 	public final boolean onCreateOptionsMenu(final Menu menu) {
 		menu.add(0, MENU_CLEAR, 0, "Clear").setIcon(
-				android.R.drawable.ic_menu_delete);
+			android.R.drawable.ic_menu_delete);
 		return true;
 	}
 
 	@Override
-	public final boolean onMenuItemSelected(final int featureId,
-			final MenuItem item) {
+	public final boolean onMenuItemSelected(
+		final int featureId,
+		final MenuItem item) {
 		switch (item.getItemId()) {
 		case MENU_CLEAR:
 			chatText.setText("");
@@ -112,6 +114,11 @@ public class ChatActivity extends ConnectedActivity {
 		default:
 			return super.onMenuItemSelected(featureId, item);
 		}
+	}
+
+	@Override
+	protected IServiceObserver createServiceObserver() {
+		return new ChatServiceObserver();
 	}
 
 	@Override
@@ -151,22 +158,6 @@ public class ChatActivity extends ConnectedActivity {
 	}
 
 	@Override
-	protected final void onPause() {
-		super.onPause();
-
-		if (bcReceiver != null) {
-			unregisterReceiver(bcReceiver);
-			bcReceiver = null;
-		}
-	}
-
-	@Override
-	protected final void onResume() {
-		super.onResume();
-
-	}
-
-	@Override
 	protected void onServiceBound() {
 		super.onServiceBound();
 
@@ -174,11 +165,6 @@ public class ChatActivity extends ConnectedActivity {
 		for (final Message m : messages) {
 			addMessage(m);
 		}
-
-		final IntentFilter ifilter = new IntentFilter(
-			MumbleService.INTENT_CHAT_TEXT_UPDATE);
-		bcReceiver = new ChatBroadcastReceiver();
-		registerReceiver(bcReceiver, ifilter);
 
 		this.recieverChannel = mService.getCurrentChannel();
 		this.recieverAdapter.clear();
@@ -197,8 +183,10 @@ public class ChatActivity extends ConnectedActivity {
 	void addMessage(final Message msg) {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("[");
-		sb.append(DateUtils.formatDateTime(this, msg.timestamp,
-				DateUtils.FORMAT_SHOW_TIME));
+		sb.append(DateUtils.formatDateTime(
+			this,
+			msg.timestamp,
+			DateUtils.FORMAT_SHOW_TIME));
 		sb.append("]");
 
 		if (msg.direction == Message.DIRECTION_SENT) {
