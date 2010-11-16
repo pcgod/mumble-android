@@ -122,6 +122,28 @@ public class ChatActivity extends ConnectedActivity {
 	}
 
 	@Override
+	protected void onConnected() {
+
+		final List<Message> messages = mService.getMessageList();
+		for (final Message m : messages) {
+			addMessage(m);
+		}
+
+		this.recieverChannel = mService.getCurrentChannel();
+		this.recieverAdapter.clear();
+
+		//TODO: Don't list not accessible files.
+		int idx = 0;
+		for (final Channel channel : this.mService.getChannelList()) {
+			this.recieverAdapter.add(new ChannelItem(channel));
+			if (channel == this.recieverChannel) {
+				this.reciever.setSelection(idx);
+			}
+			idx++;
+		}
+	}
+
+	@Override
 	protected void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.chat_view);
@@ -155,29 +177,6 @@ public class ChatActivity extends ConnectedActivity {
 		});
 
 		updateText();
-	}
-
-	@Override
-	protected void onServiceBound() {
-		super.onServiceBound();
-
-		final List<Message> messages = mService.getMessageList();
-		for (final Message m : messages) {
-			addMessage(m);
-		}
-
-		this.recieverChannel = mService.getCurrentChannel();
-		this.recieverAdapter.clear();
-
-		//TODO: Don't list not accessible files.
-		int idx = 0;
-		for (final Channel channel : this.mService.getChannelList()) {
-			this.recieverAdapter.add(new ChannelItem(channel));
-			if (channel == this.recieverChannel) {
-				this.reciever.setSelection(idx);
-			}
-			idx++;
-		}
 	}
 
 	void addMessage(final Message msg) {

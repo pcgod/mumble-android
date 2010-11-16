@@ -4,14 +4,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import junit.framework.Assert;
-
-import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.service.BaseServiceObserver;
 import org.pcgod.mumbleclient.service.IServiceObserver;
-import org.pcgod.mumbleclient.service.MumbleService;
 import org.pcgod.mumbleclient.service.model.Channel;
 import org.pcgod.mumbleclient.service.model.User;
 
@@ -22,7 +18,6 @@ import android.content.Intent;
 import android.content.DialogInterface.OnCancelListener;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -32,7 +27,6 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ToggleButton;
 
 /**
@@ -93,11 +87,6 @@ public class ChannelList extends ConnectedActivity {
 		@Override
 		public void onChannelUpdated(final Channel channel) throws RemoteException {
 			onChannelListUpdate(channel);
-		}
-
-		@Override
-		public void onConnectionStateChanged(final int state) throws RemoteException {
-			onConnectionStateUpdated();
 		}
 
 		@Override
@@ -302,7 +291,8 @@ public class ChannelList extends ConnectedActivity {
 	 * The method also takes care of making sure that its initialization code
 	 * is executed only once so calling it several times doesn't cause problems.
 	 */
-	private void onConnected() {
+	@Override
+	protected void onConnected() {
 		// We are now connected! \o/
 		if (mProgressDialog != null) {
 			mProgressDialog.dismiss();
@@ -328,45 +318,14 @@ public class ChannelList extends ConnectedActivity {
 	/**
 	 * Handles activity initialization when the Service is connecting.
 	 */
-	private void onConnecting() {
+	@Override
+	protected void onConnecting() {
 		showProgressDialog(R.string.connectionProgressConnectingMessage);
 		synchronizeControls();
 	}
 
-	private final void onConnectionStateUpdated() {
-		switch (mService.getConnectionState()) {
-		case MumbleService.CONNECTION_STATE_CONNECTING:
-			Log.i(Globals.LOG_TAG, "ChannelList: Connecting");
-			onConnecting();
-			break;
-		case MumbleService.CONNECTION_STATE_SYNCHRONIZING:
-			Log.i(Globals.LOG_TAG, "ChannelList: Synchronizing");
-			onSynchronizing();
-			break;
-		case MumbleService.CONNECTION_STATE_CONNECTED:
-			Log.i(Globals.LOG_TAG, "ChannelList: Connected");
-			onConnected();
-			break;
-		case MumbleService.CONNECTION_STATE_DISCONNECTED:
-			Log.i(Globals.LOG_TAG, "ChannelList: Disconnected");
-			onDisconnected();
-			break;
-		default:
-			Assert.fail("Unknown connection state");
-		}
-	}
-
-	private void onDisconnected() {
-		cleanDialogs();
-		// TODO: this doesn't work for unknown host errors
-		final String error = mService.getError();
-		if (error != null) {
-			Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
-		}
-		finish();
-	}
-
-	private void onSynchronizing() {
+	@Override
+	protected void onSynchronizing() {
 		showProgressDialog(R.string.connectionProgressSynchronizingMessage);
 		synchronizeControls();
 	}
@@ -488,6 +447,5 @@ public class ChannelList extends ConnectedActivity {
 	 */
 	@Override
 	protected final void onServiceBound() {
-		onConnectionStateUpdated();
 	}
 }
