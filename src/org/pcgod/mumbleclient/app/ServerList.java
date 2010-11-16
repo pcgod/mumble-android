@@ -124,7 +124,6 @@ public class ServerList extends ConnectedListActivity {
 
 	private static final String STATE_WAIT_CONNECTION = "org.pcgod.mumbleclient.ServerList.WAIT_CONNECTION";
 
-	private Bundle savedInstanceState;
 	private ServerServiceObserver mServiceObserver;
 
 	@Override
