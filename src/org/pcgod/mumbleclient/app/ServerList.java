@@ -378,6 +378,11 @@ public class ServerList extends ConnectedListActivity {
 	}
 
 	@Override
+	protected void onDisconnected() {
+		// Suppress the default disconnect behavior.
+	}
+
+	@Override
 	protected final void onListItemClick(
 		final ListView l,
 		final View v,

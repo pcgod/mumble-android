@@ -4,10 +4,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import junit.framework.Assert;
 
@@ -396,7 +396,10 @@ public class MumbleService extends Service {
 	final List<Message> messages = new LinkedList<Message>();
 	final List<Channel> channels = new ArrayList<Channel>();
 	final List<User> users = new ArrayList<User>();
-	private final Map<Object, IServiceObserver> observers = new HashMap<Object, IServiceObserver>();
+
+	// Use concurrent hash map so we can modify the collection while iterating.
+	private final Map<Object, IServiceObserver> observers = new ConcurrentHashMap<Object, IServiceObserver>();
+
 	private static final Class<?>[] mStartForegroundSignature = new Class[] {
 			int.class, Notification.class };
 	private static final Class<?>[] mStopForegroundSignature = new Class[] { boolean.class };
@@ -639,10 +642,19 @@ public class MumbleService extends Service {
 		// Stop threads.
 		if (mProtocol != null) {
 			mProtocol.stop();
+			mProtocol = null;
 		}
 
-		if (mClientThread != null) {
-			mClientThread.interrupt();
+		if (mClient != null) {
+			mClient.disconnect();
+			try {
+				mClientThread.join();
+			} catch (final InterruptedException e) {
+				mClientThread.interrupt();
+			}
+
+			mClient = null;
+			mClientThread = null;
 		}
 
 		// Broadcast state, this is synchronous with observers.

@@ -1,19 +1,13 @@
 package org.pcgod.mumbleclient.app;
 
-import junit.framework.Assert;
-
-import org.pcgod.mumbleclient.Globals;
-import org.pcgod.mumbleclient.service.BaseServiceObserver;
+import org.pcgod.mumbleclient.app.ConnectedActivityLogic.Host;
 import org.pcgod.mumbleclient.service.IServiceObserver;
 import org.pcgod.mumbleclient.service.MumbleService;
 
 import android.app.Activity;
-import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.IBinder;
-import android.os.RemoteException;
-import android.util.Log;
 import android.widget.Toast;
 
 /**
@@ -25,71 +19,79 @@ import android.widget.Toast;
  *
  */
 public class ConnectedActivity extends Activity {
-	class ConnectedServiceObserver extends BaseServiceObserver {
+	private final Host logicHost = new Host() {
 		@Override
-		public void onConnectionStateChanged(final int state) throws RemoteException {
-			connectionStateUpdated(state);
-		}
-	}
-
-	ServiceConnection mServiceConn = new ServiceConnection() {
-		public void onServiceConnected(
-			final ComponentName className,
-			final IBinder binder) {
-			mService = ((MumbleService.LocalBinder) binder).getService();
-			Log.i("Mumble", "mService set");
-
-			mInternalObserver = new ConnectedServiceObserver();
-			mService.registerObserver(mInternalObserver);
-			mObserver = createServiceObserver();
-			if (mObserver != null) {
-				mService.registerObserver(mObserver);
-			}
-
-			onServiceBound();
-			connectionStateUpdated(mService.getConnectionState());
+		public boolean bindService(
+			final Intent intent,
+			final ServiceConnection mServiceConn,
+			final int bindAutoCreate) {
+			return ConnectedActivity.this.bindService(
+				intent,
+				mServiceConn,
+				bindAutoCreate);
 		}
 
-		public void onServiceDisconnected(final ComponentName arg0) {
-			mService = null;
+		@Override
+		public IServiceObserver createServiceObserver() {
+			return ConnectedActivity.this.createServiceObserver();
+		}
+
+		@Override
+		public void finish() {
+			ConnectedActivity.this.finish();
+		}
+
+		@Override
+		public Context getApplicationContext() {
+			return ConnectedActivity.this.getApplicationContext();
+		}
+
+		@Override
+		public MumbleService getService() {
+			return mService;
+		}
+
+		@Override
+		public void onConnected() {
+			ConnectedActivity.this.onConnected();
+		}
+
+		@Override
+		public void onConnecting() {
+			ConnectedActivity.this.onConnecting();
+		}
+
+		@Override
+		public void onDisconnected() {
+			ConnectedActivity.this.onDisconnected();
+		}
+
+		@Override
+		public void onServiceBound() {
+			ConnectedActivity.this.onServiceBound();
+		}
+
+		@Override
+		public void onSynchronizing() {
+			ConnectedActivity.this.onSynchronizing();
+		}
+
+		@Override
+		public void setService(final MumbleService service) {
+			mService = service;
+		}
+
+		@Override
+		public void unbindService(final ServiceConnection mServiceConn) {
+			ConnectedActivity.this.unbindService(mServiceConn);
 		}
 	};
 
-	private IServiceObserver mInternalObserver;
+	private final ConnectedActivityLogic logic = new ConnectedActivityLogic(
+		logicHost);
 
 	protected MumbleService mService;
 	protected IServiceObserver mObserver;
-
-	private void connectionStateUpdated(final int state) {
-		switch (state) {
-		case MumbleService.CONNECTION_STATE_CONNECTING:
-			Log.i(Globals.LOG_TAG, String.format(
-				"%s: Connecting",
-				getClass().getName()));
-			onConnecting();
-			break;
-		case MumbleService.CONNECTION_STATE_SYNCHRONIZING:
-			Log.i(Globals.LOG_TAG, String.format(
-				"%s: Synchronizing",
-				getClass().getName()));
-			onSynchronizing();
-			break;
-		case MumbleService.CONNECTION_STATE_CONNECTED:
-			Log.i(Globals.LOG_TAG, String.format(
-				"%s: Connected",
-				getClass().getName()));
-			onConnected();
-			break;
-		case MumbleService.CONNECTION_STATE_DISCONNECTED:
-			Log.i(Globals.LOG_TAG, String.format(
-				"%s: Disconnected",
-				getClass().getName()));
-			onDisconnected();
-			break;
-		default:
-			Assert.fail("Unknown connection state");
-		}
-	}
 
 	protected IServiceObserver createServiceObserver() {
 		return null;
@@ -112,22 +114,13 @@ public class ConnectedActivity extends Activity {
 	@Override
 	protected void onPause() {
 		super.onPause();
-		if (mInternalObserver != null) {
-			mService.unregisterObserver(mInternalObserver);
-			mInternalObserver = null;
-		}
-		if (mObserver != null) {
-			mService.unregisterObserver(mObserver);
-			mObserver = null;
-		}
-		unbindService(mServiceConn);
+		logic.onPause();
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
-		final Intent intent = new Intent(this, MumbleService.class);
-		bindService(intent, mServiceConn, BIND_AUTO_CREATE);
+		logic.onResume();
 	}
 
 	protected void onServiceBound() {

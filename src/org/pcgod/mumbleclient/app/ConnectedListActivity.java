@@ -1,13 +1,14 @@
 package org.pcgod.mumbleclient.app;
 
+import org.pcgod.mumbleclient.app.ConnectedActivityLogic.Host;
+import org.pcgod.mumbleclient.service.IServiceObserver;
 import org.pcgod.mumbleclient.service.MumbleService;
 
 import android.app.ListActivity;
-import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.IBinder;
-import android.util.Log;
+import android.widget.Toast;
 
 /**
  * Base class for list activities that want to access the MumbleService
@@ -18,34 +19,113 @@ import android.util.Log;
  *
  */
 public class ConnectedListActivity extends ListActivity {
-	ServiceConnection mServiceConn = new ServiceConnection() {
-		public void onServiceConnected(
-			final ComponentName className,
-			final IBinder binder) {
-			mService = ((MumbleService.LocalBinder) binder).getService();
-			Log.i("Mumble", "mService set");
-			onServiceBound();
+	private final Host logicHost = new Host() {
+		@Override
+		public boolean bindService(
+			final Intent intent,
+			final ServiceConnection mServiceConn,
+			final int bindAutoCreate) {
+			return ConnectedListActivity.this.bindService(
+				intent,
+				mServiceConn,
+				bindAutoCreate);
 		}
 
-		public void onServiceDisconnected(final ComponentName arg0) {
-			mService = null;
+		@Override
+		public IServiceObserver createServiceObserver() {
+			return ConnectedListActivity.this.createServiceObserver();
+		}
+
+		@Override
+		public void finish() {
+			ConnectedListActivity.this.finish();
+		}
+
+		@Override
+		public Context getApplicationContext() {
+			return ConnectedListActivity.this.getApplicationContext();
+		}
+
+		@Override
+		public MumbleService getService() {
+			return mService;
+		}
+
+		@Override
+		public void onConnected() {
+			ConnectedListActivity.this.onConnected();
+		}
+
+		@Override
+		public void onConnecting() {
+			ConnectedListActivity.this.onConnecting();
+		}
+
+		@Override
+		public void onDisconnected() {
+			ConnectedListActivity.this.onDisconnected();
+		}
+
+		@Override
+		public void onServiceBound() {
+			ConnectedListActivity.this.onServiceBound();
+		}
+
+		@Override
+		public void onSynchronizing() {
+			ConnectedListActivity.this.onSynchronizing();
+		}
+
+		@Override
+		public void setService(final MumbleService service) {
+			mService = service;
+		}
+
+		@Override
+		public void unbindService(final ServiceConnection mServiceConn) {
+			ConnectedListActivity.this.unbindService(mServiceConn);
 		}
 	};
+
+	private final ConnectedActivityLogic logic = new ConnectedActivityLogic(
+		logicHost);
+
 	protected MumbleService mService;
+	protected IServiceObserver mObserver;
+
+	protected IServiceObserver createServiceObserver() {
+		return null;
+	}
+
+	protected void onConnected() {
+	}
+
+	protected void onConnecting() {
+	}
+
+	protected void onDisconnected() {
+		final String error = mService.getError();
+		if (error != null) {
+			Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+		}
+		finish();
+	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
-		unbindService(mServiceConn);
+		logic.onPause();
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
-		final Intent intent = new Intent(this, MumbleService.class);
-		bindService(intent, mServiceConn, BIND_AUTO_CREATE);
+		logic.onResume();
 	}
 
 	protected void onServiceBound() {
+	}
+
+	protected void onSynchronizing() {
 	}
 }
