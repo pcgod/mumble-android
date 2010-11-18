@@ -43,6 +43,7 @@ import org.pcgod.mumbleclient.service.model.User;
 import android.content.Context;
 import android.util.Log;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.MessageLite;
 
 /**
@@ -800,7 +801,7 @@ public class MumbleConnection implements Runnable {
 					Globals.LOG_TAG,
 					"MumbleConnection: Server requesting nonce");
 				final CryptSetup.Builder nonceBuilder = CryptSetup.newBuilder();
-				nonceBuilder.setClientNonce(cryptState.getClientNonce());
+				nonceBuilder.setClientNonce(ByteString.copyFrom(cryptState.getClientNonce()));
 				sendMessage(MessageType.CryptSetup, nonceBuilder);
 			}
 			break;

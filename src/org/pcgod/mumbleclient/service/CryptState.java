@@ -11,8 +11,6 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.SecretKeySpec;
 
-import com.google.protobuf.ByteString;
-
 public class CryptState {
 	private static final int AES_BLOCK_SIZE = 16;
 
@@ -53,7 +51,7 @@ public class CryptState {
 	private int late;
 	private int lost;
 
-	public synchronized byte[] decrypt(final byte[] source, int length) {
+	public synchronized byte[] decrypt(final byte[] source, final int length) {
 		if (length < 4) {
 			return null;
 		}
@@ -167,7 +165,7 @@ public class CryptState {
 		return dst;
 	}
 
-	public synchronized byte[] encrypt(final byte[] source, int length) {
+	public synchronized byte[] encrypt(final byte[] source, final int length) {
 		final byte[] tag = new byte[AES_BLOCK_SIZE];
 
 		// First, increase our IV.
@@ -200,19 +198,19 @@ public class CryptState {
 		return dst;
 	}
 
-	public synchronized ByteString getClientNonce() {
-		return ByteString.copyFrom(encryptIv);
+	public synchronized byte[] getClientNonce() {
+		return encryptIv;
 	}
 
-	public synchronized ByteString getServerNonce() {
-		return ByteString.copyFrom(decryptIv);
+	public synchronized byte[] getServerNonce() {
+		return decryptIv;
 	}
 
 	public boolean isInitialized() {
 		return initialized;
 	}
 
-	public synchronized void setClientNonce(byte[] newNonce) {
+	public synchronized void setClientNonce(final byte[] newNonce) {
 		encryptIv = newNonce;
 	}
 
@@ -246,7 +244,7 @@ public class CryptState {
 		initialized = true;
 	}
 
-	public synchronized void setServerNonce(byte[] newNonce) {
+	public synchronized void setServerNonce(final byte[] newNonce) {
 		decryptIv = newNonce;
 	}
 
