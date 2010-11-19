@@ -58,9 +58,9 @@ public class ChatActivity extends ConnectedActivity {
 
 	private TextView chatText;
 	private EditText chatTextEdit;
-	private Spinner reciever;
-	private ArrayAdapter<ChannelItem> recieverAdapter;
-	private Channel recieverChannel;
+	private Spinner receiver;
+	private ArrayAdapter<ChannelItem> receiverAdapter;
+	private Channel receiverChannel;
 
 	private static final int MENU_CLEAR = Menu.FIRST;
 
@@ -129,15 +129,15 @@ public class ChatActivity extends ConnectedActivity {
 			addMessage(m);
 		}
 
-		this.recieverChannel = mService.getCurrentChannel();
-		this.recieverAdapter.clear();
+		this.receiverChannel = mService.getCurrentChannel();
+		this.receiverAdapter.clear();
 
 		//TODO: Don't list not accessible files.
 		int idx = 0;
 		for (final Channel channel : this.mService.getChannelList()) {
-			this.recieverAdapter.add(new ChannelItem(channel));
-			if (channel == this.recieverChannel) {
-				this.reciever.setSelection(idx);
+			this.receiverAdapter.add(new ChannelItem(channel));
+			if (channel == this.receiverChannel) {
+				this.receiver.setSelection(idx);
 			}
 			idx++;
 		}
@@ -153,13 +153,13 @@ public class ChatActivity extends ConnectedActivity {
 		chatTextEdit = (EditText) findViewById(R.id.chatTextEdit);
 		chatTextEdit.setOnEditorActionListener(chatTextEditActionEvent);
 		findViewById(R.id.send_button).setOnClickListener(sendOnClickEvent);
-		this.recieverAdapter = new ArrayAdapter<ChannelItem>(
+		this.receiverAdapter = new ArrayAdapter<ChannelItem>(
 			this,
 			android.R.layout.simple_spinner_item);
-		this.recieverAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		this.reciever = (Spinner) findViewById(R.id.chatReciever);
-		this.reciever.setAdapter(this.recieverAdapter);
-		this.reciever.setOnItemSelectedListener(new OnItemSelectedListener() {
+		this.receiverAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		this.receiver = (Spinner) findViewById(R.id.chatReceiver);
+		this.receiver.setAdapter(this.receiverAdapter);
+		this.receiver.setOnItemSelectedListener(new OnItemSelectedListener() {
 			@Override
 			public void onItemSelected(
 				final AdapterView<?> parent,
@@ -167,7 +167,7 @@ public class ChatActivity extends ConnectedActivity {
 				final int pos,
 				final long id) {
 				// Ugly but not avoidable :(
-				ChatActivity.this.recieverChannel = ((ChannelItem) parent.getItemAtPosition(pos)).getChannel();
+				ChatActivity.this.receiverChannel = ((ChannelItem) parent.getItemAtPosition(pos)).getChannel();
 			}
 
 			@Override
@@ -214,7 +214,7 @@ public class ChatActivity extends ConnectedActivity {
 	void sendMessage(final TextView v) {
 		mService.sendChannelTextMessage(
 			v.getText().toString(),
-			this.recieverChannel);
+			this.receiverChannel);
 		v.setText("");
 	}
 

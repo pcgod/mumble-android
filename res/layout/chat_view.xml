@@ -7,13 +7,13 @@
 	<TextView
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
-		android:id="@+id/chatRecieverLabel"
-		android:text="@string/chatRecieverLabel" />
+		android:id="@+id/chatReceiverLabel"
+		android:text="@string/chatReceiverLabel" />
 	<Spinner
-		android:id="@+id/chatReciever"
+		android:id="@+id/chatReceiver"
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
-		android:prompt="@string/chatRecieverPrompt" />
+		android:prompt="@string/chatReceiverPrompt" />
 	<TextView
 		android:layout_width="fill_parent"
 		android:id="@+id/chatText"
