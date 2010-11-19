@@ -94,8 +94,11 @@ public class MumbleService extends Service {
 					// Handle foreground stuff
 					if (state == MumbleConnectionHost.STATE_CONNECTED) {
 						showNotification();
+						updateConnectionState();
 					} else if (state == MumbleConnectionHost.STATE_DISCONNECTED) {
 						doConnectionDisconnect();
+					} else {
+						updateConnectionState();
 					}
 				}
 
