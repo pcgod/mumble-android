@@ -75,21 +75,6 @@ public class ChannelList extends ConnectedActivity {
 	 */
 	class ChannelServiceObserver extends BaseServiceObserver {
 		@Override
-		public void onChannelAdded(final Channel channel) throws RemoteException {
-			onChannelListUpdate(channel);
-		}
-
-		@Override
-		public void onChannelRemoved(final Channel channel) throws RemoteException {
-			onChannelListUpdate(channel);
-		}
-
-		@Override
-		public void onChannelUpdated(final Channel channel) throws RemoteException {
-			onChannelListUpdate(channel);
-		}
-
-		@Override
 		public void onCurrentChannelChanged() throws RemoteException {
 			setChannel(mService.getCurrentChannel());
 		}
@@ -112,19 +97,6 @@ public class ChannelList extends ConnectedActivity {
 		@Override
 		public void onUserUpdated(final User user) throws RemoteException {
 			refreshUser(user);
-		}
-
-		private void onChannelListUpdate(final Channel channel) {
-			// Channel list update doesn't matter if the visible channel
-			// isn't valid from the beginning.
-			if (visibleChannel == null) {
-				return;
-			}
-
-			// Update channel if the current channel changed.
-			if (channel.id == visibleChannel.id) {
-				setChannel(mService.getCurrentChannel());
-			}
 		}
 
 		private void refreshUser(final User user) {
