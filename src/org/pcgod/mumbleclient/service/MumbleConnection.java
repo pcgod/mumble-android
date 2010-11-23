@@ -450,7 +450,7 @@ public class MumbleConnection implements Runnable {
 	private void cleanConnection() {
 		// FIXME: These throw exceptions for some reason.
 		// Even with the checks in place
-		if (tcpSocket.isConnected()) {
+		if (tcpSocket != null && tcpSocket.isConnected()) {
 			try {
 				tcpSocket.close();
 			} catch (final IOException e) {
@@ -460,7 +460,7 @@ public class MumbleConnection implements Runnable {
 					e);
 			}
 		}
-		if (udpSocket.isConnected()) {
+		if (udpSocket != null && udpSocket.isConnected()) {
 			udpSocket.close();
 		}
 	}
