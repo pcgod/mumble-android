@@ -53,6 +53,11 @@ public class ConnectedActivityLogic {
 		public void onServiceConnected(
 			final ComponentName className,
 			final IBinder binder) {
+			if (paused) {
+				// Don't bother doing anything if the activity is already paused.
+				return;
+			}
+
 			final MumbleService service = ((MumbleService.LocalBinder) binder).getService();
 			mHost.setService(service);
 			Log.i("Mumble", "mService set");
@@ -75,6 +80,7 @@ public class ConnectedActivityLogic {
 
 	private IServiceObserver mInternalObserver;
 	private final Host mHost;
+	private boolean paused = false;
 
 	protected IServiceObserver mObserver;
 
@@ -83,6 +89,8 @@ public class ConnectedActivityLogic {
 	}
 
 	public void onPause() {
+		paused = true;
+
 		if (mInternalObserver != null) {
 			mHost.getService().unregisterObserver(mInternalObserver);
 			mInternalObserver = null;
@@ -97,6 +105,8 @@ public class ConnectedActivityLogic {
 	}
 
 	public void onResume() {
+		paused = false;
+
 		final Intent intent = new Intent(
 			mHost.getApplicationContext(),
 			MumbleService.class);
