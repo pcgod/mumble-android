@@ -400,6 +400,11 @@ public class MumbleProtocol {
 		final User u = findUser((int) uiSession);
 		if (u == null) {
 			Log.e(Globals.LOG_TAG, "User session " + uiSession + " not found!");
+
+			// This might happen if user leaves while there are still UDP packets
+			// en route to the clients. In this case we should just ignore these
+			// packets.
+			return;
 		}
 
 		// Rewind the packet. Otherwise consumers are confusing to implement.

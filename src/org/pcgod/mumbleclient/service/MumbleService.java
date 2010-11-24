@@ -425,7 +425,9 @@ public class MumbleService extends Service {
 		// Call disconnect on the connection.
 		// It'll notify us with DISCONNECTED when it's done.
 		this.setRecording(false);
-		mClient.disconnect();
+		if (mClient != null) {
+			mClient.disconnect();
+		}
 	}
 
 	public List<Channel> getChannelList() {
@@ -541,7 +543,8 @@ public class MumbleService extends Service {
 	}
 
 	public void setRecording(final boolean state) {
-		if (mRecordThread == null && state) {
+		if (mProtocol != null && mProtocol.currentUser != null &&
+			mRecordThread == null && state) {
 			// start record
 			// TODO check initialized
 			mRecordThread = new Thread(new RecordThread(this), "record");
@@ -597,6 +600,7 @@ public class MumbleService extends Service {
 		final String password = intent.getStringExtra(EXTRA_PASSWORD);
 
 		if (mClient != null &&
+			state != MumbleConnectionHost.STATE_DISCONNECTED &&
 			mClient.isSameServer(host, port, username, password)) {
 			return START_NOT_STICKY;
 		}
@@ -648,7 +652,7 @@ public class MumbleService extends Service {
 			mProtocol = null;
 		}
 
-		if (mClient != null) {
+		if (mClient != null && mClientThread != null) {
 			mClient.disconnect();
 			try {
 				mClientThread.join();
@@ -656,7 +660,7 @@ public class MumbleService extends Service {
 				mClientThread.interrupt();
 			}
 
-			mClient = null;
+			// Leave mClient reference intact as its state might still be queried.
 			mClientThread = null;
 		}
 
