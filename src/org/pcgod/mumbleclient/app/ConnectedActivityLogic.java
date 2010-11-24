@@ -13,7 +13,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.util.Log;
 
 public class ConnectedActivityLogic {
 	public interface Host {
@@ -60,7 +59,6 @@ public class ConnectedActivityLogic {
 
 			final MumbleService service = ((MumbleService.LocalBinder) binder).getService();
 			mHost.setService(service);
-			Log.i("Mumble", "mService set");
 
 			mInternalObserver = new ConnectedServiceObserver();
 			service.registerObserver(mInternalObserver);
@@ -116,27 +114,19 @@ public class ConnectedActivityLogic {
 	private void connectionStateUpdated(final int state) {
 		switch (state) {
 		case MumbleService.CONNECTION_STATE_CONNECTING:
-			Log.i(Globals.LOG_TAG, String.format(
-				"%s: Connecting",
-				getClass().getName()));
+			Globals.logInfo(this, "Connecting");
 			mHost.onConnecting();
 			break;
 		case MumbleService.CONNECTION_STATE_SYNCHRONIZING:
-			Log.i(Globals.LOG_TAG, String.format(
-				"%s: Synchronizing",
-				getClass().getName()));
+			Globals.logInfo(this, "Synchronizing");
 			mHost.onSynchronizing();
 			break;
 		case MumbleService.CONNECTION_STATE_CONNECTED:
-			Log.i(Globals.LOG_TAG, String.format(
-				"%s: Connected",
-				getClass().getName()));
+			Globals.logInfo(this, "Connected");
 			mHost.onConnected();
 			break;
 		case MumbleService.CONNECTION_STATE_DISCONNECTED:
-			Log.i(Globals.LOG_TAG, String.format(
-				"%s: Disconnected",
-				getClass().getName()));
+			Globals.logInfo(this, "Disconnected");
 			mHost.onDisconnected();
 			break;
 		default:

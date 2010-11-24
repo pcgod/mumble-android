@@ -9,8 +9,6 @@ import org.pcgod.mumbleclient.service.MumbleProtocol;
 import org.pcgod.mumbleclient.service.PacketDataStream;
 import org.pcgod.mumbleclient.service.model.User;
 
-import android.util.Log;
-
 /**
  * Thread safe buffer for audio data.
  * Implements audio queue and decoding.
@@ -65,7 +63,7 @@ public class AudioUser {
 			jbLock = null;
 		}
 
-		Log.i(Globals.LOG_TAG, "AudioUser created");
+		Globals.logInfo(this, "Created");
 	}
 
 	public boolean addFrameToBuffer(

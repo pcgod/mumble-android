@@ -2,7 +2,6 @@ package org.pcgod.mumbleclient.app;
 
 import junit.framework.Assert;
 
-import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.service.BaseServiceObserver;
 import org.pcgod.mumbleclient.service.MumbleService;
@@ -16,7 +15,6 @@ import android.database.Cursor;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.util.Log;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -228,7 +226,6 @@ public class ServerList extends ConnectedListActivity {
 			// server but before the connection intent reaches the service.
 			// In this case the service connects and can be disconnected before
 			// the connection state is checked again.
-			Log.i(Globals.LOG_TAG, "ServerList: Disconnected");
 			break;
 		default:
 			Assert.fail("Unknown connection state");

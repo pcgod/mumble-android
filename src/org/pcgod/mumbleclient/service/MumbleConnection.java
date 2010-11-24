@@ -25,8 +25,6 @@ import net.sf.mumble.MumbleProto.Version;
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.service.MumbleProtocol.MessageType;
 
-import android.util.Log;
-
 import com.google.protobuf.MessageLite;
 
 /**
@@ -71,7 +69,7 @@ public class MumbleConnection implements Runnable {
 			try {
 				tcpSocket.close();
 			} catch (final IOException e) {
-				Log.e(Globals.LOG_TAG, "Error when closing tcp socket", e);
+				Globals.logError(this, "Error when closing tcp socket", e);
 			}
 			super.stop();
 		}
@@ -211,7 +209,7 @@ public class MumbleConnection implements Runnable {
 				return;
 			}
 
-			Log.i(Globals.LOG_TAG, "MumbleConnection: disconnect");
+			Globals.logInfo(this, "disconnect()");
 			disconnecting = true;
 			suppressErrors = true;
 
@@ -224,7 +222,7 @@ public class MumbleConnection implements Runnable {
 					tcpSocket.close();
 				}
 			} catch (final IOException e) {
-				Log.e(Globals.LOG_TAG, "Error disconnecting TCP socket", e);
+				Globals.logError(this, "Error disconnecting TCP socket", e);
 			}
 			if (udpSocket != null) {
 				udpSocket.close();
@@ -261,7 +259,7 @@ public class MumbleConnection implements Runnable {
 		boolean connected = false;
 		try {
 			try {
-				Log.i(Globals.LOG_TAG, String.format(
+				Globals.logInfo(this, String.format(
 					"Connecting to host \"%s\", port %s",
 					host,
 					port));
@@ -368,7 +366,7 @@ public class MumbleConnection implements Runnable {
 		}
 
 		if (t != MessageType.Ping) {
-			Log.d(Globals.LOG_TAG, "<<< " + t);
+			Globals.logDebug(this, "<<< " + t);
 		}
 	}
 
@@ -394,7 +392,7 @@ public class MumbleConnection implements Runnable {
 
 		if (forceUdp || useUdpUntil > System.currentTimeMillis()) {
 			if (!usingUdp && !forceUdp) {
-				Log.i(Globals.LOG_TAG, "MumbleConnection: UDP enabled");
+				Globals.logInfo(this, "UDP enabled");
 				usingUdp = true;
 			}
 
@@ -417,7 +415,7 @@ public class MumbleConnection implements Runnable {
 			}
 		} else {
 			if (usingUdp) {
-				Log.i(Globals.LOG_TAG, "MumbleConnection: UDP disabled");
+				Globals.logInfo(this, "UDP disabled");
 				usingUdp = false;
 			}
 
@@ -454,8 +452,7 @@ public class MumbleConnection implements Runnable {
 			try {
 				tcpSocket.close();
 			} catch (final IOException e) {
-				Log.e(
-					Globals.LOG_TAG,
+				Globals.logError(this,
 					"IO error while closing the tcp socket",
 					e);
 			}
@@ -540,12 +537,12 @@ public class MumbleConnection implements Runnable {
 
 	private void reportError(final String error, final Exception e) {
 		if (suppressErrors) {
-			Log.w(Globals.LOG_TAG, "Error while disconnecting");
-			Log.w(Globals.LOG_TAG, error, e);
+			Globals.logWarn(this, "Error while disconnecting");
+			Globals.logWarn(this, error, e);
 			return;
 		}
 		connectionHost.setError(String.format(error));
-		Log.e(Globals.LOG_TAG, error, e);
+		Globals.logError(this, error, e);
 	}
 
 	protected Socket connectTcp() throws NoSuchAlgorithmException,
@@ -558,7 +555,7 @@ public class MumbleConnection implements Runnable {
 		sslSocket.setEnabledProtocols(new String[] { "TLSv1" });
 		sslSocket.startHandshake();
 
-		Log.i(Globals.LOG_TAG, "TCP/SSL socket opened");
+		Globals.logInfo(this, "TCP/SSL socket opened");
 
 		return sslSocket;
 	}
@@ -568,7 +565,7 @@ public class MumbleConnection implements Runnable {
 		udpSocket = new DatagramSocket();
 		udpSocket.connect(hostAddress, port);
 
-		Log.i(Globals.LOG_TAG, "UDP Socket opened");
+		Globals.logInfo(this, "UDP Socket opened");
 
 		return udpSocket;
 	}

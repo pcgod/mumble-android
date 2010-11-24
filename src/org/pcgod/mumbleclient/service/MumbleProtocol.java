@@ -23,7 +23,6 @@ import org.pcgod.mumbleclient.service.model.Message;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.google.protobuf.ByteString;
 
@@ -139,7 +138,7 @@ public class MumbleProtocol {
 				"Connection rejected: %s",
 				reject.getReason());
 			host.setError(errorString);
-			Log.e(Globals.LOG_TAG, String.format(
+			Globals.logError(this, String.format(
 				"Received Reject message: %s",
 				reject.getReason()));
 			break;
@@ -156,7 +155,7 @@ public class MumbleProtocol {
 
 			pingThread = new Thread(new PingThread(conn), "Ping");
 			pingThread.start();
-			Log.d(Globals.LOG_TAG, ">>> " + t);
+			Globals.logDebug(this, ">>> " + t);
 
 			ao = new AudioOutput(ctx, audioHost);
 			audioOutputThread = new Thread(ao, "audio output");
@@ -301,7 +300,7 @@ public class MumbleProtocol {
 		case CryptSetup:
 			final CryptSetup cryptsetup = CryptSetup.parseFrom(buffer);
 
-			Log.d(Globals.LOG_TAG, "MumbleConnection: CryptSetup");
+			Globals.logDebug(this, "MumbleConnection: CryptSetup");
 
 			if (cryptsetup.hasKey() && cryptsetup.hasClientNonce() &&
 				cryptsetup.hasServerNonce()) {
@@ -312,12 +311,11 @@ public class MumbleProtocol {
 					cryptsetup.getServerNonce().toByteArray());
 			} else if (cryptsetup.hasServerNonce()) {
 				// Server syncing its nonce to us.
-				Log.d(Globals.LOG_TAG, "MumbleConnection: Server sending nonce");
+				Globals.logDebug(this, "MumbleConnection: Server sending nonce");
 				conn.cryptState.setServerNonce(cryptsetup.getServerNonce().toByteArray());
 			} else {
 				// Server wants our nonce.
-				Log.d(
-					Globals.LOG_TAG,
+				Globals.logDebug(this,
 					"MumbleConnection: Server requesting nonce");
 				final CryptSetup.Builder nonceBuilder = CryptSetup.newBuilder();
 				nonceBuilder.setClientNonce(ByteString.copyFrom(conn.cryptState.getClientNonce()));
@@ -325,7 +323,7 @@ public class MumbleProtocol {
 			}
 			break;
 		default:
-			Log.w(Globals.LOG_TAG, "unhandled message type " + t);
+			Globals.logWarn(this, "unhandled message type " + t);
 		}
 	}
 
@@ -418,7 +416,7 @@ public class MumbleProtocol {
 
 		final User u = findUser((int) uiSession);
 		if (u == null) {
-			Log.e(Globals.LOG_TAG, "User session " + uiSession + " not found!");
+			Globals.logError(this, "User session " + uiSession + " not found!");
 
 			// This might happen if user leaves while there are still UDP packets
 			// en route to the clients. In this case we should just ignore these
@@ -437,8 +435,7 @@ public class MumbleProtocol {
 			try {
 				audioOutputThread.join();
 			} catch (final InterruptedException e) {
-				Log.e(
-					Globals.LOG_TAG,
+				Globals.logWarn(this,
 					"Interrupted while waiting for audio thread to end",
 					e);
 			}
@@ -449,8 +446,7 @@ public class MumbleProtocol {
 			try {
 				pingThread.join();
 			} catch (final InterruptedException e) {
-				Log.e(
-					Globals.LOG_TAG,
+				Globals.logError(this,
 					"Interrupted while waiting for ping thread to end",
 					e);
 			}

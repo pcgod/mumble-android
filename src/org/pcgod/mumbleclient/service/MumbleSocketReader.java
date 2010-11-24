@@ -4,8 +4,6 @@ import java.io.IOException;
 
 import org.pcgod.mumbleclient.Globals;
 
-import android.util.Log;
-
 /**
  * Provides the general structure for the socket readers.
  *
@@ -27,7 +25,7 @@ public abstract class MumbleSocketReader {
 			} catch (final IOException ex) {
 				// If we aren't running, exception is expected.
 				if (isRunning()) {
-					Log.e(Globals.LOG_TAG, "Error reading socket", ex);
+					Globals.logError(this, "Error reading socket", ex);
 				}
 			} finally {
 				running = false;
@@ -69,7 +67,7 @@ public abstract class MumbleSocketReader {
 		try {
 			this.thread.join();
 		} catch (final InterruptedException e) {
-			Log.w(Globals.LOG_TAG, e);
+			Globals.logWarn(this, "Socket thread join interrupted", e);
 		}
 	}
 
