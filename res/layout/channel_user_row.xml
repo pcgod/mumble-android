@@ -5,14 +5,11 @@
 	android:layout_height="wrap_content"
 	android:layout_width="fill_parent">
 
-	<CheckBox
-		android:layout_height="wrap_content"
+	<ImageView
+		android:layout_height="match_parent"
 		android:layout_width="wrap_content"
-		android:layout_alignParentLeft="true"
-		android:layout_marginTop="5dip"
-		android:focusable="false"
-		android:clickable="false"
-		android:id="@+id/userRowTalkState"></CheckBox>
+		android:id="@+id/userRowState"
+		android:src="@drawable/icon" />
 	<TextView
 		android:layout_toLeftOf="@+id/userRowStatus"
 		android:layout_height="wrap_content"
@@ -24,7 +21,7 @@
 		android:singleLine="true"
 		android:textSize="25sp"
 		android:layout_centerVertical="true"
-		android:layout_toRightOf="@+id/userRowTalkState" />
+		android:layout_toRightOf="@+id/userRowState" />
 	<!--
 		singleLine is deprecated but it is the only way to get ellipsize work
 		it seems. 'inputType text, maxLines 1' didn't work. It's a known issue
@@ -33,13 +30,4 @@
 		happens first, they remove support for singleLine or they manage to
 		reproduce the error. :p
 	-->
-
-	<TextView
-		android:id="@+id/userRowStatus"
-		android:gravity="center"
-		android:layout_alignParentRight="true"
-		android:layout_height="wrap_content"
-		android:layout_centerVertical="true"
-		android:text="[Status]"
-		android:layout_width="100dp" />
 </RelativeLayout>

@@ -211,13 +211,32 @@ public class MumbleProtocol {
 				added = true;
 			}
 
+			if (us.hasSelfDeaf() || us.hasSelfMute()) {
+				if (us.getSelfDeaf()) {
+					user.userState = User.USERSTATE_DEAFENED;
+				} else if (us.getSelfMute()) {
+					user.userState = User.USERSTATE_MUTED;
+				} else {
+					user.userState = User.USERSTATE_NONE;
+				}
+			}
+
 			if (us.hasMute()) {
 				user.muted = us.getMute();
+				user.userState = user.muted ? User.USERSTATE_MUTED
+					: User.USERSTATE_NONE;
 			}
 
 			if (us.hasDeaf()) {
 				user.deafened = us.getDeaf();
 				user.muted |= user.deafened;
+				user.userState = user.deafened ? User.USERSTATE_DEAFENED
+					: (user.muted ? User.USERSTATE_MUTED : User.USERSTATE_NONE);
+			}
+
+			if (us.hasSuppress()) {
+				user.userState = us.getSuppress() ? User.USERSTATE_MUTED
+					: User.USERSTATE_NONE;
 			}
 
 			if (us.hasName()) {

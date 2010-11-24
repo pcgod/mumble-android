@@ -16,7 +16,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -241,19 +241,24 @@ public class UserListAdapter extends BaseAdapter {
 		}
 
 		final TextView name = (TextView) view.findViewById(R.id.userRowName);
-		final TextView status = (TextView) view.findViewById(R.id.userRowStatus);
-		final CheckBox state = (CheckBox) view.findViewById(R.id.userRowTalkState);
+		final ImageView state = (ImageView) view.findViewById(R.id.userRowState);
 
 		name.setText(user.name);
 
-		if (!user.muted && !user.deafened) {
-			status.setText("");
-		} else {
-			status.setText((user.muted && user.deafened) ? "M+D"
-				: user.muted ? "M" : "D");
+		switch (user.userState) {
+		case User.USERSTATE_DEAFENED:
+			state.setImageResource(R.drawable.deafened);
+			break;
+		case User.USERSTATE_MUTED:
+			state.setImageResource(R.drawable.muted);
+			break;
+		default:
+			if (user.talkingState == AudioOutputHost.STATE_TALKING) {
+				state.setImageResource(R.drawable.talking_on);
+			} else {
+				state.setImageResource(R.drawable.talking_off);
+			}
 		}
-
-		state.setChecked(user.talkingState == AudioOutputHost.STATE_TALKING);
 
 		view.invalidate();
 	}

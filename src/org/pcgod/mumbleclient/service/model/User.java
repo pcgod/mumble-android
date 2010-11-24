@@ -22,10 +22,15 @@ public class User implements Parcelable {
 	public static final int TALKINGSTATE_SHOUTING = 2;
 	public static final int TALKINGSTATE_WHISPERING = 3;
 
+	public static final int USERSTATE_NONE = 0;
+	public static final int USERSTATE_MUTED = 1;
+	public static final int USERSTATE_DEAFENED = 2;
+
 	public int session;
 	public String name;
 	public float averageAvailable;
 	public int talkingState;
+	public int userState;
 	public boolean isCurrent;
 
 	public boolean muted;
