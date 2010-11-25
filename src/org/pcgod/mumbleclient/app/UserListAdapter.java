@@ -122,30 +122,22 @@ public class UserListAdapter extends BaseAdapter {
 	}
 
 	public final void refreshUser(final User user) {
-		final User oldUser = users.put(user.session, user);
+		final boolean oldVisible = visibleUserNames.get(user.session) != null;
+		final boolean newVisible = user.getChannel().id == visibleChannel;
 
-		final String oldName = visibleUserNames.get(user.session);
-		final boolean oldVisible = (oldName != null);
+		users.put(user.session, user);
 
-		final int oldLocation;
+		int oldLocation = -1;
 		if (oldVisible) {
-			// We need to briefly substitute the oldUser name since
-			// comparator uses the name to match the user.
-			// TODO: Saner solution, custom binary search?
-			final String tempName = oldUser.name;
-			oldUser.name = oldName;
-			oldLocation = Collections.binarySearch(
-				visibleUserList,
-				oldUser,
-				userComparator);
-			oldUser.name = tempName;
-		} else {
-			oldLocation = -1;
+			for (int i = 0; i < visibleUserList.size(); i++) {
+				if (visibleUserList.get(i).session == user.session) {
+					oldLocation = i;
+					break;
+				}
+			}
 		}
 
-		final boolean newVisible = user.getChannel().id == visibleChannel;
 		int newLocation = 0;
-
 		if (newVisible) {
 			newLocation = Collections.binarySearch(
 				visibleUserList,
@@ -153,10 +145,9 @@ public class UserListAdapter extends BaseAdapter {
 				userComparator);
 		}
 
-		if (oldVisible && newVisible) {
-			int newInsertion = (newLocation < 0) ? (-newLocation - 1)
-				: newLocation;
+		int newInsertion = (newLocation < 0) ? (-newLocation - 1) : newLocation;
 
+		if (oldVisible && newVisible) {
 			// If the new would be inserted next to the old one, replace the old
 			// as it should be removed anyway.
 			if (oldLocation == newInsertion || oldLocation == newInsertion + 1) {
@@ -183,7 +174,7 @@ public class UserListAdapter extends BaseAdapter {
 			removeVisibleUser(oldLocation);
 			super.notifyDataSetChanged();
 		} else if (newVisible) {
-			addVisibleUser(-newLocation - 1, user);
+			addVisibleUser(newInsertion, user);
 			super.notifyDataSetChanged();
 		}
 
