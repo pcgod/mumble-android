@@ -18,6 +18,8 @@ public class ServerInfo extends Activity {
 			final EditText portEdit = (EditText) findViewById(R.id.serverPortEdit);
 			final EditText usernameEdit = (EditText) findViewById(R.id.serverUsernameEdit);
 			final EditText passwordEdit = (EditText) findViewById(R.id.serverPasswordEdit);
+			final EditText keystoreFileEdit = (EditText) findViewById(R.id.serverkeystoreFileEdit);
+			final EditText keystorePasswordEdit = (EditText) findViewById(R.id.serverkeystorePasswordEdit);
 
 			final String name = (nameEdit).getText().toString().trim();
 			final String host = (hostEdit).getText().toString().trim();
@@ -31,6 +33,8 @@ public class ServerInfo extends Activity {
 
 			final String username = (usernameEdit).getText().toString().trim();
 			final String password = (passwordEdit).getText().toString();
+			final String keystoreFile = (keystoreFileEdit).getText().toString();
+			final String keystorePass = (keystorePasswordEdit).getText().toString();
 
 			final DbAdapter db = new DbAdapter(v.getContext());
 
@@ -39,9 +43,9 @@ public class ServerInfo extends Activity {
 				"serverId",
 				-1);
 			if (serverId != -1) {
-				db.updateServer(serverId, name, host, port, username, password);
+				db.updateServer(serverId, name, host, port, username, password, keystoreFile, keystorePass);
 			} else {
-				db.createServer(name, host, port, username, password);
+				db.createServer(name, host, port, username, password, keystoreFile, keystorePass);
 			}
 			db.close();
 
@@ -64,6 +68,8 @@ public class ServerInfo extends Activity {
 			final EditText portEdit = (EditText) findViewById(R.id.serverPortEdit);
 			final EditText usernameEdit = (EditText) findViewById(R.id.serverUsernameEdit);
 			final EditText passwordEdit = (EditText) findViewById(R.id.serverPasswordEdit);
+			final EditText keystoreFileEdit = (EditText) findViewById(R.id.serverkeystoreFileEdit);
+			final EditText keystorePasswordEdit = (EditText) findViewById(R.id.serverkeystorePasswordEdit);
 
 			final DbAdapter db = new DbAdapter(this);
 			db.open();
@@ -73,6 +79,8 @@ public class ServerInfo extends Activity {
 			portEdit.setText(Integer.toString(c.getInt(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT))));
 			usernameEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME)));
 			passwordEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD)));
+			keystoreFileEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_KEYSTORE_FILE)));
+			keystorePasswordEdit.setText(c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_KEYSTORE_PASSWORD)));
 			addButton.setText(R.string.serverChange);
 			c.close();
 			db.close();

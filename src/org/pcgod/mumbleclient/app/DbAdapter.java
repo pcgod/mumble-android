@@ -10,7 +10,7 @@ import android.util.Log;
 class DbAdapter {
 	private static class DatabaseHelper extends SQLiteOpenHelper {
 		public DatabaseHelper(final Context context) {
-			super(context, DATABASE_NAME, null, 2);
+			super(context, DATABASE_NAME, null, 3);
 		}
 
 		@Override
@@ -21,7 +21,9 @@ class DbAdapter {
 					   + "`host` TEXT NOT NULL,"
 					   + "`port` INTEGER,"
 					   + "`username` TEXT NOT NULL,"
-					   + "`password` TEXT"
+					   + "`password` TEXT, "
+					   + "`keystore_file` TEXT,"
+					   + "`keystore_password` TEXT"
 					   + ");");
 		}
 
@@ -36,7 +38,14 @@ class DbAdapter {
 				db.execSQL("ALTER TABLE `server` RENAME TO `server_old`");
 				onCreate(db);
 				db.execSQL("INSERT INTO `server` SELECT "
-						   + "`_id`, '', `host`, `port`, `username`, `password` "
+						   + "`_id`, '', `host`, `port`, `username`, `password`, '', '' "
+						   + "FROM `server_old`");
+				db.execSQL("DROP TABLE `server_old`");
+			} else if (oldVersion == 2	) {
+				db.execSQL("ALTER TABLE `server` RENAME TO `server_old`");
+				onCreate(db);
+				db.execSQL("INSERT INTO `server` SELECT "
+						   + "`_id`, `name`, `host`, `port`, `username`, `password`, '', '' "
 						   + "FROM `server_old`");
 				db.execSQL("DROP TABLE `server_old`");
 			}
@@ -51,6 +60,8 @@ class DbAdapter {
 	public static final String SERVER_COL_PORT = "port";
 	public static final String SERVER_COL_USERNAME = "username";
 	public static final String SERVER_COL_PASSWORD = "password";
+	public static final String SERVER_COL_KEYSTORE_FILE = "keystore_file";
+	public static final String SERVER_COL_KEYSTORE_PASSWORD = "keystore_password";
 
 	private final Context context;
 	private SQLiteDatabase db;
@@ -69,13 +80,17 @@ class DbAdapter {
 		final String host,
 		final int port,
 		final String username,
-		final String password) {
+		final String password,
+		final String keystoreFile,
+		final String keystorePassword) {
 		final ContentValues values = new ContentValues();
 		values.put(SERVER_COL_NAME, name);
 		values.put(SERVER_COL_HOST, host);
 		values.put(SERVER_COL_PORT, port);
 		values.put(SERVER_COL_USERNAME, username);
 		values.put(SERVER_COL_PASSWORD, password);
+		values.put(SERVER_COL_KEYSTORE_FILE, keystoreFile);
+		values.put(SERVER_COL_KEYSTORE_PASSWORD, keystorePassword);
 		return db.insert(SERVER_TABLE, null, values);
 	}
 
@@ -87,7 +102,8 @@ class DbAdapter {
 		final Cursor c = db.query(
 			SERVER_TABLE,
 			new String[] { SERVER_COL_ID, SERVER_COL_NAME, SERVER_COL_HOST,
-					SERVER_COL_PORT, SERVER_COL_USERNAME, SERVER_COL_PASSWORD },
+					SERVER_COL_PORT, SERVER_COL_USERNAME, SERVER_COL_PASSWORD, 
+					SERVER_COL_KEYSTORE_FILE, SERVER_COL_KEYSTORE_PASSWORD },
 			null,
 			null,
 			null,
@@ -101,7 +117,8 @@ class DbAdapter {
 		final Cursor c = db.query(
 			SERVER_TABLE,
 			new String[] { SERVER_COL_ID, SERVER_COL_NAME, SERVER_COL_HOST,
-					SERVER_COL_PORT, SERVER_COL_USERNAME, SERVER_COL_PASSWORD },
+					SERVER_COL_PORT, SERVER_COL_USERNAME, SERVER_COL_PASSWORD, 
+					SERVER_COL_KEYSTORE_FILE, SERVER_COL_KEYSTORE_PASSWORD },
 			SERVER_COL_ID + " = " + serverId,
 			null,
 			null,
@@ -126,13 +143,17 @@ class DbAdapter {
 		final String host,
 		final int port,
 		final String username,
-		final String password) {
+		final String password,
+		final String keystoreFile,
+		final String keystorePassword) {
 		final ContentValues values = new ContentValues();
 		values.put(SERVER_COL_NAME, name);
 		values.put(SERVER_COL_HOST, host);
 		values.put(SERVER_COL_PORT, port);
 		values.put(SERVER_COL_USERNAME, username);
 		values.put(SERVER_COL_PASSWORD, password);
+		values.put(SERVER_COL_KEYSTORE_FILE, keystoreFile);
+		values.put(SERVER_COL_KEYSTORE_PASSWORD, keystorePassword);
 		db.update(
 			SERVER_TABLE,
 			values,

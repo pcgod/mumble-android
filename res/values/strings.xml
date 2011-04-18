@@ -23,4 +23,7 @@
 	<string name="connectionProgressConnectingMessage">Connecting to Mumble</string>
 	<string name="connectionProgressSynchronizingMessage">Synchronizing data with Mumble</string>
 	<string name="connectionProgressDisconnectingMessage">Disconnecting...</string>
+<string name="serverkeystorePasswordEdit">Keystore Password</string>
+
+<string name="serverkeystoreFileEdit">Keystore path (relative  to sdcard)</string>
 </resources>
