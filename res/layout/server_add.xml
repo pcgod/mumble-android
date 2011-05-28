@@ -57,6 +57,26 @@
 			android:id="@+id/serverPasswordEdit"
 			android:layout_width="fill_parent"
 			android:inputType="textPassword"></EditText>
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:id="@+id/serverkeystoreFile"
+			android:text="@string/serverkeystoreFileEdit"></TextView>
+		<EditText
+			android:layout_height="wrap_content"
+			android:id="@+id/serverkeystoreFileEdit"
+			android:layout_width="fill_parent"
+			android:inputType="text"></EditText>
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:id="@+id/serverkeystorePassword"
+			android:text="@string/serverkeystorePasswordEdit"></TextView>
+		<EditText
+			android:layout_height="wrap_content"
+			android:id="@+id/serverkeystorePasswordEdit"
+			android:layout_width="fill_parent"
+			android:inputType="textPassword"></EditText>
 		<Button
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"

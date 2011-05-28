@@ -314,6 +314,8 @@ public class ServerList extends ConnectedListActivity {
 		final int port = c.getInt(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT));
 		final String username = c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME));
 		final String password = c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD));
+		final String keystoreFile = c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_KEYSTORE_FILE));
+		final String keystorePassword = c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_KEYSTORE_PASSWORD));
 		c.close();
 
 		registerConnectionReceiver();
@@ -324,6 +326,8 @@ public class ServerList extends ConnectedListActivity {
 		connectionIntent.putExtra(MumbleService.EXTRA_PORT, port);
 		connectionIntent.putExtra(MumbleService.EXTRA_USERNAME, username);
 		connectionIntent.putExtra(MumbleService.EXTRA_PASSWORD, password);
+		connectionIntent.putExtra(MumbleService.EXTRA_KEYSTORE_FILE, keystoreFile);
+		connectionIntent.putExtra(MumbleService.EXTRA_KEYSTORE_PASSWORD, keystorePassword);
 		startService(connectionIntent);
 	}
 

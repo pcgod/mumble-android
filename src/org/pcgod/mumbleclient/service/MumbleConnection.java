@@ -2,7 +2,10 @@ package org.pcgod.mumbleclient.service;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.ConnectException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -10,9 +13,17 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -25,6 +36,7 @@ import net.sf.mumble.MumbleProto.Version;
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.service.MumbleProtocol.MessageType;
 
+import android.os.Environment;
 import android.util.Log;
 
 import com.google.protobuf.MessageLite;
@@ -163,6 +175,9 @@ public class MumbleConnection implements Runnable {
 	private final int port;
 	private final String username;
 	private final String password;
+	private final String keystorePassword;
+	private final File keystoreFile;
+	private final boolean useKeystore;
 
 	private final Object stateLock = new Object();
 	final CryptState cryptState = new CryptState();
@@ -195,13 +210,24 @@ public class MumbleConnection implements Runnable {
 		final String host,
 		final int port,
 		final String username,
-		final String password) {
+		final String password,
+		final String keystoreFile,
+		final String keystorePassword) {
 		this.connectionHost = connectionHost;
 		this.host = host;
 		this.port = port;
 		this.username = username;
 		this.password = password;
-
+		this.keystorePassword = keystorePassword;
+		if (keystoreFile != null && !keystoreFile.equals("")) {
+			this.keystoreFile = new File(Environment.getExternalStorageDirectory(), keystoreFile);
+			Log.i(Globals.LOG_TAG, "MumbleConnection: Using keystore file: " + this.keystoreFile.getAbsolutePath());
+			this.useKeystore = true;
+			
+		} else {
+			this.useKeystore = false;
+			this.keystoreFile = null;
+		}		
 		connectionHost.setConnectionState(MumbleConnectionHost.STATE_CONNECTING);
 	}
 
@@ -289,6 +315,11 @@ public class MumbleConnection implements Runnable {
 					host,
 					port), e);
 			} catch (final IOException e) {
+				reportError(String.format(
+					"Could not connect to Mumble server \"%s:%s\"",
+					host,
+					port), e);
+			} catch (final GeneralSecurityException e) {
 				reportError(String.format(
 					"Could not connect to Mumble server \"%s:%s\"",
 					host,
@@ -547,15 +578,36 @@ public class MumbleConnection implements Runnable {
 		connectionHost.setError(String.format(error));
 		Log.e(Globals.LOG_TAG, error, e);
 	}
+	
+	 
+	
+	private SSLSocketFactory getSocketFactory() throws KeyStoreException, UnrecoverableKeyException, CertificateException, NoSuchProviderException, IOException, NoSuchAlgorithmException, KeyManagementException {
+		final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+		if(this.useKeystore) {
+			char[] password = null;
+			KeyStore keystore = KeyStore.getInstance("BKS");
+			InputStream is = new FileInputStream(this.keystoreFile);
+			// only use the keystore password if we have it
+			if(this.keystorePassword != null && !this.keystorePassword.equals("")) {
+				password = this.keystorePassword.toCharArray();
+			}
+			keystore.load(is, password);
+			kmf.init(keystore, password);
+		} else {
+			kmf.init(null, null);
+		}
+		final SSLContext ctx_ = SSLContext.getInstance("TLS");
+		ctx_.init(kmf.getKeyManagers(), new TrustManager[] { new LocalSSLTrustManager() }, new SecureRandom());
+		return ctx_.getSocketFactory();
+	}
 
 	protected Socket connectTcp() throws NoSuchAlgorithmException,
-		KeyManagementException, IOException, UnknownHostException {
-		final SSLContext ctx_ = SSLContext.getInstance("TLS");
-		ctx_.init(null, new TrustManager[] { new LocalSSLTrustManager() }, null);
-		final SSLSocketFactory factory = ctx_.getSocketFactory();
+		KeyManagementException, IOException, UnknownHostException, KeyStoreException, UnrecoverableKeyException, CertificateException, NoSuchProviderException {
+		final SSLSocketFactory factory = getSocketFactory();
 		final SSLSocket sslSocket = (SSLSocket) factory.createSocket(hostAddress, port);
 		sslSocket.setUseClientMode(true);
-		sslSocket.setEnabledProtocols(new String[] { "TLSv1" });
+		sslSocket.setKeepAlive(true);
+		sslSocket.setEnabledProtocols(new String[] { "TLSv1"});
 		sslSocket.startHandshake();
 
 		Log.i(Globals.LOG_TAG, "TCP/SSL socket opened");
