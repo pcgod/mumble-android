@@ -102,6 +102,11 @@ public class MumbleProtocol {
 			return;
 		}
 
+		if (type >= MT_CONSTANTS.length) {
+			Globals.logWarn(this, String.format("Unknown message type %s", type));
+			return;
+		}
+
 		final MessageType t = MT_CONSTANTS[type];
 
 		Channel channel;
