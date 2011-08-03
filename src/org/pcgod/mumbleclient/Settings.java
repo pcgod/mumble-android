@@ -17,6 +17,8 @@ public class Settings {
 	public static final String PREF_QUALITY = "quality";
 	private static final String DEFAULT_QUALITY = "60000";
 
+	public static final String PREF_PROXIMITY = "proximity";
+
 	private final SharedPreferences preferences;
 
 	public Settings(final Context ctx) {
@@ -36,5 +38,9 @@ public class Settings {
 	public boolean isJitterBuffer() {
 		return preferences.getString(PREF_JITTER, ARRAY_JITTER_NONE).equals(
 			ARRAY_JITTER_SPEEX);
+	}
+
+	public boolean isProximityEnabled() {
+		return preferences.getBoolean(PREF_PROXIMITY, true);
 	}
 }

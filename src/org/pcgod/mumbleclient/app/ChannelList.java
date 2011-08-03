@@ -14,8 +14,12 @@ import org.pcgod.mumbleclient.service.model.User;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.DialogInterface.OnCancelListener;
+import android.content.Intent;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.view.KeyEvent;
@@ -23,6 +27,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.WindowManager.LayoutParams;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.ListView;
@@ -104,6 +109,30 @@ public class ChannelList extends ConnectedActivity {
 		}
 	}
 
+	class ProximityListener implements SensorEventListener {
+
+		@Override
+		public void onSensorChanged(SensorEvent event) {
+			// Make sure the state actually changed.
+			final boolean close = event.values[0] < 0.5;
+			if (proximityClose == close) return;
+			proximityClose = close;
+
+			if (!mService.isRecording() && close)
+				mService.setRecording(true);
+
+			if (!manualRecord && !close)
+				mService.setRecording(false);
+
+			synchronizeControls();
+		}
+
+		@Override
+		public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+		}
+	}
+
 	public static final String JOIN_CHANNEL = "join_channel";
 	public static final String SAVED_STATE_VISIBLE_CHANNEL = "visible_channel";
 
@@ -126,6 +155,11 @@ public class ChannelList extends ConnectedActivity {
 	private AlertDialog mDisconnectDialog;
 
 	private Settings settings;
+	private SensorManager sm;
+	private Sensor proximitySensor;
+	private final ProximityListener proximityListener = new ProximityListener();
+	private boolean manualRecord;
+	private boolean proximityClose = false;
 
 	public final OnClickListener browseButtonClickEvent = new OnClickListener() {
 		@Override
@@ -182,7 +216,8 @@ public class ChannelList extends ConnectedActivity {
 
 	private final OnClickListener speakButtonClickEvent = new OnClickListener() {
 		public void onClick(final View v) {
-			mService.setRecording(!mService.isRecording());
+			manualRecord = !mService.isRecording();
+			mService.setRecording(manualRecord);
 		}
 	};
 
@@ -271,6 +306,10 @@ public class ChannelList extends ConnectedActivity {
 			mProgressDialog = null;
 		}
 
+		manualRecord = mService.isRecording();
+		if (proximitySensor != null)
+			sm.registerListener(proximityListener, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
+
 		// If we don't have visible channel selected, default to the current channel.
 		// Setting channel also synchronizes the UI so we don't need to do it manually.
 		//
@@ -336,7 +375,7 @@ public class ChannelList extends ConnectedActivity {
 		// onConnected has not been called yet (and thus visibleChannel has not
 		// been set).
 		if (mService == null || mService.getCurrentChannel() == null ||
-			visibleChannel == null) {
+			visibleChannel == null || proximityClose) {
 			findViewById(R.id.connectionViewRoot).setVisibility(View.GONE);
 			speakButton.setEnabled(false);
 			joinButton.setEnabled(false);
@@ -354,6 +393,10 @@ public class ChannelList extends ConnectedActivity {
 			}
 			channelNameText.setText(visibleChannel.name);
 		}
+
+		final LayoutParams lp = getWindow().getAttributes();
+		lp.screenBrightness = proximityClose ? 0 : -1;
+		getWindow().setAttributes(lp);
 	}
 
 	@Override
@@ -368,6 +411,10 @@ public class ChannelList extends ConnectedActivity {
 
 		settings = new Settings(this);
 		setVolumeControlStream(settings.getAudioStream());
+
+		sm = (SensorManager)getSystemService(SENSOR_SERVICE);
+		if (settings.isProximityEnabled())
+			proximitySensor = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY);
 
 		// Get the UI views
 		channelNameText = (TextView) findViewById(R.id.channelName);
@@ -405,6 +452,8 @@ public class ChannelList extends ConnectedActivity {
 
 	@Override
 	protected final void onPause() {
+		if (proximityListener != null)
+			sm.unregisterListener(proximityListener);
 		super.onPause();
 		cleanDialogs();
 	}
