@@ -24,11 +24,15 @@
 			android:inputType="number" />
 		<ListPreference
 			android:title="PTT key"
-			android:summary="Assign a key to be used for push-to-talk"
+			android:summary="Assign a key to be used for push-to-talk."
 			android:key="pttkey"
 			android:defaultValue="-1"
 			android:entries="@array/pttNames"
 			android:entryValues="@array/pttValues" />
+		<CheckBoxPreference
+			android:key="pttsound"
+			android:title="PTT sound"
+			android:summary="Wether to use an acoustic indicator when voice starts/stops transmitting" />
 		<CheckBoxPreference
 			android:key="proximity"
 			android:title="Use proximity sensor"

@@ -18,6 +18,8 @@ public class Settings {
 	private static final String DEFAULT_QUALITY = "60000";
 	
 	public static final String PREF_PTT_KEY = "pttkey";
+	
+	public static final String PREF_PTT_SOUND = "pttsound";
 
 	public static final String PREF_PROXIMITY = "proximity";
 
@@ -44,6 +46,10 @@ public class Settings {
 	public boolean isJitterBuffer() {
 		return preferences.getString(PREF_JITTER, ARRAY_JITTER_NONE).equals(
 			ARRAY_JITTER_SPEEX);
+	}
+	
+	public boolean isPttSoundEnabled() {
+		return preferences.getBoolean(PREF_PTT_SOUND, false);
 	}
 
 	public boolean isProximityEnabled() {

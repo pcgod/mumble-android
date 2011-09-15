@@ -20,6 +20,8 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.view.KeyEvent;
@@ -259,6 +261,12 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		else if (keyCode == settings.getPttKey() && event.getRepeatCount() == 0) {
 			manualRecord = !mService.isRecording();
 			mService.setRecording(manualRecord);
+			
+			if (settings.isPttSoundEnabled()){
+			ToneGenerator tg = new ToneGenerator(AudioManager.STREAM_SYSTEM, 15);
+			if (manualRecord) tg.startTone(ToneGenerator.TONE_PROP_BEEP2);
+			else tg.startTone(ToneGenerator.TONE_PROP_PROMPT);
+			}
 			
 			synchronizeControls();
 			
