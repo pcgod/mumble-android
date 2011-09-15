@@ -248,6 +248,15 @@ public class ChannelList extends ConnectedActivity {
 
 			return true;
 		}
+		
+		else if (keyCode == settings.getPttKey() && event.getRepeatCount() == 0) {
+			manualRecord = !mService.isRecording();
+			mService.setRecording(manualRecord);
+			
+			synchronizeControls();
+			
+			return true;
+		}
 
 		return super.onKeyDown(keyCode, event);
 	}
@@ -398,7 +407,7 @@ public class ChannelList extends ConnectedActivity {
 		lp.screenBrightness = proximityClose ? 0 : -1;
 		getWindow().setAttributes(lp);
 	}
-
+	
 	@Override
 	protected IServiceObserver createServiceObserver() {
 		return new ChannelServiceObserver();

@@ -16,6 +16,8 @@ public class Settings {
 
 	public static final String PREF_QUALITY = "quality";
 	private static final String DEFAULT_QUALITY = "60000";
+	
+	public static final String PREF_PTT_KEY = "pttkey";
 
 	public static final String PREF_PROXIMITY = "proximity";
 
@@ -33,6 +35,10 @@ public class Settings {
 		return preferences.getString(PREF_STREAM, ARRAY_STREAM_MUSIC).equals(
 			ARRAY_STREAM_MUSIC) ? AudioManager.STREAM_MUSIC
 			: AudioManager.STREAM_VOICE_CALL;
+	}
+	
+	public int getPttKey() {
+		return Integer.parseInt(preferences.getString(PREF_PTT_KEY, "-1"));
 	}
 
 	public boolean isJitterBuffer() {

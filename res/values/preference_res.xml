@@ -23,4 +23,24 @@
 		<item>none</item>
 		<item>speex</item>
 	</string-array>
+	
+	<string-array
+		name="pttNames">
+		<item>None</item>
+		<item>Headset button</item>
+		<item>Volume up</item>
+		<item>Volume down</item>
+		<item>Camera shutter</item>
+		<item>Camera focus</item>
+	</string-array>
+	
+	<string-array
+		name="pttValues">
+		<item>-1</item>
+		<item>79</item>
+		<item>24</item>
+		<item>25</item>
+		<item>27</item>
+		<item>80</item>
+	</string-array>
 </resources>

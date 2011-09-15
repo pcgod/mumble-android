@@ -21,7 +21,18 @@
 			android:title="Audio quality"
 			android:defaultValue="60000"
 			android:key="quality"
-			android:inputType="number" /><CheckBoxPreference android:key="proximity" android:title="Use proximity sensor" android:summary="Uses proximity sensor for speak detection."></CheckBoxPreference>
+			android:inputType="number" />
+		<ListPreference
+			android:title="PTT key"
+			android:summary="Assign a key to be used for push-to-talk"
+			android:key="pttkey"
+			android:defaultValue="-1"
+			android:entries="@array/pttNames"
+			android:entryValues="@array/pttValues" />
+		<CheckBoxPreference
+			android:key="proximity"
+			android:title="Use proximity sensor"
+			android:summary="Uses proximity sensor for speak detection." />
 		
 	</PreferenceCategory>
 </PreferenceScreen>
