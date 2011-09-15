@@ -25,8 +25,10 @@ import android.os.RemoteException;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
 import android.view.WindowManager.LayoutParams;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -74,7 +76,7 @@ import android.widget.ToggleButton;
  * @author pcgod, Rantanen
  *
  */
-public class ChannelList extends ConnectedActivity {
+public class ChannelList extends ConnectedActivity implements OnTouchListener {
 	/**
 	 * Handles broadcasts from MumbleService
 	 */
@@ -136,8 +138,9 @@ public class ChannelList extends ConnectedActivity {
 	public static final String JOIN_CHANNEL = "join_channel";
 	public static final String SAVED_STATE_VISIBLE_CHANNEL = "visible_channel";
 
-	private static final int MENU_CHAT = Menu.FIRST;
-
+	private static final int MENU_CHAT = 1;
+	private static final int MENU_DIM = 2;
+	
 	Channel visibleChannel;
 
 	private TextView channelNameText;
@@ -160,6 +163,8 @@ public class ChannelList extends ConnectedActivity {
 	private final ProximityListener proximityListener = new ProximityListener();
 	private boolean manualRecord;
 	private boolean proximityClose = false;
+	private boolean screenIsDimmed = false; // indicated wether the screen is currently dimmed
+	private final float dimmedScreenBrightness = 0.01f;
 
 	public final OnClickListener browseButtonClickEvent = new OnClickListener() {
 		@Override
@@ -232,6 +237,8 @@ public class ChannelList extends ConnectedActivity {
 	public final boolean onCreateOptionsMenu(final Menu menu) {
 		menu.add(0, MENU_CHAT, 0, "Chat").setIcon(
 			android.R.drawable.ic_btn_speak_now);
+		menu.add(0, MENU_DIM, 0, R.string.screenOffText).setIcon(
+				android.R.drawable.ic_btn_speak_now);
 		return true;
 	}
 
@@ -269,6 +276,15 @@ public class ChannelList extends ConnectedActivity {
 		case MENU_CHAT:
 			final Intent i = new Intent(this, ChatActivity.class);
 			startActivity(i);
+			return true;
+		case MENU_DIM:
+			if (!screenIsDimmed){
+			final LayoutParams lp = getWindow().getAttributes();
+			lp.screenBrightness = dimmedScreenBrightness;
+			getWindow().setAttributes(lp);
+			screenIsDimmed = true;
+			}
+			else undimScreen();
 			return true;
 		default:
 			return super.onMenuItemSelected(featureId, item);
@@ -404,8 +420,22 @@ public class ChannelList extends ConnectedActivity {
 		}
 
 		final LayoutParams lp = getWindow().getAttributes();
-		lp.screenBrightness = proximityClose ? 0 : -1;
+		if (proximityClose) lp.screenBrightness = 0;
+		else if (!screenIsDimmed) lp.screenBrightness = -1;
+		else lp.screenBrightness = dimmedScreenBrightness;
 		getWindow().setAttributes(lp);
+	}
+	
+	/**
+	 * Return screen to normal brightness
+	 */
+	private void undimScreen(){
+		if (screenIsDimmed){			
+		final LayoutParams lp = getWindow().getAttributes();
+		lp.screenBrightness = -1;
+		getWindow().setAttributes(lp);
+		screenIsDimmed = false;
+		}
 	}
 	
 	@Override
@@ -433,6 +463,8 @@ public class ChannelList extends ConnectedActivity {
 		speakButton = (ToggleButton) findViewById(R.id.speakButton);
 		joinButton = (Button) findViewById(R.id.joinButton);
 		speakerCheckBox = (CheckBox) findViewById(R.id.speakerCheckBox);
+		
+		channelUsersList.setOnTouchListener(this);
 
 		// Set event handlers.
 		browseButton.setOnClickListener(browseButtonClickEvent);
@@ -478,5 +510,14 @@ public class ChannelList extends ConnectedActivity {
 	 */
 	@Override
 	protected final void onServiceBound() {
+	}
+
+	/**
+	 * Return to normal brightness if a usertouch occurs and screen was dimmed
+	 */
+	@Override
+	public boolean onTouch(View v, MotionEvent event) {
+		undimScreen();
+		return false;
 	}
 }
