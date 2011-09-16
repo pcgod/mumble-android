@@ -3,6 +3,7 @@ package org.pcgod.mumbleclient.app;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.Settings;
@@ -24,6 +25,8 @@ import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.os.SystemClock;
+import android.speech.tts.TextToSpeech;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -78,7 +81,7 @@ import android.widget.ToggleButton;
  * @author pcgod, Rantanen
  *
  */
-public class ChannelList extends ConnectedActivity implements OnTouchListener {
+public class ChannelList extends ConnectedActivity implements OnTouchListener, TextToSpeech.OnInitListener {
 	/**
 	 * Handles broadcasts from MumbleService
 	 */
@@ -95,11 +98,13 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 
 		@Override
 		public void onUserAdded(final User user) throws RemoteException {
+			if (TtsEnabled && !firstEnter) mTts.speak(user.name + "connected", TextToSpeech.QUEUE_ADD, null);
 			refreshUser(user);
 		}
 
 		@Override
 		public void onUserRemoved(final User user) throws RemoteException {
+			if (TtsEnabled) mTts.speak(user.name+" disconnected", TextToSpeech.QUEUE_ADD, null);
 			usersAdapter.removeUser(user.session);
 		}
 
@@ -167,6 +172,11 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 	private boolean proximityClose = false;
 	private boolean screenIsDimmed = false; // indicated wether the screen is currently dimmed
 	private final float dimmedScreenBrightness = 0.01f;
+	
+	private boolean firstEnter = true;
+	
+	private TextToSpeech mTts;
+	private boolean TtsEnabled;
 
 	public final OnClickListener browseButtonClickEvent = new OnClickListener() {
 		@Override
@@ -218,6 +228,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 	private final OnClickListener joinButtonClickEvent = new OnClickListener() {
 		public void onClick(final View v) {
 			mService.joinChannel(visibleChannel.id);
+			if (TtsEnabled) mTts.speak("joined channel " + visibleChannel.name, TextToSpeech.QUEUE_ADD, null);
 		}
 	};
 
@@ -338,6 +349,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 			mProgressDialog.dismiss();
 			mProgressDialog = null;
 		}
+		
 
 		manualRecord = mService.isRecording();
 		if (proximitySensor != null)
@@ -357,6 +369,9 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		}
 
 		usersAdapter.setUsers(mService.getUserList());
+		
+		if (firstEnter && TtsEnabled) mTts.speak("connected to "+ visibleChannel.name, TextToSpeech.QUEUE_FLUSH, null);
+		firstEnter = false;
 	}
 
 	/**
@@ -459,6 +474,12 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		settings = new Settings(this);
 		setVolumeControlStream(settings.getAudioStream());
 
+		TtsEnabled = settings.isTtsEnabled();
+		
+		if (TtsEnabled){
+			mTts = new TextToSpeech(this,this);
+		}
+		
 		sm = (SensorManager)getSystemService(SENSOR_SERVICE);
 		if (settings.isProximityEnabled())
 			proximitySensor = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY);
@@ -527,5 +548,15 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 	public boolean onTouch(View v, MotionEvent event) {
 		undimScreen();
 		return false;
+	}
+
+	@Override
+	public void onInit(int status) {
+		if (TtsEnabled){
+			Locale loc = Locale.US;
+			if(mTts.isLanguageAvailable(loc) >= TextToSpeech.LANG_AVAILABLE){
+				mTts.setLanguage(loc);
+				}
+			}
 	}
 }

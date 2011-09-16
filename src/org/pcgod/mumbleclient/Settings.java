@@ -22,6 +22,8 @@ public class Settings {
 	public static final String PREF_PTT_SOUND = "pttsound";
 
 	public static final String PREF_PROXIMITY = "proximity";
+	
+	public static final String PREF_TTS = "tts";
 
 	private final SharedPreferences preferences;
 
@@ -54,5 +56,9 @@ public class Settings {
 
 	public boolean isProximityEnabled() {
 		return preferences.getBoolean(PREF_PROXIMITY, true);
+	}
+	
+	public boolean isTtsEnabled() {
+		return preferences.getBoolean(PREF_TTS, true);
 	}
 }
