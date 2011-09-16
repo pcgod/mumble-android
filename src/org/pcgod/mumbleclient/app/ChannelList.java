@@ -274,7 +274,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener, T
 			mService.setRecording(manualRecord);
 			
 			if (settings.isPttSoundEnabled()){
-			ToneGenerator tg = new ToneGenerator(AudioManager.STREAM_SYSTEM, 15);
+			ToneGenerator tg = new ToneGenerator(AudioManager.STREAM_SYSTEM, 20);
 			if (manualRecord) tg.startTone(ToneGenerator.TONE_PROP_BEEP2);
 			else tg.startTone(ToneGenerator.TONE_PROP_PROMPT);
 			}
