@@ -141,6 +141,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 
 	private static final int MENU_CHAT = 1;
 	private static final int MENU_DIM = 2;
+	private static final int MENU_DISCONNECT = 3;
 	
 	Channel visibleChannel;
 
@@ -240,9 +241,11 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 	@Override
 	public final boolean onCreateOptionsMenu(final Menu menu) {
 		menu.add(0, MENU_CHAT, 0, "Chat").setIcon(
-			android.R.drawable.ic_btn_speak_now);
+			android.R.drawable.ic_menu_send);
 		menu.add(0, MENU_DIM, 0, R.string.screenOffText).setIcon(
-				android.R.drawable.ic_btn_speak_now);
+				android.R.drawable.ic_menu_view);
+		menu.add(0, MENU_DISCONNECT, 0, R.string.disconnect).setIcon(
+				android.R.drawable.ic_menu_close_clear_cancel);
 		return true;
 	}
 
@@ -290,6 +293,15 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		case MENU_DIM:
 			if (!screenIsDimmed) dimScreen(true);
 			else dimScreen(false);
+			return true;
+		case MENU_DISCONNECT:
+			final AlertDialog.Builder b = new AlertDialog.Builder(this);
+			b.setIcon(android.R.drawable.ic_dialog_alert);
+			b.setTitle("Disconnect");
+			b.setMessage("Are you sure you want to disconnect from Mumble?");
+			b.setPositiveButton(android.R.string.yes, onDisconnectConfirm);
+			b.setNegativeButton(android.R.string.no, null);
+			mDisconnectDialog = b.show();
 			return true;
 		default:
 			return super.onMenuItemSelected(featureId, item);
