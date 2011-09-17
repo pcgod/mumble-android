@@ -193,7 +193,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 				final Channel c = i.next();
 				if (c.id == currentChannelId) {
 					channelNames[step] = String.format(
-						"%s (C, %d)",
+						"%s (%d) (current)",
 						c.name,
 						c.userCount);
 				} else {
