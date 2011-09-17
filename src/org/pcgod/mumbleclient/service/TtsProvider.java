@@ -48,6 +48,7 @@ public class TtsProvider {
 			if (mTts != null) {
 				mTts.stop();
 				mTts.shutdown();
+				mTts = null;
 			}
 		}
 	
