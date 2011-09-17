@@ -35,9 +35,9 @@
 			android:entries="@array/pttNames"
 			android:entryValues="@array/pttValues" />
 		<CheckBoxPreference
-			android:key="pttsound"
-			android:title="Push-to-talk sound"
-			android:summary="Wether to play a sound when voice starts/stops transmitting" />
+			android:key="eventsounds"
+			android:title="Event sounds"
+			android:summary="Wether to play a sound when an event occurs (e.g. when a chat message is received, voice starts transmitting)" />
 		<CheckBoxPreference
 			android:key="proximity"
 			android:title="Use proximity sensor"

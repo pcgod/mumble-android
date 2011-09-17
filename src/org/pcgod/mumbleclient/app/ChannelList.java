@@ -282,7 +282,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 			manualRecord = !mService.isRecording();
 			mService.setRecording(manualRecord);
 			
-			if (settings.isPttSoundEnabled()){
+			if (settings.isEventSoundsEnabled()){
 			if (manualRecord) tg.startTone(ToneGenerator.TONE_PROP_BEEP2);
 			else tg.startTone(ToneGenerator.TONE_PROP_PROMPT);
 			}
@@ -470,7 +470,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 	}
 	
 	private void updateChatButton() {
-		if (settings.isPttSoundEnabled()) tg.startTone(ToneGenerator.TONE_PROP_ACK);
+		if (settings.isEventSoundsEnabled()) tg.startTone(ToneGenerator.TONE_PROP_ACK);
 		newChatCount++;
 		chatButton.setText("Chat ("+ newChatCount + " new)");
 	}
@@ -510,7 +510,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		if (settings.isProximityEnabled())
 			proximitySensor = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY);
 		
-		if (settings.isPttSoundEnabled()){
+		if (settings.isEventSoundsEnabled()){
 			tg = new ToneGenerator(AudioManager.STREAM_SYSTEM, 20);
 		}
 

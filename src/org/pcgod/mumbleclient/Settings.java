@@ -19,7 +19,7 @@ public class Settings {
 	
 	public static final String PREF_PTT_KEY = "pttkey";
 	
-	public static final String PREF_PTT_SOUND = "pttsound";
+	public static final String PREF_EVENT_SOUNDS = "eventsounds";
 
 	public static final String PREF_PROXIMITY = "proximity";
 	
@@ -50,8 +50,8 @@ public class Settings {
 			ARRAY_JITTER_SPEEX);
 	}
 	
-	public boolean isPttSoundEnabled() {
-		return preferences.getBoolean(PREF_PTT_SOUND, false);
+	public boolean isEventSoundsEnabled() {
+		return preferences.getBoolean(PREF_EVENT_SOUNDS, true);
 	}
 
 	public boolean isProximityEnabled() {
