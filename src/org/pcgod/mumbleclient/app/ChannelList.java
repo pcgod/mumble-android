@@ -10,6 +10,7 @@ import org.pcgod.mumbleclient.service.BaseServiceObserver;
 import org.pcgod.mumbleclient.service.IServiceObserver;
 import org.pcgod.mumbleclient.service.TtsProvider;
 import org.pcgod.mumbleclient.service.model.Channel;
+import org.pcgod.mumbleclient.service.model.Message;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.app.AlertDialog;
@@ -110,6 +111,11 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		public void onUserUpdated(final User user) throws RemoteException {
 			usersAdapter.refreshUser(user, false);
 		}
+		
+		@Override
+		public void onMessageReceived(final Message msg) throws RemoteException {
+			updateChatButton();
+		}
 	}
 
 	class ProximityListener implements SensorEventListener {
@@ -135,7 +141,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 
 		}
 	}
-
+	
 	public static final String JOIN_CHANNEL = "join_channel";
 	public static final String SAVED_STATE_VISIBLE_CHANNEL = "visible_channel";
 
@@ -151,6 +157,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 	private UserListAdapter usersAdapter;
 	private TextView noUsersText;
 	private ToggleButton speakButton;
+	private Button chatButton;
 	private Button joinButton;
 	private CheckBox speakerCheckBox;
 
@@ -167,9 +174,11 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 	private boolean proximityClose = false;
 	private boolean screenIsDimmed = false; // indicated wether the screen is currently dimmed
 	private final float dimmedScreenBrightness = 0.01f;
+	private int newChatCount = 0;
+	private ToneGenerator tg;
+	private boolean firstEnter = true;
 	
 	TtsProvider mTts;
-	private boolean firstEnter = true;
 
 	public final OnClickListener browseButtonClickEvent = new OnClickListener() {
 		@Override
@@ -230,6 +239,12 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 			mService.setRecording(manualRecord);
 		}
 	};
+	
+	private final OnClickListener chatButtonClickEvent = new OnClickListener() {
+		public void onClick(final View v) {
+			showChat();
+		}
+	};
 
 	public final DialogInterface.OnClickListener onDisconnectConfirm = new DialogInterface.OnClickListener() {
 		@Override
@@ -268,7 +283,6 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 			mService.setRecording(manualRecord);
 			
 			if (settings.isPttSoundEnabled()){
-			ToneGenerator tg = new ToneGenerator(AudioManager.STREAM_SYSTEM, 20);
 			if (manualRecord) tg.startTone(ToneGenerator.TONE_PROP_BEEP2);
 			else tg.startTone(ToneGenerator.TONE_PROP_PROMPT);
 			}
@@ -287,8 +301,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		final MenuItem item) {
 		switch (item.getItemId()) {
 		case MENU_CHAT:
-			final Intent i = new Intent(this, ChatActivity.class);
-			startActivity(i);
+			showChat();
 			return true;
 		case MENU_DIM:
 			if (!screenIsDimmed) dimScreen(true);
@@ -449,6 +462,19 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		getWindow().setAttributes(lp);
 	}
 	
+	private void showChat() {
+		final Intent i = new Intent(this, ChatActivity.class);
+		startActivity(i);
+		newChatCount = 0;
+		chatButton.setText("Chat");
+	}
+	
+	private void updateChatButton() {
+		if (settings.isPttSoundEnabled()) tg.startTone(ToneGenerator.TONE_PROP_ACK);
+		newChatCount++;
+		chatButton.setText("Chat ("+ newChatCount + " new)");
+	}
+	
 	/**
 	 * Dims the screen to set/normal brightness
 	 * 
@@ -483,6 +509,10 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		sm = (SensorManager)getSystemService(SENSOR_SERVICE);
 		if (settings.isProximityEnabled())
 			proximitySensor = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+		
+		if (settings.isPttSoundEnabled()){
+			tg = new ToneGenerator(AudioManager.STREAM_SYSTEM, 20);
+		}
 
 		// Get the UI views
 		channelNameText = (TextView) findViewById(R.id.channelName);
@@ -490,6 +520,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		channelUsersList = (ListView) findViewById(R.id.channelUsers);
 		noUsersText = (TextView) findViewById(R.id.noUsersText);
 		speakButton = (ToggleButton) findViewById(R.id.speakButton);
+		chatButton = (Button) findViewById(R.id.chatButton);
 		joinButton = (Button) findViewById(R.id.joinButton);
 		speakerCheckBox = (CheckBox) findViewById(R.id.speakerCheckBox);
 		
@@ -499,6 +530,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		browseButton.setOnClickListener(browseButtonClickEvent);
 		joinButton.setOnClickListener(joinButtonClickEvent);
 		speakButton.setOnClickListener(speakButtonClickEvent);
+		chatButton.setOnClickListener(chatButtonClickEvent);
 
 		usersAdapter = new UserListAdapter(this, channelUsersList, null);
 		channelUsersList.setAdapter(usersAdapter);

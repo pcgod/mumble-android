@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="channels">Channels</string>
+	<string name="channels">Change Channel</string>
 	<string name="userJoin">Join channel</string>
 	<string name="userSpeak">Speak</string>
     <string name="screenOffText">Dim Screen</string>
