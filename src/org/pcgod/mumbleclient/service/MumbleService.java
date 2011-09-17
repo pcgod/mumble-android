@@ -436,6 +436,7 @@ public class MumbleService extends Service {
 		this.setRecording(false);
 		if (mClient != null) {
 			mClient.disconnect();
+			TtsProvider.speak("disconnected", true);
 		}
 	}
 
@@ -500,6 +501,8 @@ public class MumbleService extends Service {
 	public void onCreate() {
 		super.onCreate();
 
+		TtsProvider.init(this);
+		
 		try {
 			mStartForeground = getClass().getMethod(
 				"startForeground",
@@ -520,6 +523,8 @@ public class MumbleService extends Service {
 	public void onDestroy() {
 		super.onDestroy();
 
+		TtsProvider.close();
+		
 		// Make sure our notification is gone.
 		hideNotification();
 

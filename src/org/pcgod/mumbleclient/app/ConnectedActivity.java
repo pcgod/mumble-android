@@ -4,6 +4,7 @@ import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.app.ConnectedActivityLogic.Host;
 import org.pcgod.mumbleclient.service.IServiceObserver;
 import org.pcgod.mumbleclient.service.MumbleService;
+import org.pcgod.mumbleclient.service.TtsProvider;
 
 import android.app.Activity;
 import android.content.Context;
@@ -116,6 +117,7 @@ public class ConnectedActivity extends Activity {
 		final String error = mService.getError();
 		if (error != null) {
 			Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+			TtsProvider.speak(error, false);
 		}
 		finish();
 	}

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.pcgod.mumbleclient.R;
+import org.pcgod.mumbleclient.service.TtsProvider;
 import org.pcgod.mumbleclient.service.audio.AudioOutputHost;
 import org.pcgod.mumbleclient.service.model.User;
 
@@ -121,7 +122,7 @@ public class UserListAdapter extends BaseAdapter {
 		super.notifyDataSetChanged();
 	}
 
-	public final void refreshUser(final User user) {
+	public final void refreshUser(final User user, boolean initialConnect) {
 		final boolean oldVisible = visibleUserNames.get(user.session) != null;
 		final boolean newVisible = user.getChannel().id == visibleChannel;
 
@@ -172,9 +173,11 @@ public class UserListAdapter extends BaseAdapter {
 			}
 		} else if (oldVisible) {
 			removeVisibleUser(oldLocation);
+			TtsProvider.speak(user.name + " left channel", false);
 			super.notifyDataSetChanged();
 		} else if (newVisible) {
 			addVisibleUser(newInsertion, user);
+			if (!initialConnect) TtsProvider.speak(user.name + " joined channel", false);
 			super.notifyDataSetChanged();
 		}
 
