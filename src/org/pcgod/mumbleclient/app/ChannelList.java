@@ -273,7 +273,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 			synchronizeControls();
 			
 			return true;
-		}
+		}	
 
 		return super.onKeyDown(keyCode, event);
 	}
@@ -288,13 +288,8 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 			startActivity(i);
 			return true;
 		case MENU_DIM:
-			if (!screenIsDimmed){
-			final LayoutParams lp = getWindow().getAttributes();
-			lp.screenBrightness = dimmedScreenBrightness;
-			getWindow().setAttributes(lp);
-			screenIsDimmed = true;
-			}
-			else undimScreen();
+			if (!screenIsDimmed) dimScreen(true);
+			else dimScreen(false);
 			return true;
 		default:
 			return super.onMenuItemSelected(featureId, item);
@@ -443,15 +438,21 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 	}
 	
 	/**
-	 * Return screen to normal brightness
+	 * Dims the screen to set/normal brightness
+	 * 
+	 * @param dim <code>true</code> to dim the screen or <code>false</code> to return to normal brightness
 	 */
-	private void undimScreen(){
-		if (screenIsDimmed){			
+	private void dimScreen(boolean dim){
 		final LayoutParams lp = getWindow().getAttributes();
-		lp.screenBrightness = -1;
-		getWindow().setAttributes(lp);
-		screenIsDimmed = false;
+		if (dim) {
+			lp.screenBrightness = dimmedScreenBrightness;
+			screenIsDimmed = true;
 		}
+		else {
+			lp.screenBrightness = -1;
+			screenIsDimmed = false;
+		}
+		getWindow().setAttributes(lp);
 	}
 	
 	@Override
@@ -533,7 +534,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 	 */
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
-		undimScreen();
+		dimScreen(false);
 		return false;
 	}
 	
