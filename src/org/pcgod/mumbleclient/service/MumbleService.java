@@ -425,6 +425,7 @@ public class MumbleService extends Service {
 	private ServiceProtocolHost mProtocolHost;
 	private ServiceConnectionHost mConnectionHost;
 	private ServiceAudioOutputHost mAudioHost;
+	private String connectedServerString;
 
 	public boolean canSpeak() {
 		return mProtocol != null && mProtocol.canSpeak;
@@ -601,6 +602,9 @@ public class MumbleService extends Service {
 		final int port = intent.getIntExtra(EXTRA_PORT, -1);
 		final String username = intent.getStringExtra(EXTRA_USERNAME);
 		final String password = intent.getStringExtra(EXTRA_PASSWORD);
+		
+		// set a class wide string for notification
+		this.connectedServerString = host+":"+port;
 
 		if (mClient != null &&
 			state != MumbleConnectionHost.STATE_DISCONNECTED &&
@@ -699,7 +703,7 @@ public class MumbleService extends Service {
 		mNotification.setLatestEventInfo(
 			MumbleService.this,
 			"Mumble",
-			"Mumble is connected to a server",
+			"Connected to "+ this.connectedServerString,
 			PendingIntent.getActivity(
 				MumbleService.this,
 				0,
