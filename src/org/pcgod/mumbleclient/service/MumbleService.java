@@ -13,6 +13,7 @@ import junit.framework.Assert;
 
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
+import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.app.ChannelList;
 import org.pcgod.mumbleclient.service.audio.AudioOutputHost;
 import org.pcgod.mumbleclient.service.audio.RecordThread;
@@ -390,13 +391,17 @@ public class MumbleService extends Service {
 	public static final String EXTRA_PASSWORD = "mumbleclient.extra.PASSWORD";
 	public static final String EXTRA_USER = "mumbleclient.extra.USER";
 
+	private Settings settings;
+	
 	private MumbleConnection mClient;
 	private MumbleProtocol mProtocol;
 
 	private Thread mClientThread;
 	private Thread mRecordThread;
 
-	Notification mNotification;;
+	Notification mNotification;
+	boolean mHasConnections;
+	
 
 	private final LocalBinder mBinder = new LocalBinder();
 	final Handler handler = new Handler();
@@ -494,8 +499,17 @@ public class MumbleService extends Service {
 
 	@Override
 	public IBinder onBind(final Intent intent) {
+		mHasConnections = true;
 		Globals.logInfo(this, "Bound");
 		return mBinder;
+	}
+	
+	@Override
+	public boolean onUnbind(final Intent intent) {
+		mHasConnections = false;
+		Globals.logInfo(this, "Unbound");
+		return false;
+		
 	}
 
 	@Override
@@ -503,6 +517,8 @@ public class MumbleService extends Service {
 		super.onCreate();
 
 		TtsProvider.init(this);
+		
+		settings = new Settings(this);
 		
 		try {
 			mStartForeground = getClass().getMethod(
@@ -680,7 +696,19 @@ public class MumbleService extends Service {
 		// Now observers shouldn't need these anymore.
 		users.clear();
 		channels.clear();
+		
+		backgroundServiceCheck();
 	}
+	
+	public void backgroundServiceCheck() {
+		// If the connection was disconnected and there are no bound
+		// connections to this service, finish it.
+		if (!mHasConnections && !settings.isBackgroundServiceEnabled()) {
+			Globals.logInfo(this, "Service disconnected while there are no connections up and user disabled the background service in settings");
+			stopSelf();
+			}
+	}
+	
 
 	void hideNotification() {
 		if (mNotification != null) {

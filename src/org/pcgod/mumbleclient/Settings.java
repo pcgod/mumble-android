@@ -24,6 +24,8 @@ public class Settings {
 	public static final String PREF_PROXIMITY = "proximity";
 	
 	public static final String PREF_TTS = "tts";
+	
+	public static final String PREF_BACKGROUND_SERVICE = "bgservice";
 
 	private final SharedPreferences preferences;
 
@@ -55,10 +57,14 @@ public class Settings {
 	}
 
 	public boolean isProximityEnabled() {
-		return preferences.getBoolean(PREF_PROXIMITY, true);
+		return preferences.getBoolean(PREF_PROXIMITY, false);
 	}
 	
 	public boolean isTtsEnabled() {
 		return preferences.getBoolean(PREF_TTS, true);
+	}
+	
+	public boolean isBackgroundServiceEnabled() {
+		return preferences.getBoolean(PREF_BACKGROUND_SERVICE, true);
 	}
 }
