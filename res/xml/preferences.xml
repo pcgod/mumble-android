@@ -39,10 +39,10 @@
 			android:title="Event sounds"
 			android:defaultValue="true"
 			android:summary="Wether to play a sound when an event occurs (e.g. when a chat message is received, voice starts transmitting)" />
-		<CheckBoxPreference
-			android:key="proximity"
-			android:title="Use proximity sensor"
-			android:summary="Uses proximity sensor for speak detection." />
+<!-- 	<CheckBoxPreference
+ 			android:key="proximity"
+ 			android:title="Use proximity sensor"
+ 			android:summary="Uses proximity sensor for speak detection." /> -->
 		<CheckBoxPreference
 			android:key="bgservice"
 			android:title="Mumble background service"
