@@ -25,10 +25,12 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.os.RemoteException;
 
 /**
@@ -74,6 +76,11 @@ public class MumbleService extends Service {
 
 	class ServiceConnectionHost extends AbstractHost implements
 		MumbleConnectionHost {
+		
+		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+		PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Mumble is connected to a server");
+		int i = 5;
+		
 		abstract class ServiceProtocolMessage extends ProtocolMessage {
 			@Override
 			protected Iterable<IServiceObserver> getObservers() {
@@ -85,6 +92,7 @@ public class MumbleService extends Service {
 			handler.post(new ServiceProtocolMessage() {
 				@Override
 				public void process() {
+					
 					if (MumbleService.this.state == state) {
 						return;
 					}
@@ -95,9 +103,11 @@ public class MumbleService extends Service {
 
 					// Handle foreground stuff
 					if (state == MumbleConnectionHost.STATE_CONNECTED) {
+						wl.acquire();
 						showNotification();
 						updateConnectionState();
 					} else if (state == MumbleConnectionHost.STATE_DISCONNECTED) {
+						wl.release();
 						doConnectionDisconnect();
 					} else {
 						updateConnectionState();

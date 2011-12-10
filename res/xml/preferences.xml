@@ -39,6 +39,16 @@
 			android:title="Event sounds"
 			android:defaultValue="true"
 			android:summary="Wether to play a sound when an event occurs (e.g. when a chat message is received, voice starts transmitting)" />
+		<CheckBoxPreference
+			android:key="screenon"
+			android:title="Keep screen on"
+			android:defaultValue="false"
+			android:summary="Display won't turn off when connected to a server and Mumble is in foreground." />
+		<CheckBoxPreference
+			android:key="fullscreen"
+			android:title="Fullscreen"
+			android:defaultValue="false"
+			android:summary="Hide the statusbar and run Mumble in fullscreen when connected to a server." />
 <!-- 	<CheckBoxPreference
  			android:key="proximity"
  			android:title="Use proximity sensor"

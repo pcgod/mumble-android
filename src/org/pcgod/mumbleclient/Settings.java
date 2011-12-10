@@ -23,6 +23,10 @@ public class Settings {
 
 	public static final String PREF_PROXIMITY = "proximity";
 	
+	public static final String PREF_KEEP_SCREEN_ON = "screenon";
+	
+	public static final String PREF_FULLSCREEN = "fullscreen";
+	
 	public static final String PREF_TTS = "tts";
 	
 	public static final String PREF_BACKGROUND_SERVICE = "bgservice";
@@ -58,6 +62,14 @@ public class Settings {
 
 	public boolean isProximityEnabled() {
 		return preferences.getBoolean(PREF_PROXIMITY, false);
+	}
+	
+	public boolean keepScreenOn() {
+		return preferences.getBoolean(PREF_KEEP_SCREEN_ON, false);
+	}
+	
+	public boolean fullscreen() {
+		return preferences.getBoolean(PREF_FULLSCREEN, false);
 	}
 	
 	public boolean isTtsEnabled() {

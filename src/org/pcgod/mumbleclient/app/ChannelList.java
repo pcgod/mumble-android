@@ -34,6 +34,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
+import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -515,7 +516,15 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		if (settings.isEventSoundsEnabled()){
 			tg = new ToneGenerator(AudioManager.STREAM_SYSTEM, 20);
 		}
-
+		
+		if (settings.keepScreenOn()){
+			this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		}
+		
+		if (settings.fullscreen()){
+			this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		}
+		
 		// Get the UI views
 		channelNameText = (TextView) findViewById(R.id.channelName);
 		browseButton = (Button) findViewById(R.id.browseButton);
