@@ -1,9 +1,8 @@
 package org.pcgod.mumbleclient.app;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
+import android.view.*;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.service.BaseServiceObserver;
@@ -26,12 +25,6 @@ import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.view.KeyEvent;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.Window;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
 import android.view.WindowManager;
@@ -182,6 +175,15 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 	
 	TtsProvider mTts;
 
+    class HierarchyChannel {
+        Channel channel;
+        List<HierarchyChannel> children = new ArrayList<HierarchyChannel>();
+        HierarchyChannel(Channel channel) {
+            this.channel = channel;
+        }
+    }
+
+
 	public final OnClickListener browseButtonClickEvent = new OnClickListener() {
 		@Override
 		public void onClick(final View v) {
@@ -189,7 +191,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 			// the real
 			// channels change.
 			final List<Channel> currentChannels = mService.getChannelList();
-			selectableChannels = new ArrayList<Channel>(currentChannels);
+			selectableChannels = new ArrayList<Channel>();
 
 			final Channel currentChannel = mService.getCurrentChannel();
 			int currentChannelId = -1;
@@ -197,30 +199,79 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 				currentChannelId = currentChannel.id;
 			}
 
-			final Iterator<Channel> i = selectableChannels.iterator();
-			int step = 0;
-			final String[] channelNames = new String[selectableChannels.size()];
-			while (i.hasNext()) {
-				final Channel c = i.next();
-				if (c.id == currentChannelId) {
-					channelNames[step] = String.format(
-						"%s (%d) (current)",
-						c.name,
-						c.userCount);
-				} else {
-					channelNames[step] = String.format(
-						"%s (%d)",
-						c.name,
-						c.userCount);
-				}
-				step++;
-			}
+            List<HierarchyChannel> root= new ArrayList<HierarchyChannel>();
+            List<HierarchyChannel> all = new ArrayList<HierarchyChannel>();
+            for (Channel channel : currentChannels) {
+                all.add(new HierarchyChannel(channel));
+            }
+            // find root(s)
+            for (HierarchyChannel channel : all) {
+                if (!channel.channel.hasParent) {
+                    root.add(channel);
+                }
+            }
+
+            for (Channel channel : currentChannels) {
+                if (findChannel(root, channel.id) == null) {
+                    HierarchyChannel parent = findChannel(all, channel.parent);
+                    if (parent != null) {
+                        parent.children.add(findChannel(all, channel.id));
+                    } else {
+                        root.add(findChannel(all, channel.id));
+                    }
+                }
+            }
+
+            final ArrayList<String> channelNames = new ArrayList<String>();
+            buildChannelList(channelNames, root, 0, currentChannelId, selectableChannels);
+
+            String[] namesArray = new String[channelNames.size()];
+            int i=0;
+            for (String name : channelNames) {
+                namesArray[i] = name;
+                i++;
+            }
 
 			new AlertDialog.Builder(ChannelList.this).setCancelable(true).setItems(
-				channelNames,
+				namesArray,
 				channelListClickEvent).show();
 		}
 	};
+
+    private HierarchyChannel findChannel(Collection<HierarchyChannel> list, int id) {
+        for (HierarchyChannel channel : list) {
+            if (channel.channel.id == id) {
+                return channel;
+            }
+        }
+        return null;
+    }
+
+    private void buildChannelList(ArrayList<String> channelNames, List<HierarchyChannel> channels, int level, int currentChannelId, List<Channel> selectableChannels) {
+        for (HierarchyChannel channel : channels) {
+            StringBuilder sb = new StringBuilder();
+            for (int i=0; i<level; i++) {
+                sb.append("\t");
+            }
+            if (channel.channel.id == currentChannelId) {
+					sb.append(String.format(
+						"%s (%d) (current)",
+						channel.channel.name,
+						channel.channel.userCount));
+            } else {
+                sb.append(String.format(
+                    "%s (%d)",
+                    channel.channel.name,
+                    channel.channel.userCount));
+            }
+            channelNames.add(sb.toString());
+            selectableChannels.add(channel.channel);
+            if (!channel.children.isEmpty()) {
+                buildChannelList(channelNames, channel.children, level+1, currentChannelId, selectableChannels);
+            }
+        }
+    }
+
 
 	public final DialogInterface.OnClickListener channelListClickEvent = new DialogInterface.OnClickListener() {
 		@Override
