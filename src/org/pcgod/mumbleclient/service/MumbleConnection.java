@@ -221,13 +221,12 @@ public class MumbleConnection implements Runnable {
 		this.keystorePassword = keystorePassword;
 		if (keystoreFile != null && !keystoreFile.equals("")) {
 			this.keystoreFile = new File(Environment.getExternalStorageDirectory(), keystoreFile);
-			Log.i(Globals.LOG_TAG, "MumbleConnection: Using keystore file: " + this.keystoreFile.getAbsolutePath());
+			Globals.logInfo(this, "MumbleConnection: Using keystore file: " + this.keystoreFile.getAbsolutePath());
 			this.useKeystore = true;
-			
 		} else {
 			this.useKeystore = false;
 			this.keystoreFile = null;
-		}		
+		}
 		connectionHost.setConnectionState(MumbleConnectionHost.STATE_CONNECTING);
 	}
 
@@ -577,9 +576,7 @@ public class MumbleConnection implements Runnable {
 		connectionHost.setError(String.format(error));
 		Globals.logError(this, error, e);
 	}
-	
-	 
-	
+
 	private SSLSocketFactory getSocketFactory() throws KeyStoreException, UnrecoverableKeyException, CertificateException, NoSuchProviderException, IOException, NoSuchAlgorithmException, KeyManagementException {
 		final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
 		if(this.useKeystore) {
