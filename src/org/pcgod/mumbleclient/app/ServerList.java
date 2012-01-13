@@ -2,7 +2,6 @@ package org.pcgod.mumbleclient.app;
 
 import junit.framework.Assert;
 
-import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.service.BaseServiceObserver;
 import org.pcgod.mumbleclient.service.MumbleService;
@@ -16,7 +15,6 @@ import android.database.Cursor;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.util.Log;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -24,6 +22,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
@@ -228,7 +227,6 @@ public class ServerList extends ConnectedListActivity {
 			// server but before the connection intent reaches the service.
 			// In this case the service connects and can be disconnected before
 			// the connection state is checked again.
-			Log.i(Globals.LOG_TAG, "ServerList: Disconnected");
 			break;
 		default:
 			Assert.fail("Unknown connection state");
@@ -343,6 +341,7 @@ public class ServerList extends ConnectedListActivity {
 	@Override
 	protected final void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.main);
 		registerForContextMenu(getListView());
 

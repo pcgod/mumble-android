@@ -19,6 +19,10 @@ public class Channel implements Parcelable {
 	public int id;
 	public String name;
 	public int userCount;
+    public boolean hasParent;
+    public boolean hasPosition;
+    public int parent;
+    public int position;
 
 	/**
 	 * Value signaling whether this channel has just been removed.
@@ -67,6 +71,10 @@ public class Channel implements Parcelable {
 		dest.writeInt(id);
 		dest.writeString(name);
 		dest.writeInt(userCount);
+        dest.writeInt(hasParent?1:0);
+        dest.writeInt(hasPosition?1:0);
+        dest.writeInt(parent);
+        dest.writeInt(position);
 	}
 
 	private void readFromParcel(final Parcel in) {
@@ -75,5 +83,9 @@ public class Channel implements Parcelable {
 		id = in.readInt();
 		name = in.readString();
 		userCount = in.readInt();
+        hasParent = in.readInt()==1;
+        hasPosition = in.readInt()==1;
+        parent = in.readInt();
+        position = in.readInt();
 	}
 }

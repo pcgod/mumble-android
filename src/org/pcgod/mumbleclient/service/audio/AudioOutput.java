@@ -17,7 +17,6 @@ import org.pcgod.mumbleclient.service.model.User;
 import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
-import android.util.Log;
 
 /**
  * Audio output thread.
@@ -156,9 +155,9 @@ public class AudioOutput implements Runnable {
 						playing = true;
 						buffered = 0;
 
-						Log.i(
-							Globals.LOG_TAG,
-							"AudioOutput: Enough data buffered. Starting audio.");
+						Globals.logInfo(
+							this,
+							"Enough data buffered. Starting audio.");
 					}
 				}
 
@@ -171,8 +170,7 @@ public class AudioOutput implements Runnable {
 			// Wait for more input.
 			playing &= !pauseForInput();
 			if (!playing && buffered > 0) {
-				Log.w(
-					Globals.LOG_TAG,
+				Globals.logWarn(this,
 					"AudioOutput: Stopped playing while buffered data present.");
 			}
 		}
@@ -233,9 +231,7 @@ public class AudioOutput implements Runnable {
 			if (shouldRun && userPackets.isEmpty()) {
 				at.pause();
 				paused = true;
-				Log.i(
-					Globals.LOG_TAG,
-					"AudioOutput: Standby timeout reached. Audio paused.");
+				Globals.logInfo(this, "Standby timeout reached. Audio paused.");
 
 				while (shouldRun && userPackets.isEmpty()) {
 					userPackets.wait();

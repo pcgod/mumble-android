@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="channels">Channels</string>
+	<string name="channels">Change Channel</string>
 	<string name="userJoin">Join channel</string>
 	<string name="userSpeak">Speak</string>
+    <string name="screenOffText">Dim Screen</string>
+    <string name="disconnect">Disconnect</string>
 	<string name="noServers">Server list empty\nPress Menu key to add a server</string>
 	<string name="noChannels">Channel list empty</string>
 	<string name="noUsers">User list empty</string>

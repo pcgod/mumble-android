@@ -3,16 +3,13 @@ package org.pcgod.mumbleclient.service;
 import org.pcgod.mumbleclient.Globals;
 
 import android.os.RemoteException;
-import android.util.Log;
 
 public abstract class AbstractHost {
 	abstract class ProtocolMessage implements Runnable {
 		@Override
 		public final void run() {
 			if (isDisabled()) {
-				Log.w(
-					Globals.LOG_TAG,
-					"Ignoring message, Service is disconnected");
+				Globals.logWarn(this, "Ignoring message, Service is disconnected");
 			}
 
 			process();
@@ -21,8 +18,7 @@ public abstract class AbstractHost {
 				try {
 					broadcast(observer);
 				} catch (final RemoteException e) {
-					Log.e(
-						Globals.LOG_TAG,
+					Globals.logError(this,
 						"Error while broadcasting service state",
 						e);
 				}
