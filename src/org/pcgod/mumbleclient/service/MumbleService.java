@@ -592,7 +592,7 @@ public class MumbleService extends Service {
 			mRecordThread == null && state) {
 			// start record
 			// TODO check initialized
-			mRecordThread = new Thread(new RecordThread(this), "record");
+			mRecordThread = new Thread(new RecordThread(this), "stream");
 			mRecordThread.start();
 			mAudioHost.setTalkState(
 				mProtocol.currentUser,
@@ -778,7 +778,6 @@ public class MumbleService extends Service {
 		}
 
 		// Fall back on the old API.
-		setForeground(true);
 		((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(
 			id,
 			notification);
@@ -807,7 +806,6 @@ public class MumbleService extends Service {
 		// Fall back on the old API.  Note to cancel BEFORE changing the
 		// foreground state, since we could be killed at that point.
 		((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(id);
-		setForeground(false);
 	}
 
 	void updateConnectionState() {

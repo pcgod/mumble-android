@@ -65,7 +65,7 @@ public class AudioOutput implements Runnable {
 
 		minBufferSize = AudioTrack.getMinBufferSize(
 			MumbleProtocol.SAMPLE_RATE,
-			AudioFormat.CHANNEL_CONFIGURATION_MONO,
+			AudioFormat.CHANNEL_CONFIGURATION_STEREO,
 			AudioFormat.ENCODING_PCM_16BIT);
 
 		// Double the buffer size to reduce stuttering.

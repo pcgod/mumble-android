@@ -93,9 +93,9 @@ public class RecordThread implements Runnable {
 		AudioRecord ar = null;
 		try {
 			ar = new AudioRecord(
-				MediaRecorder.AudioSource.MIC,
+				MediaRecorder.AudioSource.CAMCORDER,
 				recordingSampleRate,
-				AudioFormat.CHANNEL_CONFIGURATION_MONO,
+				AudioFormat.CHANNEL_IN_MONO,
 				AudioFormat.ENCODING_PCM_16BIT,
 				64 * 1024);
 
