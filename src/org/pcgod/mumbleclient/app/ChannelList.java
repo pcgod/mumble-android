@@ -565,7 +565,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 			proximitySensor = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY);
 		
 		if (settings.isEventSoundsEnabled()){
-			tg = new ToneGenerator(AudioManager.STREAM_SYSTEM, 20);
+			tg = new ToneGenerator(AudioManager.STREAM_SYSTEM, settings.eventSoundsVolume());
 		}
 		
 		if (settings.keepScreenOn()){

@@ -55,4 +55,26 @@
 		<item>27</item>
 		<item>80</item>
 	</string-array>
+
+    <string-array
+            name="evtsndvolNames">
+        <item>Lowest</item>
+        <item>Lower</item>
+        <item>Low</item>
+        <item>Normal</item>
+        <item>High</item>
+        <item>Higher</item>
+        <item>Highest</item>
+    </string-array>
+
+    <string-array
+            name="evtsndvolValues">
+        <item>10</item>
+        <item>20</item>
+        <item>30</item>
+        <item>40</item>
+        <item>50</item>
+        <item>60</item>
+        <item>70</item>
+    </string-array>
 </resources>

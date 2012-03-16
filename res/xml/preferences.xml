@@ -41,11 +41,18 @@
 			android:defaultValue="-1"
 			android:entries="@array/pttNames"
 			android:entryValues="@array/pttValues" />
-		<CheckBoxPreference
-			android:key="eventsounds"
-			android:title="Event sounds"
-			android:defaultValue="true"
-			android:summary="Wether to play a sound when an event occurs (e.g. when a chat message is received, voice starts transmitting)" />
+        <CheckBoxPreference
+                android:key="eventsounds"
+                android:title="Event Sounds"
+                android:defaultValue="true"
+                android:summary="Wether to play a sound when an event occurs (e.g. when a chat message is received, voice starts transmitting)" />
+        <ListPreference
+                android:title="Event Sound Volume"
+                android:defaultValue="40"
+                android:key="eventsounds_volume"
+                android:entries="@array/evtsndvolNames"
+                android:entryValues="@array/evtsndvolValues"
+                android:summary="WARNING: Setting the volume too high can damage your ears and/or the speakers!" />
 		<CheckBoxPreference
 			android:key="screenon"
 			android:title="Keep screen on"

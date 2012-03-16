@@ -26,6 +26,8 @@ public class Settings {
 	public static final String PREF_PTT_KEY = "pttkey";
 	
 	public static final String PREF_EVENT_SOUNDS = "eventsounds";
+    public static final String PREF_EVENT_SOUNDS_VOL = "eventsounds_volume";
+    public static final String DEFAULT_SOUNDS_VOL = "40";
 
 	public static final String PREF_PROXIMITY = "proximity";
 	
@@ -71,6 +73,10 @@ public class Settings {
 	public boolean isEventSoundsEnabled() {
 		return preferences.getBoolean(PREF_EVENT_SOUNDS, true);
 	}
+
+    public int eventSoundsVolume() {
+        return Integer.parseInt(preferences.getString(PREF_EVENT_SOUNDS_VOL, DEFAULT_SOUNDS_VOL));
+    }
 
 	public boolean isProximityEnabled() {
 		return preferences.getBoolean(PREF_PROXIMITY, false);
