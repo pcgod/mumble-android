@@ -5,6 +5,7 @@ import junit.framework.Assert;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.service.BaseServiceObserver;
 import org.pcgod.mumbleclient.service.MumbleService;
+import org.pcgod.mumbleclient.Settings;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -43,7 +44,7 @@ public class ServerList extends ConnectedListActivity {
 	private class ServerAdapter extends BaseAdapter {
 		private final Context context;
 		private final Cursor cursor;
-
+                      
 		public ServerAdapter(final Context context_, final DbAdapter dbAdapter_) {
 			context = context_;
 			cursor = dbAdapter_.fetchAllServers();
@@ -80,7 +81,6 @@ public class ServerList extends ConnectedListActivity {
 			final TextView userText = (TextView) row.findViewById(android.R.id.text2);
 
 			cursor.moveToPosition(position);
-
 			final String serverName = cursor.getString(cursor.getColumnIndexOrThrow(DbAdapter.SERVER_COL_NAME));
 			final String serverHost = cursor.getString(cursor.getColumnIndexOrThrow(DbAdapter.SERVER_COL_HOST));
 			final int serverPort = cursor.getInt(cursor.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT));

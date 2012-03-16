@@ -23,7 +23,19 @@
 		<item>none</item>
 		<item>speex</item>
 	</string-array>
-	
+
+    <string-array
+        name="micNames">
+        <item>Use Phone Microphone Only</item>
+        <item>Detect Headset First</item>
+    </string-array>
+
+    <string-array
+            name="micValues">
+        <item>phone</item>
+        <item>headset</item>
+    </string-array>
+
 	<string-array
 		name="pttNames">
 		<item>None</item>

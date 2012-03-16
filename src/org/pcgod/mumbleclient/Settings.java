@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
 import android.preference.PreferenceManager;
+import android.media.MediaRecorder;
 
 public class Settings {
 	public static final String PREF_STREAM = "stream";
@@ -15,7 +16,12 @@ public class Settings {
 	public static final String ARRAY_JITTER_SPEEX = "speex";
 
 	public static final String PREF_QUALITY = "quality";
-	private static final String DEFAULT_QUALITY = "60000";
+
+    public static final String PREF_MICDETECT = "microphone";
+    public static final String ARRAY_MICDETECT_PHONE = "phone";
+    public static final String ARRAY_MICDETECT_HEADSET = "headset";
+
+    private static final String DEFAULT_QUALITY = "60000";
 	
 	public static final String PREF_PTT_KEY = "pttkey";
 	
@@ -51,6 +57,12 @@ public class Settings {
 		return Integer.parseInt(preferences.getString(PREF_PTT_KEY, "-1"));
 	}
 
+    public int isMicSetupDetected(){
+        return preferences.getString(PREF_MICDETECT, ARRAY_MICDETECT_HEADSET).equals(
+                ARRAY_MICDETECT_PHONE) ? MediaRecorder.AudioSource.CAMCORDER
+                : MediaRecorder.AudioSource.MIC;
+    }
+    
 	public boolean isJitterBuffer() {
 		return preferences.getString(PREF_JITTER, ARRAY_JITTER_NONE).equals(
 			ARRAY_JITTER_SPEEX);

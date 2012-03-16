@@ -592,7 +592,7 @@ public class MumbleService extends Service {
 			mRecordThread == null && state) {
 			// start record
 			// TODO check initialized
-			mRecordThread = new Thread(new RecordThread(this), "stream");
+			mRecordThread = new Thread(new RecordThread(this), "record");
 			mRecordThread.start();
 			mAudioHost.setTalkState(
 				mProtocol.currentUser,
