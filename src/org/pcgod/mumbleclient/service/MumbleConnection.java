@@ -504,7 +504,7 @@ public class MumbleConnection implements Runnable {
 
 		final Version.Builder v = Version.newBuilder();
 		v.setVersion(Globals.PROTOCOL_VERSION);
-		v.setRelease("MumbleAndroid 0.0.1-dev");
+		v.setRelease("MumbleAndroid 1.0-devresba");
 
 		final Authenticate.Builder a = Authenticate.newBuilder();
 		a.setUsername(username);
