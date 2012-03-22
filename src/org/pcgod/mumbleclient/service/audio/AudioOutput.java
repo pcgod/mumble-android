@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import android.media.AudioManager;
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.service.MumbleProtocol;
@@ -40,7 +41,7 @@ public class AudioOutput implements Runnable {
 		}
 	};
 
-	private final static int standbyTreshold = 5000;
+	private final static int standbyTreshold = 1000;
 	private final Settings settings;
 
 	private boolean shouldRun;
@@ -78,7 +79,7 @@ public class AudioOutput implements Runnable {
 		bufferSize = frameCount * MumbleProtocol.FRAME_SIZE;
 
 		at = new AudioTrack(
-			settings.getAudioStream(),
+            AudioManager.STREAM_MUSIC,
 			MumbleProtocol.SAMPLE_RATE,
 			AudioFormat.CHANNEL_CONFIGURATION_MONO,
 			AudioFormat.ENCODING_PCM_16BIT,

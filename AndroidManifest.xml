@@ -11,7 +11,7 @@
 		</activity>
 		<activity android:name=".app.Preferences" />
 		<activity android:name=".app.ServerInfo" />
-		<activity android:name=".app.ChannelList" android:launchMode="singleTask" />
+		<activity android:name=".app.ChannelList" />
 		<activity android:name=".app.ChatActivity" />
         <activity android:name=".app.About" />
 		<service android:enabled="true" android:name=".service.MumbleService" />
@@ -20,5 +20,7 @@
 	<uses-permission android:name="android.permission.RECORD_AUDIO" />
 	<uses-permission android:name="android.permission.WAKE_LOCK" />
 	<uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.PERSISTENT_ACTIVITY" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 	<uses-feature android:name="android.hardware.microphone" />
 </manifest>
