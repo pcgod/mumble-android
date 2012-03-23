@@ -27,8 +27,8 @@
 	<string name="connectionProgressDisconnectingMessage">Disconnecting...</string>
     <string name="serverkeystorePasswordEdit">Keystore Password</string>
     <string name="aboutMumbleText">Mumble-Android Client</string>
-    <string name="aboutMumbleBuild">Build 1.1.0-resba by Matt Sowden</string>
+    <string name="aboutMumbleBuild">Build 0.0.1</string>
     <string name="aboutGitHubForkURL">http://mumble.resbah.com/</string>
-    <string name="aboutDisclaimer">Please be aware that this is not by any stretch of the imagination the official Mumble Android Client. This is a fork of the open source project started by pcgod. The GitHub Repo owner does not hold any claim to this open source software. This software should not be sold. For more information on the License surrounding the Mumble source code, please visit: mumble.sf.net</string>
+    <string name="aboutDisclaimer">This software should not be sold. For more information on the License surrounding the Mumble source code, please visit: mumble.sf.net</string>
     <string name="serverkeystoreFileEdit">Keystore path (relative to sdcard)</string>
 </resources>
