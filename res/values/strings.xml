@@ -27,7 +27,7 @@
 	<string name="connectionProgressDisconnectingMessage">Disconnecting...</string>
     <string name="serverkeystorePasswordEdit">Keystore Password</string>
     <string name="aboutMumbleText">Mumble-Android Client</string>
-    <string name="aboutMumbleBuild">Build 1.1.0</string>
+    <string name="aboutMumbleBuild">Build 1.1.1</string>
     <string name="aboutGitHubForkURL">http://mumble.resbah.com/</string>
     <string name="aboutDisclaimer">This software should not be sold. For more information on the License surrounding the Mumble source code, please visit: mumble.sf.net</string>
     <string name="serverkeystoreFileEdit">Keystore path (relative to sdcard)</string>

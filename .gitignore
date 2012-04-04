@@ -7,3 +7,4 @@ out/
 *.classpath
 .idea/*
 *.iml
+Mumble.iml
