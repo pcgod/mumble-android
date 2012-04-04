@@ -427,6 +427,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 		// is paused the channel isn't updated when the activity resumes.
 		if (visibleChannel == null) {
 			setChannel(mService.getCurrentChannel());
+            TtsProvider.speak("connected to " + visibleChannel.name, false);
 		} else {
 			synchronizeControls();
 			usersAdapter.notifyDataSetChanged();
@@ -434,8 +435,7 @@ public class ChannelList extends ConnectedActivity implements OnTouchListener {
 
 		usersAdapter.setUsers(mService.getUserList());
 		
-		if (firstEnter) {
-			TtsProvider.speak("connected to " + visibleChannel.name, false);
+		if (firstEnter==true) {
 			firstEnter = false;
 		}
 	}

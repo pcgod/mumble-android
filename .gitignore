@@ -2,3 +2,8 @@ bin/*
 gen/*
 .settings/*
 .DS_Store
+out/
+*.project
+*.classpath
+.idea/*
+*.iml
