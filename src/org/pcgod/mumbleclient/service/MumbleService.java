@@ -13,6 +13,7 @@ import junit.framework.Assert;
 
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
+import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.app.ChannelList;
 import org.pcgod.mumbleclient.service.audio.AudioOutputHost;
 import org.pcgod.mumbleclient.service.audio.RecordThread;
@@ -24,12 +25,13 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.os.RemoteException;
-import android.util.Log;
 
 /**
  * Service for providing the client an access to the connection.
@@ -74,6 +76,11 @@ public class MumbleService extends Service {
 
 	class ServiceConnectionHost extends AbstractHost implements
 		MumbleConnectionHost {
+		
+		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+		PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Mumble is connected to a server");
+		int i = 5;
+		
 		abstract class ServiceProtocolMessage extends ProtocolMessage {
 			@Override
 			protected Iterable<IServiceObserver> getObservers() {
@@ -85,17 +92,23 @@ public class MumbleService extends Service {
 			handler.post(new ServiceProtocolMessage() {
 				@Override
 				public void process() {
+					
 					if (MumbleService.this.state == state) {
 						return;
 					}
 
 					MumbleService.this.state = state;
+					Globals.logInfo(this, "Connection state changed to " +
+										  CONNECTION_STATE_NAMES[state]);
 
 					// Handle foreground stuff
 					if (state == MumbleConnectionHost.STATE_CONNECTED) {
+						wl.acquire();
 						showNotification();
 						updateConnectionState();
 					} else if (state == MumbleConnectionHost.STATE_DISCONNECTED) {
+						wl.release();
+                        hideNotification();
 						doConnectionDisconnect();
 					} else {
 						updateConnectionState();
@@ -165,6 +178,7 @@ public class MumbleService extends Service {
 		public void channelRemoved(final int channelId) {
 			handler.post(new ServiceProtocolMessage() {
 				Channel channel;
+
 				@Override
 				public void process() {
 					for (int i = 0; i < channels.size(); i++) {
@@ -266,7 +280,6 @@ public class MumbleService extends Service {
 			});
 		}
 
-
 		@Override
 		public void setError(final String error) {
 			handler.post(new ServiceProtocolMessage() {
@@ -287,6 +300,11 @@ public class MumbleService extends Service {
 				@Override
 				public void process() {
 					MumbleService.this.synced = synced;
+					if (synced) {
+						Globals.logInfo(this, "Synchronized");
+					} else {
+						Globals.logInfo(this, "Synchronization reset");
+					}
 					updateConnectionState();
 				}
 
@@ -368,7 +386,10 @@ public class MumbleService extends Service {
 	public static final int CONNECTION_STATE_CONNECTED = 3;
 
 	private static final String[] CONNECTION_STATE_NAMES = {
-		"Disconnected", "Connecting", "Synchronizing", "Connected"
+			"Disconnected", "Connecting", "Connected"
+	};
+	private static final String[] SERVICE_STATE_NAMES = {
+			"Disconnected", "Connecting", "Synchronizing", "Connected"
 	};
 
 	public static final String ACTION_CONNECT = "mumbleclient.action.CONNECT";
@@ -380,14 +401,20 @@ public class MumbleService extends Service {
 	public static final String EXTRA_USERNAME = "mumbleclient.extra.USERNAME";
 	public static final String EXTRA_PASSWORD = "mumbleclient.extra.PASSWORD";
 	public static final String EXTRA_USER = "mumbleclient.extra.USER";
+	public static final String EXTRA_KEYSTORE_FILE = "mumbleclient.extra.KEYSTORE_FILE";
+	public static final String EXTRA_KEYSTORE_PASSWORD = "mumbleclient.extra.KEYSTORE_PASSWORD";
 
+	private Settings settings;
+	
 	private MumbleConnection mClient;
 	private MumbleProtocol mProtocol;
 
 	private Thread mClientThread;
 	private Thread mRecordThread;
 
-	Notification mNotification;;
+	Notification mNotification;
+	boolean mHasConnections;
+	
 
 	private final LocalBinder mBinder = new LocalBinder();
 	final Handler handler = new Handler();
@@ -416,6 +443,7 @@ public class MumbleService extends Service {
 	private ServiceProtocolHost mProtocolHost;
 	private ServiceConnectionHost mConnectionHost;
 	private ServiceAudioOutputHost mAudioHost;
+	private String connectedServerString;
 
 	public boolean canSpeak() {
 		return mProtocol != null && mProtocol.canSpeak;
@@ -427,6 +455,7 @@ public class MumbleService extends Service {
 		this.setRecording(false);
 		if (mClient != null) {
 			mClient.disconnect();
+			TtsProvider.speak("disconnected", true);
 		}
 	}
 
@@ -483,14 +512,27 @@ public class MumbleService extends Service {
 
 	@Override
 	public IBinder onBind(final Intent intent) {
-		Log.i(Globals.LOG_TAG, "MumbleService: Bound");
+		mHasConnections = true;
+		Globals.logInfo(this, "Bound");
 		return mBinder;
+	}
+	
+	@Override
+	public boolean onUnbind(final Intent intent) {
+		mHasConnections = false;
+		Globals.logInfo(this, "Unbound");
+		return false;
+		
 	}
 
 	@Override
 	public void onCreate() {
 		super.onCreate();
 
+		TtsProvider.init(this);
+		
+		settings = new Settings(this);
+		
 		try {
 			mStartForeground = getClass().getMethod(
 				"startForeground",
@@ -503,7 +545,7 @@ public class MumbleService extends Service {
 			mStartForeground = mStopForeground = null;
 		}
 
-		Log.i(Globals.LOG_TAG, "MumbleService: Created");
+		Globals.logInfo(this, "Created");
 		serviceState = CONNECTION_STATE_DISCONNECTED;
 	}
 
@@ -511,10 +553,12 @@ public class MumbleService extends Service {
 	public void onDestroy() {
 		super.onDestroy();
 
+		TtsProvider.close();
+		
 		// Make sure our notification is gone.
 		hideNotification();
 
-		Log.i(Globals.LOG_TAG, "MumbleService: Destroyed");
+		Globals.logInfo(this, "Destroyed");
 	}
 
 	@Override
@@ -534,7 +578,9 @@ public class MumbleService extends Service {
 		observers.put(observer, observer);
 	}
 
-	public void sendChannelTextMessage(final String message, final Channel channel) {
+	public void sendChannelTextMessage(
+		final String message,
+		final Channel channel) {
 		mProtocol.sendChannelTextMessage(message, channel);
 	}
 
@@ -566,19 +612,6 @@ public class MumbleService extends Service {
 		observers.remove(observer);
 	}
 
-	private void broadcastState() {
-		for (final IServiceObserver observer : observers.values()) {
-			try {
-				observer.onConnectionStateChanged(serviceState);
-			} catch (final RemoteException e) {
-				Log.e(Globals.LOG_TAG, "Failed to update connection state", e);
-			}
-		}
-
-		Log.i(Globals.LOG_TAG, "MumbleService: Connection state changed to " +
-							   CONNECTION_STATE_NAMES[serviceState]);
-	}
-
 	private int handleCommand(final Intent intent) {
 		// When using START_STICKY the onStartCommand can be called with
 		// null intent after the whole service process has been killed.
@@ -592,12 +625,17 @@ public class MumbleService extends Service {
 			return START_NOT_STICKY;
 		}
 
-		Log.i(Globals.LOG_TAG, "MumbleService: Starting service");
+		Globals.logInfo(this, "Starting service");
 
 		final String host = intent.getStringExtra(EXTRA_HOST);
 		final int port = intent.getIntExtra(EXTRA_PORT, -1);
 		final String username = intent.getStringExtra(EXTRA_USERNAME);
 		final String password = intent.getStringExtra(EXTRA_PASSWORD);
+		final String keystoreFile = intent.getStringExtra(EXTRA_KEYSTORE_FILE);
+		final String keystorePassword = intent.getStringExtra(EXTRA_KEYSTORE_PASSWORD);
+
+		// set a class wide string for notification
+		this.connectedServerString = host+":"+port;
 
 		if (mClient != null &&
 			state != MumbleConnectionHost.STATE_DISCONNECTED &&
@@ -616,7 +654,9 @@ public class MumbleService extends Service {
 			host,
 			port,
 			username,
-			password);
+			password,
+			keystoreFile,
+			keystorePassword);
 
 		mProtocol = new MumbleProtocol(
 			mProtocolHost,
@@ -673,7 +713,19 @@ public class MumbleService extends Service {
 		// Now observers shouldn't need these anymore.
 		users.clear();
 		channels.clear();
+		
+		backgroundServiceCheck();
 	}
+	
+	public void backgroundServiceCheck() {
+		// If the connection was disconnected and there are no bound
+		// connections to this service, finish it.
+		if (!mHasConnections && !settings.isBackgroundServiceEnabled()) {
+			Globals.logInfo(this, "Service disconnected while there are no connections up and user disabled the background service in settings");
+			stopSelf();
+			}
+	}
+	
 
 	void hideNotification() {
 		if (mNotification != null) {
@@ -696,7 +748,7 @@ public class MumbleService extends Service {
 		mNotification.setLatestEventInfo(
 			MumbleService.this,
 			"Mumble",
-			"Mumble is connected to a server",
+			"Connected to "+ this.connectedServerString,
 			PendingIntent.getActivity(
 				MumbleService.this,
 				0,
@@ -718,16 +770,15 @@ public class MumbleService extends Service {
 				mStartForeground.invoke(this, mStartForegroundArgs);
 			} catch (final InvocationTargetException e) {
 				// Should not happen.
-				Log.w(Globals.LOG_TAG, "Unable to invoke startForeground", e);
+				Globals.logError(this, "Unable to invoke startForeground", e);
 			} catch (final IllegalAccessException e) {
 				// Should not happen.
-				Log.w(Globals.LOG_TAG, "Unable to invoke startForeground", e);
+				Globals.logError(this, "Unable to invoke startForeground", e);
 			}
 			return;
 		}
 
 		// Fall back on the old API.
-		setForeground(true);
 		((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(
 			id,
 			notification);
@@ -745,10 +796,10 @@ public class MumbleService extends Service {
 				mStopForeground.invoke(this, mStopForegroundArgs);
 			} catch (final InvocationTargetException e) {
 				// Should not happen.
-				Log.w(Globals.LOG_TAG, "Unable to invoke stopForeground", e);
+				Globals.logError(this, "Unable to invoke stopForeground", e);
 			} catch (final IllegalAccessException e) {
 				// Should not happen.
-				Log.w(Globals.LOG_TAG, "Unable to invoke stopForeground", e);
+				Globals.logError(this, "Unable to invoke stopForeground", e);
 			}
 			return;
 		}
@@ -756,7 +807,6 @@ public class MumbleService extends Service {
 		// Fall back on the old API.  Note to cancel BEFORE changing the
 		// foreground state, since we could be killed at that point.
 		((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(id);
-		setForeground(false);
 	}
 
 	void updateConnectionState() {
@@ -778,7 +828,21 @@ public class MumbleService extends Service {
 		}
 
 		if (oldState != serviceState) {
-			broadcastState();
+			Globals.logInfo(
+				this,
+				"MumbleService: Connection state changed to " +
+					SERVICE_STATE_NAMES[serviceState]);
+
+			for (final IServiceObserver observer : observers.values()) {
+				try {
+					observer.onConnectionStateChanged(serviceState);
+				} catch (final RemoteException e) {
+					Globals.logError(
+						this,
+						"Failed to update connection state",
+						e);
+				}
+			}
 		}
 	}
 }

@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import android.media.AudioManager;
 import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.service.MumbleProtocol;
@@ -17,7 +18,6 @@ import org.pcgod.mumbleclient.service.model.User;
 import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
-import android.util.Log;
 
 /**
  * Audio output thread.
@@ -41,7 +41,7 @@ public class AudioOutput implements Runnable {
 		}
 	};
 
-	private final static int standbyTreshold = 5000;
+	private final static int standbyTreshold = 1000;
 	private final Settings settings;
 
 	private boolean shouldRun;
@@ -66,7 +66,7 @@ public class AudioOutput implements Runnable {
 
 		minBufferSize = AudioTrack.getMinBufferSize(
 			MumbleProtocol.SAMPLE_RATE,
-			AudioFormat.CHANNEL_CONFIGURATION_MONO,
+			AudioFormat.CHANNEL_OUT_MONO,
 			AudioFormat.ENCODING_PCM_16BIT);
 
 		// Double the buffer size to reduce stuttering.
@@ -79,7 +79,7 @@ public class AudioOutput implements Runnable {
 		bufferSize = frameCount * MumbleProtocol.FRAME_SIZE;
 
 		at = new AudioTrack(
-			settings.getAudioStream(),
+            AudioManager.STREAM_MUSIC,
 			MumbleProtocol.SAMPLE_RATE,
 			AudioFormat.CHANNEL_CONFIGURATION_MONO,
 			AudioFormat.ENCODING_PCM_16BIT,
@@ -156,9 +156,9 @@ public class AudioOutput implements Runnable {
 						playing = true;
 						buffered = 0;
 
-						Log.i(
-							Globals.LOG_TAG,
-							"AudioOutput: Enough data buffered. Starting audio.");
+						Globals.logInfo(
+							this,
+							"Enough data buffered. Starting audio.");
 					}
 				}
 
@@ -171,8 +171,7 @@ public class AudioOutput implements Runnable {
 			// Wait for more input.
 			playing &= !pauseForInput();
 			if (!playing && buffered > 0) {
-				Log.w(
-					Globals.LOG_TAG,
+				Globals.logWarn(this,
 					"AudioOutput: Stopped playing while buffered data present.");
 			}
 		}
@@ -233,9 +232,7 @@ public class AudioOutput implements Runnable {
 			if (shouldRun && userPackets.isEmpty()) {
 				at.pause();
 				paused = true;
-				Log.i(
-					Globals.LOG_TAG,
-					"AudioOutput: Standby timeout reached. Audio paused.");
+				Globals.logInfo(this, "Standby timeout reached. Audio paused.");
 
 				while (shouldRun && userPackets.isEmpty()) {
 					userPackets.wait();

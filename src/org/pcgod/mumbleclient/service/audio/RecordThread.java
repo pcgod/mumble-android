@@ -35,11 +35,13 @@ public class RecordThread implements Runnable {
 	private int seq;
 	private final long speexResamplerState;
 	private final MumbleService mService;
+    private int micSetting;
 
 	public RecordThread(final MumbleService service) {
 		mService = service;
 		audioQuality = new Settings(mService.getApplicationContext()).getAudioQuality();
-
+        micSetting = new Settings(mService.getApplicationContext()).isMicSetupDetected();
+        
 		for (final int s : new int[] { 48000, 44100, 22050, 11025, 8000 }) {
 			bufferSize = AudioRecord.getMinBufferSize(
 				s,
@@ -93,9 +95,9 @@ public class RecordThread implements Runnable {
 		AudioRecord ar = null;
 		try {
 			ar = new AudioRecord(
-				MediaRecorder.AudioSource.MIC,
+				micSetting,
 				recordingSampleRate,
-				AudioFormat.CHANNEL_CONFIGURATION_MONO,
+				AudioFormat.CHANNEL_IN_MONO,
 				AudioFormat.ENCODING_PCM_16BIT,
 				64 * 1024);
 

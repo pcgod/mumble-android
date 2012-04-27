@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-	android:versionCode="1" android:versionName="0.1" package="org.pcgod.mumbleclient"
+	android:versionCode="1" android:versionName="0.3" package="org.pcgod.mumbleclient"
 	android:installLocation="auto">
-	<application android:icon="@drawable/icon" android:label="@string/app_name">
+	<application android:icon="@drawable/icon" android:label="@string/app_name" android:debuggable="true">
 		<activity android:label="@string/app_name" android:name=".app.ServerList">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
@@ -11,12 +11,16 @@
 		</activity>
 		<activity android:name=".app.Preferences" />
 		<activity android:name=".app.ServerInfo" />
-		<activity android:name=".app.ChannelList" android:launchMode="singleTask" />
+		<activity android:name=".app.ChannelList" />
 		<activity android:name=".app.ChatActivity" />
+        <activity android:name=".app.About" />
 		<service android:enabled="true" android:name=".service.MumbleService" />
 	</application>
 	<uses-sdk android:targetSdkVersion="8" android:minSdkVersion="3" />
 	<uses-permission android:name="android.permission.RECORD_AUDIO" />
+	<uses-permission android:name="android.permission.WAKE_LOCK" />
 	<uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.PERSISTENT_ACTIVITY" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 	<uses-feature android:name="android.hardware.microphone" />
 </manifest>

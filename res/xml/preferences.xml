@@ -3,6 +3,11 @@
 	xmlns:android="http://schemas.android.com/apk/res/android">
 	<PreferenceCategory
 		android:title="Audio">
+		<CheckBoxPreference
+			android:key="tts"
+			android:title="Text-to-speech"
+			android:defaultValue="true"
+			android:summary="Enable/disable text-to-speech features." />
 		<ListPreference
 			android:title="Audio Stream"
 			android:summary="Affects the primary audio output device and the volume control."
@@ -17,10 +22,55 @@
 			android:defaultValue="none"
 			android:entries="@array/bufferNames"
 			android:entryValues="@array/bufferValues" />
+        <ListPreference
+                android:title="Microphone Settings"
+                android:summary="Choose to either use the built-in Phone Microphone exclusively or first search for a Headset."
+                android:key="microphone"
+                android:defaultValue="headset"
+                android:entries="@array/micNames"
+                android:entryValues="@array/micValues" />
 		<EditTextPreference
 			android:title="Audio quality"
 			android:defaultValue="60000"
 			android:key="quality"
 			android:inputType="number" />
+		<ListPreference
+			android:title="Push-to-talk button"
+			android:summary="Assign a button to be used for push-to-talk."
+			android:key="pttkey"
+			android:defaultValue="-1"
+			android:entries="@array/pttNames"
+			android:entryValues="@array/pttValues" />
+        <CheckBoxPreference
+                android:key="eventsounds"
+                android:title="Event Sounds"
+                android:defaultValue="true"
+                android:summary="Wether to play a sound when an event occurs (e.g. when a chat message is received, voice starts transmitting)" />
+        <ListPreference
+                android:title="Event Sound Volume"
+                android:defaultValue="40"
+                android:key="eventsounds_volume"
+                android:entries="@array/evtsndvolNames"
+                android:entryValues="@array/evtsndvolValues"
+                android:summary="WARNING: Setting the volume too high can damage your ears and/or the speakers!" />
+		<CheckBoxPreference
+			android:key="screenon"
+			android:title="Keep screen on"
+			android:defaultValue="false"
+			android:summary="Display won't turn off when connected to a server and Mumble is in foreground." />
+		<CheckBoxPreference
+			android:key="fullscreen"
+			android:title="Fullscreen"
+			android:defaultValue="false"
+			android:summary="Hide the statusbar and run Mumble in fullscreen when connected to a server." />
+<!-- 	<CheckBoxPreference
+ 			android:key="proximity"
+ 			android:title="Use proximity sensor"
+ 			android:summary="Uses proximity sensor for speak detection." /> -->
+		<CheckBoxPreference
+			android:key="bgservice"
+			android:title="Mumble background service"
+			android:defaultValue="true"
+			android:summary="When unchecked, Mumble service will be stopped immediately upon disconnect (for low memory devices)" />
 	</PreferenceCategory>
 </PreferenceScreen>

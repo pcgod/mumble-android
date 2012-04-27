@@ -23,4 +23,58 @@
 		<item>none</item>
 		<item>speex</item>
 	</string-array>
+
+    <string-array
+        name="micNames">
+        <item>Use Phone Microphone Only</item>
+        <item>Detect Headset First</item>
+    </string-array>
+
+    <string-array
+            name="micValues">
+        <item>phone</item>
+        <item>headset</item>
+    </string-array>
+
+	<string-array
+		name="pttNames">
+		<item>None</item>
+		<item>Headset button</item>
+		<item>Volume up</item>
+		<item>Volume down</item>
+		<item>Camera shutter</item>
+		<item>Camera focus</item>
+	</string-array>
+	
+	<string-array
+		name="pttValues">
+		<item>-1</item>
+		<item>79</item>
+		<item>24</item>
+		<item>25</item>
+		<item>27</item>
+		<item>80</item>
+	</string-array>
+
+    <string-array
+            name="evtsndvolNames">
+        <item>Lowest</item>
+        <item>Lower</item>
+        <item>Low</item>
+        <item>Normal</item>
+        <item>High</item>
+        <item>Higher</item>
+        <item>Highest</item>
+    </string-array>
+
+    <string-array
+            name="evtsndvolValues">
+        <item>10</item>
+        <item>20</item>
+        <item>30</item>
+        <item>40</item>
+        <item>50</item>
+        <item>60</item>
+        <item>70</item>
+    </string-array>
 </resources>

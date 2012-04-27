@@ -2,10 +2,10 @@ package org.pcgod.mumbleclient.app;
 
 import junit.framework.Assert;
 
-import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.service.BaseServiceObserver;
 import org.pcgod.mumbleclient.service.MumbleService;
+import org.pcgod.mumbleclient.Settings;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -16,7 +16,6 @@ import android.database.Cursor;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.util.Log;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -24,6 +23,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
@@ -44,7 +44,7 @@ public class ServerList extends ConnectedListActivity {
 	private class ServerAdapter extends BaseAdapter {
 		private final Context context;
 		private final Cursor cursor;
-
+                      
 		public ServerAdapter(final Context context_, final DbAdapter dbAdapter_) {
 			context = context_;
 			cursor = dbAdapter_.fetchAllServers();
@@ -81,7 +81,6 @@ public class ServerList extends ConnectedListActivity {
 			final TextView userText = (TextView) row.findViewById(android.R.id.text2);
 
 			cursor.moveToPosition(position);
-
 			final String serverName = cursor.getString(cursor.getColumnIndexOrThrow(DbAdapter.SERVER_COL_NAME));
 			final String serverHost = cursor.getString(cursor.getColumnIndexOrThrow(DbAdapter.SERVER_COL_HOST));
 			final int serverPort = cursor.getInt(cursor.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT));
@@ -121,6 +120,7 @@ public class ServerList extends ConnectedListActivity {
 	private static final int MENU_EXIT = Menu.FIRST + 3;
 	private static final int MENU_CONNECT_SERVER = Menu.FIRST + 4;
 	private static final int MENU_PREFERENCES = Menu.FIRST + 5;
+    private static final int MENU_ABOUT = Menu.FIRST + 6;
 
 	private static final String STATE_WAIT_CONNECTION = "org.pcgod.mumbleclient.ServerList.WAIT_CONNECTION";
 
@@ -181,6 +181,8 @@ public class ServerList extends ConnectedListActivity {
 			android.R.drawable.ic_menu_preferences);
 		menu.add(0, MENU_EXIT, 0, "Exit").setIcon(
 			android.R.drawable.ic_menu_close_clear_cancel);
+        menu.add(0, MENU_ABOUT, 0, "About").setIcon(
+            android.R.drawable.ic_menu_compass);
 		return true;
 	}
 
@@ -196,6 +198,10 @@ public class ServerList extends ConnectedListActivity {
 			final Intent prefs = new Intent(this, Preferences.class);
 			startActivity(prefs);
 			return true;
+        case MENU_ABOUT:
+            final Intent about = new Intent(this, About.class);
+            startActivity(about);
+            return true;
 		case MENU_EXIT:
 			finish();
 			System.exit(0);
@@ -228,7 +234,6 @@ public class ServerList extends ConnectedListActivity {
 			// server but before the connection intent reaches the service.
 			// In this case the service connects and can be disconnected before
 			// the connection state is checked again.
-			Log.i(Globals.LOG_TAG, "ServerList: Disconnected");
 			break;
 		default:
 			Assert.fail("Unknown connection state");
@@ -314,6 +319,8 @@ public class ServerList extends ConnectedListActivity {
 		final int port = c.getInt(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PORT));
 		final String username = c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_USERNAME));
 		final String password = c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_PASSWORD));
+		final String keystoreFile = c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_KEYSTORE_FILE));
+		final String keystorePassword = c.getString(c.getColumnIndexOrThrow(DbAdapter.SERVER_COL_KEYSTORE_PASSWORD));
 		c.close();
 
 		registerConnectionReceiver();
@@ -324,6 +331,8 @@ public class ServerList extends ConnectedListActivity {
 		connectionIntent.putExtra(MumbleService.EXTRA_PORT, port);
 		connectionIntent.putExtra(MumbleService.EXTRA_USERNAME, username);
 		connectionIntent.putExtra(MumbleService.EXTRA_PASSWORD, password);
+		connectionIntent.putExtra(MumbleService.EXTRA_KEYSTORE_FILE, keystoreFile);
+		connectionIntent.putExtra(MumbleService.EXTRA_KEYSTORE_PASSWORD, keystorePassword);
 		startService(connectionIntent);
 	}
 
@@ -339,6 +348,7 @@ public class ServerList extends ConnectedListActivity {
 	@Override
 	protected final void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.main);
 		registerForContextMenu(getListView());
 

@@ -4,6 +4,10 @@
 	android:orientation="vertical"
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent">
+    <ImageView android:id="@+id/mumble_title"
+    	android:src="@drawable/mumble_title"
+    	android:layout_height="wrap_content"
+    	android:layout_width="match_parent" />
 	<TextView
 		android:text="@string/noServers"
 		android:layout_width="fill_parent"

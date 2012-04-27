@@ -1,5 +1,6 @@
 package org.pcgod.mumbleclient.app;
 
+import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.app.ConnectedActivityLogic.Host;
 import org.pcgod.mumbleclient.service.IServiceObserver;
 import org.pcgod.mumbleclient.service.MumbleService;
@@ -8,6 +9,7 @@ import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Bundle;
 import android.widget.Toast;
 
 /**
@@ -78,6 +80,7 @@ public class ConnectedListActivity extends ListActivity {
 
 		@Override
 		public void setService(final MumbleService service) {
+			Globals.logInfo(ConnectedListActivity.this, "Service set");
 			mService = service;
 		}
 
@@ -103,6 +106,12 @@ public class ConnectedListActivity extends ListActivity {
 	protected void onConnecting() {
 	}
 
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		Globals.logInfo(this, "onCreate()");
+	}
+
 	protected void onDisconnected() {
 		final String error = mService.getError();
 		if (error != null) {
@@ -114,12 +123,14 @@ public class ConnectedListActivity extends ListActivity {
 	@Override
 	protected void onPause() {
 		super.onPause();
+		Globals.logInfo(this, "onPause()");
 		logic.onPause();
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
+		Globals.logInfo(this, "onResume()");
 		logic.onResume();
 	}
 

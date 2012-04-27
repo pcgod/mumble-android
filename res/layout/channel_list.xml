@@ -6,6 +6,23 @@
 	android:orientation="vertical"
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent">
+	
+	<!-- Chat and channelSwitcher -->
+	<LinearLayout
+		android:layout_height="wrap_content"
+		android:layout_width="fill_parent">
+			
+		<Button
+			android:id="@+id/chatButton"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="Chat" />
+		<Button 
+			android:text="@string/channels"
+			android:layout_height="wrap_content"
+			android:id="@+id/browseButton"
+			android:layout_width="wrap_content" />
+	</LinearLayout>
 
 	<!-- Channel name + Browse row -->
 	<LinearLayout
@@ -18,12 +35,6 @@
 			android:layout_weight="1"
 			android:gravity="center_vertical"
 			android:layout_width="wrap_content" />
-
-		<Button
-			android:id="@+id/browseButton"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/channels" />
 	</LinearLayout>
 
 	<TextView

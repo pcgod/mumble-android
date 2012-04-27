@@ -1,13 +1,16 @@
 package org.pcgod.mumbleclient.app;
 
+import org.pcgod.mumbleclient.Globals;
 import org.pcgod.mumbleclient.app.ConnectedActivityLogic.Host;
 import org.pcgod.mumbleclient.service.IServiceObserver;
 import org.pcgod.mumbleclient.service.MumbleService;
+import org.pcgod.mumbleclient.service.TtsProvider;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Bundle;
 import android.widget.Toast;
 
 /**
@@ -78,6 +81,7 @@ public class ConnectedActivity extends Activity {
 
 		@Override
 		public void setService(final MumbleService service) {
+			Globals.logInfo(ConnectedActivity.this, "Service set");
 			mService = service;
 		}
 
@@ -103,10 +107,17 @@ public class ConnectedActivity extends Activity {
 	protected void onConnecting() {
 	}
 
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		Globals.logInfo(this, "onCreate()");
+	}
+
 	protected void onDisconnected() {
 		final String error = mService.getError();
 		if (error != null) {
 			Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+			TtsProvider.speak(error, false);
 		}
 		finish();
 	}
@@ -114,12 +125,14 @@ public class ConnectedActivity extends Activity {
 	@Override
 	protected void onPause() {
 		super.onPause();
+		Globals.logInfo(this, "onPause()");
 		logic.onPause();
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
+		Globals.logInfo(this, "onResume()");
 		logic.onResume();
 	}
 

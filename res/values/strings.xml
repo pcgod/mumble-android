@@ -1,26 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="channels">Channels</string>
-	<string name="userJoin">Join channel</string>
+	<string name="channels">Change Channel</string>
+	<string name="userJoin">Join Channel</string>
 	<string name="userSpeak">Speak</string>
-	<string name="noServers">Server list empty\nPress Menu key to add a server</string>
+    <string name="screenOffText">Dim Screen</string>
+    <string name="disconnect">Disconnect</string>
+	<string name="noServers">Server list is empty\nPress the Menu key to add a server</string>
 	<string name="noChannels">Channel list empty</string>
-	<string name="noUsers">User list empty</string>
+	<string name="noUsers">User List Empty</string>
 	<string name="serverAdd">Add Server</string>
 	<string name="serverChange">Change Server</string>
 	<string name="serverPassword">Password</string>
 	<string name="serverUsername">Username</string>
 	<string name="serverPort">Port</string>
 	<string name="serverHost">Address</string>
-	<string name="serverName">Label (Optional)</string>
+	<string name="serverName">Server Label (Optional)</string>
 	<string name="sendText">Send</string>
 	<string name="app_name">Mumble</string>
-	<string name="server_deleted">Server deleted</string>
+	<string name="server_deleted">Server Deleted</string>
 	<string name="chat_message">Chat message</string>
-	<string name="chatReceiverLabel">Receiver</string>
-	<string name="chatReceiverPrompt">Select the receiver</string>
-	<string name="connectionProgressTitle">Establishing Connection</string>
-	<string name="connectionProgressConnectingMessage">Connecting to Mumble</string>
-	<string name="connectionProgressSynchronizingMessage">Synchronizing data with Mumble</string>
+	<string name="chatReceiverLabel">Recipient</string>
+	<string name="chatReceiverPrompt">Select the recipient</string>
+	<string name="connectionProgressTitle">Establishing Connection...</string>
+	<string name="connectionProgressConnectingMessage">Connecting to Mumble...</string>
+	<string name="connectionProgressSynchronizingMessage">Synchronizing data with Mumble..</string>
 	<string name="connectionProgressDisconnectingMessage">Disconnecting...</string>
+    <string name="serverkeystorePasswordEdit">Keystore Password</string>
+    <string name="aboutMumbleText">Mumble-Android Client</string>
+    <string name="aboutMumbleBuild">Build 1.1.1</string>
+    <string name="aboutGitHubForkURL">http://mumble.resbah.com/</string>
+    <string name="aboutDisclaimer">This software should not be sold. For more information on the License surrounding the Mumble source code, please visit: mumble.sf.net</string>
+    <string name="serverkeystoreFileEdit">Keystore path (relative to sdcard)</string>
 </resources>

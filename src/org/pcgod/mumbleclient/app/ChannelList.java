@@ -1,28 +1,34 @@
 package org.pcgod.mumbleclient.app;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
+import android.view.*;
 import org.pcgod.mumbleclient.R;
 import org.pcgod.mumbleclient.Settings;
 import org.pcgod.mumbleclient.service.BaseServiceObserver;
 import org.pcgod.mumbleclient.service.IServiceObserver;
+import org.pcgod.mumbleclient.service.TtsProvider;
 import org.pcgod.mumbleclient.service.model.Channel;
+import org.pcgod.mumbleclient.service.model.Message;
 import org.pcgod.mumbleclient.service.model.User;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.DialogInterface.OnCancelListener;
+import android.content.Intent;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.view.KeyEvent;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
+import android.view.WindowManager;
+import android.view.WindowManager.LayoutParams;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.ListView;
@@ -69,7 +75,7 @@ import android.widget.ToggleButton;
  * @author pcgod, Rantanen
  *
  */
-public class ChannelList extends ConnectedActivity {
+public class ChannelList extends ConnectedActivity implements OnTouchListener {
 	/**
 	 * Handles broadcasts from MumbleService
 	 */
@@ -86,29 +92,58 @@ public class ChannelList extends ConnectedActivity {
 
 		@Override
 		public void onUserAdded(final User user) throws RemoteException {
-			refreshUser(user);
+			if (!firstEnter) TtsProvider.speak(user.name + " connected", true);
+			usersAdapter.refreshUser(user, true);
 		}
 
 		@Override
 		public void onUserRemoved(final User user) throws RemoteException {
+			TtsProvider.speak(user.name + " disconnected", true);
 			usersAdapter.removeUser(user.session);
 		}
 
 		@Override
 		public void onUserUpdated(final User user) throws RemoteException {
-			refreshUser(user);
+			usersAdapter.refreshUser(user, false);
 		}
-
-		private void refreshUser(final User user) {
-			usersAdapter.refreshUser(user);
+		
+		@Override
+		public void onMessageReceived(final Message msg) throws RemoteException {
+			updateChatButton();
 		}
 	}
 
+	class ProximityListener implements SensorEventListener {
+
+		@Override
+		public void onSensorChanged(SensorEvent event) {
+			// Make sure the state actually changed.
+			final boolean close = event.values[0] < 0.5;
+			if (proximityClose == close) return;
+			proximityClose = close;
+
+			if (!mService.isRecording() && close)
+				mService.setRecording(true);
+
+			if (!manualRecord && !close)
+				mService.setRecording(false);
+
+			synchronizeControls();
+		}
+
+		@Override
+		public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+		}
+	}
+	
 	public static final String JOIN_CHANNEL = "join_channel";
 	public static final String SAVED_STATE_VISIBLE_CHANNEL = "visible_channel";
 
-	private static final int MENU_CHAT = Menu.FIRST;
-
+	private static final int MENU_CHAT = 1;
+	private static final int MENU_DIM = 2;
+	private static final int MENU_DISCONNECT = 3;
+	
 	Channel visibleChannel;
 
 	private TextView channelNameText;
@@ -117,6 +152,7 @@ public class ChannelList extends ConnectedActivity {
 	private UserListAdapter usersAdapter;
 	private TextView noUsersText;
 	private ToggleButton speakButton;
+	private Button chatButton;
 	private Button joinButton;
 	private CheckBox speakerCheckBox;
 
@@ -126,6 +162,27 @@ public class ChannelList extends ConnectedActivity {
 	private AlertDialog mDisconnectDialog;
 
 	private Settings settings;
+	private SensorManager sm;
+	private Sensor proximitySensor;
+	private final ProximityListener proximityListener = new ProximityListener();
+	private boolean manualRecord;
+	private boolean proximityClose = false;
+	private boolean screenIsDimmed = false; // indicated wether the screen is currently dimmed
+	private final float dimmedScreenBrightness = 0.01f;
+	private int newChatCount = 0;
+	private ToneGenerator tg;
+	private boolean firstEnter = true;
+	
+	TtsProvider mTts;
+
+    class HierarchyChannel {
+        Channel channel;
+        List<HierarchyChannel> children = new ArrayList<HierarchyChannel>();
+        HierarchyChannel(Channel channel) {
+            this.channel = channel;
+        }
+    }
+
 
 	public final OnClickListener browseButtonClickEvent = new OnClickListener() {
 		@Override
@@ -134,7 +191,7 @@ public class ChannelList extends ConnectedActivity {
 			// the real
 			// channels change.
 			final List<Channel> currentChannels = mService.getChannelList();
-			selectableChannels = new ArrayList<Channel>(currentChannels);
+			selectableChannels = new ArrayList<Channel>();
 
 			final Channel currentChannel = mService.getCurrentChannel();
 			int currentChannelId = -1;
@@ -142,30 +199,79 @@ public class ChannelList extends ConnectedActivity {
 				currentChannelId = currentChannel.id;
 			}
 
-			final Iterator<Channel> i = selectableChannels.iterator();
-			int step = 0;
-			final String[] channelNames = new String[selectableChannels.size()];
-			while (i.hasNext()) {
-				final Channel c = i.next();
-				if (c.id == currentChannelId) {
-					channelNames[step] = String.format(
-						"%s (C, %d)",
-						c.name,
-						c.userCount);
-				} else {
-					channelNames[step] = String.format(
-						"%s (%d)",
-						c.name,
-						c.userCount);
-				}
-				step++;
-			}
+            List<HierarchyChannel> root= new ArrayList<HierarchyChannel>();
+            List<HierarchyChannel> all = new ArrayList<HierarchyChannel>();
+            for (Channel channel : currentChannels) {
+                all.add(new HierarchyChannel(channel));
+            }
+            // find root(s)
+            for (HierarchyChannel channel : all) {
+                if (!channel.channel.hasParent) {
+                    root.add(channel);
+                }
+            }
+
+            for (Channel channel : currentChannels) {
+                if (findChannel(root, channel.id) == null) {
+                    HierarchyChannel parent = findChannel(all, channel.parent);
+                    if (parent != null) {
+                        parent.children.add(findChannel(all, channel.id));
+                    } else {
+                        root.add(findChannel(all, channel.id));
+                    }
+                }
+            }
+
+            final ArrayList<String> channelNames = new ArrayList<String>();
+            buildChannelList(channelNames, root, 0, currentChannelId, selectableChannels);
+
+            String[] namesArray = new String[channelNames.size()];
+            int i=0;
+            for (String name : channelNames) {
+                namesArray[i] = name;
+                i++;
+            }
 
 			new AlertDialog.Builder(ChannelList.this).setCancelable(true).setItems(
-				channelNames,
+				namesArray,
 				channelListClickEvent).show();
 		}
 	};
+
+    private HierarchyChannel findChannel(Collection<HierarchyChannel> list, int id) {
+        for (HierarchyChannel channel : list) {
+            if (channel.channel.id == id) {
+                return channel;
+            }
+        }
+        return null;
+    }
+
+    private void buildChannelList(ArrayList<String> channelNames, List<HierarchyChannel> channels, int level, int currentChannelId, List<Channel> selectableChannels) {
+        for (HierarchyChannel channel : channels) {
+            StringBuilder sb = new StringBuilder();
+            for (int i=0; i<level; i++) {
+                sb.append("\t");
+            }
+            if (channel.channel.id == currentChannelId) {
+					sb.append(String.format(
+						"%s (%d) (current)",
+						channel.channel.name,
+						channel.channel.userCount));
+            } else {
+                sb.append(String.format(
+                    "%s (%d)",
+                    channel.channel.name,
+                    channel.channel.userCount));
+            }
+            channelNames.add(sb.toString());
+            selectableChannels.add(channel.channel);
+            if (!channel.children.isEmpty()) {
+                buildChannelList(channelNames, channel.children, level+1, currentChannelId, selectableChannels);
+            }
+        }
+    }
+
 
 	public final DialogInterface.OnClickListener channelListClickEvent = new DialogInterface.OnClickListener() {
 		@Override
@@ -182,7 +288,14 @@ public class ChannelList extends ConnectedActivity {
 
 	private final OnClickListener speakButtonClickEvent = new OnClickListener() {
 		public void onClick(final View v) {
-			mService.setRecording(!mService.isRecording());
+			manualRecord = !mService.isRecording();
+			mService.setRecording(manualRecord);
+		}
+	};
+	
+	private final OnClickListener chatButtonClickEvent = new OnClickListener() {
+		public void onClick(final View v) {
+			showChat();
 		}
 	};
 
@@ -196,7 +309,11 @@ public class ChannelList extends ConnectedActivity {
 	@Override
 	public final boolean onCreateOptionsMenu(final Menu menu) {
 		menu.add(0, MENU_CHAT, 0, "Chat").setIcon(
-			android.R.drawable.ic_btn_speak_now);
+			android.R.drawable.ic_menu_send);
+		menu.add(0, MENU_DIM, 0, R.string.screenOffText).setIcon(
+				android.R.drawable.ic_menu_view);
+		menu.add(0, MENU_DISCONNECT, 0, R.string.disconnect).setIcon(
+				android.R.drawable.ic_menu_close_clear_cancel);
 		return true;
 	}
 
@@ -213,6 +330,20 @@ public class ChannelList extends ConnectedActivity {
 
 			return true;
 		}
+		
+		else if (keyCode == settings.getPttKey() && event.getRepeatCount() == 0) {
+			manualRecord = !mService.isRecording();
+			mService.setRecording(manualRecord);
+			
+			if (settings.isEventSoundsEnabled()){
+			if (manualRecord) tg.startTone(ToneGenerator.TONE_PROP_BEEP2);
+			else tg.startTone(ToneGenerator.TONE_PROP_PROMPT);
+			}
+			
+			synchronizeControls();
+			
+			return true;
+		}	
 
 		return super.onKeyDown(keyCode, event);
 	}
@@ -223,8 +354,20 @@ public class ChannelList extends ConnectedActivity {
 		final MenuItem item) {
 		switch (item.getItemId()) {
 		case MENU_CHAT:
-			final Intent i = new Intent(this, ChatActivity.class);
-			startActivity(i);
+			showChat();
+			return true;
+		case MENU_DIM:
+			if (!screenIsDimmed) dimScreen(true);
+			else dimScreen(false);
+			return true;
+		case MENU_DISCONNECT:
+			final AlertDialog.Builder b = new AlertDialog.Builder(this);
+			b.setIcon(android.R.drawable.ic_dialog_alert);
+			b.setTitle("Disconnect");
+			b.setMessage("Are you sure you want to disconnect from Mumble?");
+			b.setPositiveButton(android.R.string.yes, onDisconnectConfirm);
+			b.setNegativeButton(android.R.string.no, null);
+			mDisconnectDialog = b.show();
 			return true;
 		default:
 			return super.onMenuItemSelected(featureId, item);
@@ -270,6 +413,11 @@ public class ChannelList extends ConnectedActivity {
 			mProgressDialog.dismiss();
 			mProgressDialog = null;
 		}
+		
+
+		manualRecord = mService.isRecording();
+		if (proximitySensor != null)
+			sm.registerListener(proximityListener, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
 
 		// If we don't have visible channel selected, default to the current channel.
 		// Setting channel also synchronizes the UI so we don't need to do it manually.
@@ -279,12 +427,17 @@ public class ChannelList extends ConnectedActivity {
 		// is paused the channel isn't updated when the activity resumes.
 		if (visibleChannel == null) {
 			setChannel(mService.getCurrentChannel());
+            TtsProvider.speak("connected to " + visibleChannel.name, false);
 		} else {
 			synchronizeControls();
 			usersAdapter.notifyDataSetChanged();
 		}
 
 		usersAdapter.setUsers(mService.getUserList());
+		
+		if (firstEnter==true) {
+			firstEnter = false;
+		}
 	}
 
 	/**
@@ -336,7 +489,7 @@ public class ChannelList extends ConnectedActivity {
 		// onConnected has not been called yet (and thus visibleChannel has not
 		// been set).
 		if (mService == null || mService.getCurrentChannel() == null ||
-			visibleChannel == null) {
+			visibleChannel == null || proximityClose) {
 			findViewById(R.id.connectionViewRoot).setVisibility(View.GONE);
 			speakButton.setEnabled(false);
 			joinButton.setEnabled(false);
@@ -354,8 +507,45 @@ public class ChannelList extends ConnectedActivity {
 			}
 			channelNameText.setText(visibleChannel.name);
 		}
-	}
 
+		final LayoutParams lp = getWindow().getAttributes();
+		if (proximityClose) lp.screenBrightness = 0;
+		else if (!screenIsDimmed) lp.screenBrightness = -1;
+		else lp.screenBrightness = dimmedScreenBrightness;
+		getWindow().setAttributes(lp);
+	}
+	
+	private void showChat() {
+		final Intent i = new Intent(this, ChatActivity.class);
+		startActivity(i);
+		newChatCount = 0;
+		chatButton.setText("Chat");
+	}
+	
+	private void updateChatButton() {
+		if (settings.isEventSoundsEnabled()) tg.startTone(ToneGenerator.TONE_PROP_ACK);
+		newChatCount++;
+		chatButton.setText("Chat ("+ newChatCount + " new)");
+	}
+	
+	/**
+	 * Dims the screen to set/normal brightness
+	 * 
+	 * @param dim <code>true</code> to dim the screen or <code>false</code> to return to normal brightness
+	 */
+	private void dimScreen(boolean dim){
+		final LayoutParams lp = getWindow().getAttributes();
+		if (dim) {
+			lp.screenBrightness = dimmedScreenBrightness;
+			screenIsDimmed = true;
+		}
+		else {
+			lp.screenBrightness = -1;
+			screenIsDimmed = false;
+		}
+		getWindow().setAttributes(lp);
+	}
+	
 	@Override
 	protected IServiceObserver createServiceObserver() {
 		return new ChannelServiceObserver();
@@ -364,24 +554,45 @@ public class ChannelList extends ConnectedActivity {
 	@Override
 	protected final void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.channel_list);
 
 		settings = new Settings(this);
 		setVolumeControlStream(settings.getAudioStream());
-
+		
+		sm = (SensorManager)getSystemService(SENSOR_SERVICE);
+		if (settings.isProximityEnabled())
+			proximitySensor = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+		
+		if (settings.isEventSoundsEnabled()){
+			tg = new ToneGenerator(AudioManager.STREAM_SYSTEM, settings.eventSoundsVolume());
+		}
+		
+		if (settings.keepScreenOn()){
+			this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		}
+		
+		if (settings.fullscreen()){
+			this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		}
+		
 		// Get the UI views
 		channelNameText = (TextView) findViewById(R.id.channelName);
 		browseButton = (Button) findViewById(R.id.browseButton);
 		channelUsersList = (ListView) findViewById(R.id.channelUsers);
 		noUsersText = (TextView) findViewById(R.id.noUsersText);
 		speakButton = (ToggleButton) findViewById(R.id.speakButton);
+		chatButton = (Button) findViewById(R.id.chatButton);
 		joinButton = (Button) findViewById(R.id.joinButton);
 		speakerCheckBox = (CheckBox) findViewById(R.id.speakerCheckBox);
+		
+		channelUsersList.setOnTouchListener(this);
 
 		// Set event handlers.
 		browseButton.setOnClickListener(browseButtonClickEvent);
 		joinButton.setOnClickListener(joinButtonClickEvent);
 		speakButton.setOnClickListener(speakButtonClickEvent);
+		chatButton.setOnClickListener(chatButtonClickEvent);
 
 		usersAdapter = new UserListAdapter(this, channelUsersList, null);
 		channelUsersList.setAdapter(usersAdapter);
@@ -405,6 +616,8 @@ public class ChannelList extends ConnectedActivity {
 
 	@Override
 	protected final void onPause() {
+		if (proximityListener != null)
+			sm.unregisterListener(proximityListener);
 		super.onPause();
 		cleanDialogs();
 	}
@@ -421,4 +634,14 @@ public class ChannelList extends ConnectedActivity {
 	@Override
 	protected final void onServiceBound() {
 	}
+
+	/**
+	 * Return to normal brightness if a usertouch occurs and screen was dimmed
+	 */
+	@Override
+	public boolean onTouch(View v, MotionEvent event) {
+		dimScreen(false);
+		return false;
+	}
+	
 }
